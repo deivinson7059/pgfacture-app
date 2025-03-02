@@ -47,6 +47,7 @@ export class Puc {
         name: 'plcu_creation_date',
         type: 'timestamp',
         precision: 6,
+        transformer: dateTransformer()
     })
     //@Column({ name: 'PLCU_CREATION_DATE', type: 'date', default: () => 'CURRENT_DATE' })
     @Expose({ name: 'creation_date' }) // Mapear a "creation_date"
@@ -62,6 +63,7 @@ export class Puc {
         name: 'plcu_updated_date',
         type: 'timestamp',
         precision: 6,
+        transformer: dateTransformer()
     })
     //@Column({ name: 'PLCU_UPDATED_DATE', type: 'date', default: () => 'CURRENT_DATE' })
     @Expose({ name: 'updated_date' }) // Mapear a "change_date"

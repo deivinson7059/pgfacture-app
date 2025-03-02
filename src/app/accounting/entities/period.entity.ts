@@ -43,7 +43,12 @@ export class Period {
   @Expose({ name: 'closed_by' })
   accp_closed_by: string | null;
 
-  @Column({ name: 'accp_closed_date', type: 'timestamp', nullable: true, transformer: dateTransformer() })
+  @Column({ 
+    name: 'accp_closed_date', 
+    type: 'timestamp', 
+    nullable: true, 
+    transformer: dateTransformer() 
+})
   @Expose({ name: 'closed_date' })
   accp_closed_date: Date | null;
 

@@ -52,6 +52,7 @@ export class NoteLine {
     name: 'acnl_creation_date',
     type: 'timestamp',
     precision: 6,
+    transformer: dateTransformer(),
   })
   @Expose({ name: 'creation_date' })
   acnl_creation_date: Date;

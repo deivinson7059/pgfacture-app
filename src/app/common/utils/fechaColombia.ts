@@ -15,39 +15,19 @@ export function getFechaLocal(fechaUTC: Date = new Date()): Date {
     return fechaColombia;
 }
 export const dateTransformer = () => ({
-    to: (value: any): Date | null => {
-        if (value === null || value === undefined) return null;
+    from: (date_: Date | string | number | null | undefined) => {
+        // Si no hay valor, usa la fecha actual en zona horaria de Bogotá
+        const date = date_ ? new Date(date_) : new Date();
+        if (isNaN(date.getTime())) return formatInTimeZone(new Date(), 'America/Bogota', 'yyyy-MM-dd HH:mm:ss.SSSSSS'); // Maneja fechas inválidas
 
-        try {
-            if (value instanceof Date) return value;
-            return new Date(value);
-        } catch (error) {
-            console.error('Error transformando fecha (to):', error, value);
-            return null;
-        }
+        const zonedDate = toZonedTime(date, 'America/Bogota');
+        return formatInTimeZone(zonedDate, 'America/Bogota', 'yyyy-MM-dd HH:mm:ss.SSSSSS');
     },
-    from: (value: any): string | null => {
-        if (value === null || value === undefined) return null;
-
-        try {
-            const date = value instanceof Date ? value : new Date(value);
-
-            // Verificar que la fecha es válida
-            if (isNaN(date.getTime())) {
-                console.error('Fecha inválida:', value);
-                return null;
-            }
-
-            // Formatear en zona horaria de Colombia
-            return formatInTimeZone(date, 'America/Bogota', 'yyyy-MM-dd HH:mm:ss');
-        } catch (error) {
-            console.error('Error transformando fecha (from):', error, value);
-            return null;
-        }
-    }
+    to: (value: string | null | undefined) => value || formatInTimeZone(new Date(), 'America/Bogota', 'yyyy-MM-dd HH:mm:ss.SSSSSS') // Si es null, guarda la fecha actual
 });
-export const dateTransformer_ = () => ({
-    from: (date: Date) => {
+export const dateTransformer_ = () => ({   
+    from: (date_: Date) => {
+        const date = date_ instanceof Date ? date_ : new Date(date_);       
         const zonedDate = toZonedTime(date, 'America/Bogota');
         return formatInTimeZone(
             zonedDate,
@@ -56,6 +36,7 @@ export const dateTransformer_ = () => ({
         );
     },
     to: (value: string) => value
+    
 });
 
 export const dateTransformerLoc = () => ({

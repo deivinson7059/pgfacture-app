@@ -96,6 +96,7 @@ export class Journal {
     name: 'accj_creation_date',
     type: 'timestamp',
     precision: 6,
+    transformer: dateTransformer(),
   })
   @Expose({ name: 'creation_date' })
   accj_creation_date: Date;

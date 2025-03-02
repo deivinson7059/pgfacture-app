@@ -86,7 +86,8 @@ export class Seat {
     @CreateDateColumn({
         name: 'acch_creation_date',
         type: 'timestamp',
-        precision: 6
+        precision: 6,
+        transformer: dateTransformer(),
     })
     @Expose({ name: 'creation_date' }) // Mapear a "creation_date"
     acch_creation_date: Date; // Fecha de creación
@@ -98,7 +99,8 @@ export class Seat {
     @CreateDateColumn({
         name: 'acch_updated_date',
         type: 'timestamp',
-        precision: 6    
+        precision: 6,
+        transformer: dateTransformer(),
     })
     @Expose({ name: 'updated_date' }) // Mapear a "updated_date"
     acch_updated_date: Date; // Fecha de última modificación

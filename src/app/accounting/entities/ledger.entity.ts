@@ -70,6 +70,7 @@ export class Ledger {
     name: 'accl_creation_date',
     type: 'timestamp',
     precision: 6,
+    transformer: dateTransformer(),
   })
   @Expose({ name: 'creation_date' })
   accl_creation_date: Date;
@@ -82,6 +83,7 @@ export class Ledger {
     name: 'accl_updated_date',
     type: 'timestamp',
     precision: 6,
+    transformer: dateTransformer(),
   })
   @Expose({ name: 'updated_date' })
   accl_updated_date: Date;
