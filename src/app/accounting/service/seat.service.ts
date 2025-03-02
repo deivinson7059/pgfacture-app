@@ -36,8 +36,8 @@ export class SeatService {
 
 
             // Establecer valores predeterminados para clientes si no se proporcionan
-            asientoData.acch_customers_name = asientoData.acch_customers_name || '--';
-            asientoData.acch_customers = asientoData.acch_customers || '-';
+            asientoData.customers_name = asientoData.customers_name || '--';
+            asientoData.customers = asientoData.customers || '-';
 
             // Crear un asiento por cada movimiento
             const asientosCreados: Seat[] = [];
@@ -57,7 +57,7 @@ export class SeatService {
                 // Validar cuenta en el plan de cuentas para este movimiento
                 const accountPlan = await this.accountPlanRepository.findOne({
                     where: {
-                        plcu_cmpy: In(['ALL', asientoData.acch_cmpy]),
+                        plcu_cmpy: In(['ALL', asientoData.cmpy]),
                         plcu_id: movimiento.account,
                     },
                 });
@@ -68,17 +68,22 @@ export class SeatService {
                 }
 
 
-                const seatId = await this.getNextSeatId(queryRunner, asientoData.acch_cmpy);
+                const seatId = await this.getNextSeatId(queryRunner, asientoData.cmpy);
 
                 const nuevoAsiento = this.asientoRepository.create({
                     acch_id: seatId,
-                    ...asientoData,
+                    acch_cmpy: asientoData.cmpy,
+                    acch_ware: asientoData.ware,
+                    acch_year: asientoData.year,
+                    acch_per: asientoData.per,
+                    acch_customers: asientoData.customers,
+                    acch_detbin: asientoData.detbin,
                     acch_code: codigo,
                     acch_account: movimiento.account,
                     acch_account_name: accountPlan.plcu_description,
                     acch_debit: debit,
                     acch_credit: credit,
-                    acch_creation_by: asientoData.acch_creation_by || 'system',
+                    acch_creation_by: asientoData.creation_by || 'system',
                 });
 
                 const asientoGuardado = await this.asientoRepository.manager.transaction(async (entityManager) => {
@@ -90,20 +95,20 @@ export class SeatService {
                 // Crear entrada en el libro diario
                 const journalEntry = queryRunner.manager.create(Journal, {
                     accj_id: seatId,
-                    accj_cmpy: asientoData.acch_cmpy,
+                    accj_cmpy: asientoData.cmpy,
                     accj_line_number: i + 1,
-                    accj_ware: asientoData.acch_ware,
-                    accj_year: asientoData.acch_year,
-                    accj_per: asientoData.acch_per,
+                    accj_ware: asientoData.ware,
+                    accj_year: asientoData.year,
+                    accj_per: asientoData.per,
                     accj_code: codigo,
                     accj_account: movimiento.account,
                     accj_account_name: accountPlan.plcu_description,
                     accj_debit: movimiento.debit || 0,
                     accj_credit: movimiento.credit || 0,
-                    accj_detbin: asientoData.acch_detbin,
-                    accj_customers: asientoData.acch_customers,
-                    accj_customers_name: asientoData.acch_customers_name,
-                    accj_creation_by: asientoData.acch_creation_by,
+                    accj_detbin: asientoData.detbin,
+                    accj_customers: asientoData.customers,
+                    accj_customers_name: asientoData.customers_name,
+                    accj_creation_by: asientoData.creation_by,
                     accj_is_closing_entry: false,
                 });
 
@@ -113,15 +118,15 @@ export class SeatService {
                 // Actualizar libro mayor
                 await this.updateLedger(
                     queryRunner,
-                    asientoData.acch_cmpy,
-                    asientoData.acch_ware,
-                    asientoData.acch_year,
-                    asientoData.acch_per,
+                    asientoData.cmpy,
+                    asientoData.ware,
+                    asientoData.year,
+                    asientoData.per,
                     movimiento.account,
                     accountPlan.plcu_description,
                     movimiento.debit || 0,
                     movimiento.credit || 0,
-                    asientoData.acch_creation_by
+                    asientoData.creation_by
                 );
             }
 

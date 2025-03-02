@@ -22,40 +22,40 @@ export class CrearSeatDto {
     @IsNotEmpty()
     @IsString()
     @Length(1, 10)
-    acch_cmpy: string;
+    cmpy: string;
 
     @IsNotEmpty()
     @IsString()
     @Length(1, 190)
-    acch_ware: string;
+    ware: string;
 
     @IsNotEmpty()
     @IsInt()
-    acch_year: number;
+    year: number;
 
     @IsNotEmpty()
     @IsInt()
     @Min(1, { message: 'El período debe estar entre 1 y 13.' })
     @Max(13, { message: 'El período debe estar entre 1 y 13.' })
-    acch_per: number;
+    per: number;
 
     @IsString()
     @Length(1, 60)
-    acch_customers: string;
+    customers: string;
 
     @IsOptional()
     @IsString()
     @Length(1, 60)
-    acch_customers_name?: string;
+    customers_name?: string;
 
     @IsNotEmpty()
     @IsString()
-    acch_creation_by: string;
+    creation_by: string;
 
     @IsOptional()
     @IsString()
     @Length(1, 100)
-    acch_detbin?: string;
+    detbin?: string;
 
     @ValidateNested({ each: true })
     @Type(() => MovimientoDto)

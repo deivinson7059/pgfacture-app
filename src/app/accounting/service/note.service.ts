@@ -214,14 +214,14 @@ export class NoteService {
             });
         });
         const asientoData: CrearSeatDto = {
-            acch_cmpy: note.acnh_cmpy,
-            acch_ware: note.acnh_ware,
-            acch_year: note.acnh_year,
-            acch_per: note.acnh_per,
-            acch_customers: note.acnh_customer,
-            acch_customers_name: note.acnh_customer_name,
-            acch_detbin: `Nota Contable ${note.acnh_code}: ${note.acnh_description || ''}`,
-            acch_creation_by: note.acnh_updated_by || note.acnh_creation_by,
+            cmpy: note.acnh_cmpy,
+            ware: note.acnh_ware,
+            year: note.acnh_year,
+            per: note.acnh_per,
+            customers: note.acnh_customer,
+            customers_name: note.acnh_customer_name,
+            detbin: `Nota Contable ${note.acnh_code}: ${note.acnh_description || ''}`,
+            creation_by: note.acnh_updated_by || note.acnh_creation_by,
             movimientos: sientoMov
         }
         // Llamar al servicio de asientos para contabilizar

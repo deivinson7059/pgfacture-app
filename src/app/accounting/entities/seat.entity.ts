@@ -1,6 +1,6 @@
 import { Expose, Transform } from 'class-transformer';
 import { dateTransformer } from 'src/app/common/utils/fechaColombia';
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index, PrimaryColumn, BeforeInsert } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index, PrimaryColumn, BeforeInsert, UpdateDateColumn } from 'typeorm';
 
 @Entity({ schema: 'pgfacture', name: 'pg_accounting_seat' }) // Nombre de la tabla en la base de datos
 @Index('idx_accounting_seat_cmpy', ['acch_cmpy', 'acch_ware']) // Índice compuesto para filtros
@@ -75,14 +75,14 @@ export class Seat {
     @Expose({ name: 'customers' }) // Mapear a "customers"
     acch_customers: string; // Código del cliente/proveedor
 
-    @Column({ name: 'acch_customers_name', type: 'varchar', length: 500 })
+    @Column({ name: 'acch_customers_name', type: 'varchar', length: 500,nullable: true })
     @Expose({ name: 'customers_name' }) // Mapear a "customers_name"
-    acch_customers_name: string; // Nombre del cliente/proveedor
+    acch_customers_name: string | null; // Nombre del cliente/proveedor
 
     @Column({ name: 'acch_creation_by', type: 'varchar', length: 30 })
     @Expose({ name: 'creation_by' }) // Mapear a "creation_by"
-    acch_creation_by: string; // Usuario que registró
-
+    acch_creation_by: string | null; // Usuario que registró
+ 
     @CreateDateColumn({
         name: 'acch_creation_date',
         type: 'timestamp',
@@ -96,7 +96,7 @@ export class Seat {
     @Expose({ name: 'updated_by' }) // Mapear a "updated_by"
     acch_updated_by: string | null; // Usuario que actualizó
 
-    @CreateDateColumn({
+    @UpdateDateColumn({
         name: 'acch_updated_date',
         type: 'timestamp',
         precision: 6,
