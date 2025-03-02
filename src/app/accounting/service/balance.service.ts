@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { Balance, BalanceDetail, Ledger, Period, Puc } from "../entities";
 import { DataSource, QueryRunner, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
+import { toNumber } from "src/app/common/utils/utils";
 
 @Injectable()
 export class BalanceService {
@@ -125,12 +126,12 @@ export class BalanceService {
                 const balance = accountBalances.get(accountId);
 
                 // Actualizar saldos de la cuenta directa
-                balance!.initialDebit += this.toNumber(entry.accl_initial_debit);
-                balance!.initialCredit += this.toNumber(entry.accl_initial_credit);
-                balance!.periodDebit += this.toNumber(entry.accl_period_debit);
-                balance!.periodCredit += this.toNumber(entry.accl_period_credit);
-                balance!.finalDebit += this.toNumber(entry.accl_final_debit);
-                balance!.finalCredit += this.toNumber(entry.accl_final_credit);
+                balance!.initialDebit += toNumber(entry.accl_initial_debit);
+                balance!.initialCredit += toNumber(entry.accl_initial_credit);
+                balance!.periodDebit += toNumber(entry.accl_period_debit);
+                balance!.periodCredit += toNumber(entry.accl_period_credit);
+                balance!.finalDebit += toNumber(entry.accl_final_debit);
+                balance!.finalCredit += toNumber(entry.accl_final_credit);
             }
 
             // 6. Propagar los saldos hacia arriba en la jerarquía
@@ -270,7 +271,7 @@ export class BalanceService {
 
             for (const detail of classDetailsQueryResult) {
                 const firstDigit = detail.acbd_account.charAt(0);
-                const balance = this.toNumber(detail.acbd_balance);
+                const balance = toNumber(detail.acbd_balance);
 
                 if (firstDigit === '1') {
                     totalActivo += balance;
@@ -447,12 +448,12 @@ export class BalanceService {
 
             ledgerEntries.forEach(entry => {
                 balanceMap.set(entry.accl_account, {
-                    debit: this.toNumber(entry.accl_final_debit),
-                    credit: this.toNumber(entry.accl_final_credit),
-                    initialDebit: this.toNumber(entry.accl_initial_debit),
-                    initialCredit: this.toNumber(entry.accl_initial_credit),
-                    periodDebit: this.toNumber(entry.accl_period_debit),
-                    periodCredit: this.toNumber(entry.accl_period_credit),
+                    debit: toNumber(entry.accl_final_debit),
+                    credit: toNumber(entry.accl_final_credit),
+                    initialDebit: toNumber(entry.accl_initial_debit),
+                    initialCredit: toNumber(entry.accl_initial_credit),
+                    periodDebit: toNumber(entry.accl_period_debit),
+                    periodCredit: toNumber(entry.accl_period_credit),
                 });
             });
 
@@ -563,14 +564,7 @@ export class BalanceService {
             await queryRunner.release();
         }
     }
-
-    // Método utilitario para convertir valores a número
-    private toNumber(value: any): number {
-        if (value === null || value === undefined) return 0;
-        if (typeof value === 'number') return value;
-        if (typeof value === 'string') return Number(value);
-        return 0;
-    }
+    
 
     // Obtener balance con estructura jerárquica
     async obtenerBalance(
@@ -613,13 +607,13 @@ export class BalanceService {
                 level: detail.acbd_level,
                 parent_account: detail.acbd_parent_account,
                 is_total_row: detail.acbd_is_total_row,
-                initial_debit: this.toNumber(detail.acbd_initial_debit),
-                initial_credit: this.toNumber(detail.acbd_initial_credit),
-                period_debit: this.toNumber(detail.acbd_period_debit),
-                period_credit: this.toNumber(detail.acbd_period_credit),
-                final_debit: this.toNumber(detail.acbd_final_debit),
-                final_credit: this.toNumber(detail.acbd_final_credit),
-                balance: this.toNumber(detail.acbd_balance),
+                initial_debit: toNumber(detail.acbd_initial_debit),
+                initial_credit: toNumber(detail.acbd_initial_credit),
+                period_debit: toNumber(detail.acbd_period_debit),
+                period_credit: toNumber(detail.acbd_period_credit),
+                final_debit: toNumber(detail.acbd_final_debit),
+                final_credit: toNumber(detail.acbd_final_credit),
+                balance: toNumber(detail.acbd_balance),
                 children: []
             });
         });

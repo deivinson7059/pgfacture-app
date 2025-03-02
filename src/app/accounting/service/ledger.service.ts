@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, LessThanOrEqual, MoreThanOrEqual, In } from 'typeorm';
 import { Ledger } from '../entities/ledger.entity';
 import { apiResponse } from 'src/app/common/interfaces/common.interface';
+import { toNumber } from 'src/app/common/utils/utils';
 
 @Injectable()
 export class LedgerService {
@@ -114,8 +115,8 @@ export class LedgerService {
         const isDebitNature = ['1', '5', '6', '7'].includes(accountFirstDigit);
 
         // Calcular balance según la naturaleza de la cuenta
-        const finalDebit = this.toNumber(ledgerEntry.accl_final_debit);
-        const finalCredit = this.toNumber(ledgerEntry.accl_final_credit);
+        const finalDebit = toNumber(ledgerEntry.accl_final_debit);
+        const finalCredit = toNumber(ledgerEntry.accl_final_credit);
         
         const balance = isDebitNature 
             ? finalDebit - finalCredit 
@@ -156,8 +157,8 @@ export class LedgerService {
         // Actualizar con los valores reales
         ledgerEntries.forEach(entry => {
             const account = entry.accl_account;
-            const finalDebit = this.toNumber(entry.accl_final_debit);
-            const finalCredit = this.toNumber(entry.accl_final_credit);
+            const finalDebit = toNumber(entry.accl_final_debit);
+            const finalCredit = toNumber(entry.accl_final_credit);
             
             const accountFirstDigit = account.charAt(0);
             const isDebitNature = ['1', '5', '6', '7'].includes(accountFirstDigit);
@@ -205,12 +206,12 @@ export class LedgerService {
 
         // Preparar análisis mensual
         const analysis = ledgerEntries.map(entry => {
-            const initialDebit = this.toNumber(entry.accl_initial_debit);
-            const initialCredit = this.toNumber(entry.accl_initial_credit);
-            const periodDebit = this.toNumber(entry.accl_period_debit);
-            const periodCredit = this.toNumber(entry.accl_period_credit);
-            const finalDebit = this.toNumber(entry.accl_final_debit);
-            const finalCredit = this.toNumber(entry.accl_final_credit);
+            const initialDebit = toNumber(entry.accl_initial_debit);
+            const initialCredit = toNumber(entry.accl_initial_credit);
+            const periodDebit = toNumber(entry.accl_period_debit);
+            const periodCredit = toNumber(entry.accl_period_credit);
+            const finalDebit = toNumber(entry.accl_final_debit);
+            const finalCredit = toNumber(entry.accl_final_credit);
             
             const initialBalance = isDebitNature 
                 ? initialDebit - initialCredit 
@@ -275,12 +276,5 @@ export class LedgerService {
             // Aquí irían los movimientos detallados
         };
     }
-
-    // Utilidad para convertir a número cualquier valor
-    private toNumber(value: any): number {
-        if (value === null || value === undefined) return 0;
-        if (typeof value === 'number') return value;
-        if (typeof value === 'string') return Number(value);
-        return 0;
-    }
+  
 }

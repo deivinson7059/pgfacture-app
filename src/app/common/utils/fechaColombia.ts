@@ -1,5 +1,4 @@
 import { toZonedTime, format, formatInTimeZone } from 'date-fns-tz';
-import { ValueTransformer } from 'typeorm';
 
 // Convertir fechas a la zona horaria de Colombia
 export const fechaLocal = (fechaUTC: Date) =>
@@ -49,4 +48,21 @@ export const dateTransformerLoc = () => ({
         );
     },
     to: (value: string) => value
+});
+ 
+export const dateTransformerLoc_ = () => ({
+    from: (value: Date | null) => {
+        // De la BD a la app: convierte la fecha a string 'yyyy-MM-dd'
+        if (!value) return null;
+        const zonedDate = toZonedTime(value, 'America/Bogota');
+        return formatInTimeZone(zonedDate, 'America/Bogota', 'yyyy-MM-dd');
+    },
+    to: (value: string | Date | null) => {
+        // De la app a la BD: convierte el valor a un objeto Date para el tipo 'date'
+        if (!value) return null;
+        const date = value instanceof Date ? value : new Date(value);
+        const zonedDate = toZonedTime(date, 'America/Bogota');
+        // Devuelve solo la fecha como Date sin hora
+        return new Date(formatInTimeZone(zonedDate, 'America/Bogota', 'yyyy-MM-dd'));
+    }
 });

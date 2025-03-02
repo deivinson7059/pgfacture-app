@@ -5,6 +5,7 @@ import { SeatService } from './seat.service';
 import { PeriodService } from './period.service';
 import { NoteHeader, NoteLine } from '../entities';
 import { CrearSeatDto, CreateNoteDto, MovimientoDto, UpdateNoteStatusDto } from '../dto';
+import { toNumber } from 'src/app/common/utils/utils';
 
 @Injectable()
 export class NoteService {
@@ -42,8 +43,8 @@ export class NoteService {
             let totalDebit = 0;
             let totalCredit = 0;
             createNoteDto.lines.forEach(line => {
-                totalDebit += this.toNumber(line.debit);
-                totalCredit += this.toNumber(line.credit);
+                totalDebit += toNumber(line.debit);
+                totalCredit += toNumber(line.credit);
             });
 
             // Verificar partida doble
@@ -80,8 +81,8 @@ export class NoteService {
                     acnl_account: lineDto.account,
                     acnl_account_name: lineDto.account_name,
                     acnl_description: lineDto.description,
-                    acnl_debit: this.toNumber(lineDto.debit),
-                    acnl_credit: this.toNumber(lineDto.credit),
+                    acnl_debit: toNumber(lineDto.debit),
+                    acnl_credit: toNumber(lineDto.credit),
                     acnl_reference: lineDto.reference,
                     acnl_creation_by: createNoteDto.creation_by
                 });
@@ -261,12 +262,5 @@ export class NoteService {
         }
 
         return `NC-${cmpy}-${year}-${secuencial.toString().padStart(5, '0')}`;
-    }
-
-    private toNumber(value: any): number {
-        if (value === null || value === undefined) return 0;
-        if (typeof value === 'number') return value;
-        if (typeof value === 'string') return Number(value);
-        return 0;
-    }
+    }   
 }

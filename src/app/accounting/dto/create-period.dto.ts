@@ -53,3 +53,9 @@ export class CreateYearPeriodsDto {
   @IsString()
   creation_by: string;
 }
+
+export class ClosePeriodDto {
+  @IsNotEmpty()
+  @IsString()
+  userId: string;
+}
