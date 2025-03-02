@@ -1,0 +1,347 @@
+import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { DataSource, In, QueryRunner, Repository } from 'typeorm';
+
+import { Balance, BalanceDetail, Journal, Ledger, Period, Puc, Seat } from '../entities';
+import { CrearSeatDto } from '../dto';
+
+@Injectable()
+export class SeatService {
+    constructor(
+        @InjectRepository(Seat)
+        private asientoRepository: Repository<Seat>,
+        @InjectRepository(Journal)
+        private journalRepository: Repository<Journal>,
+        @InjectRepository(Ledger)
+        private ledgerRepository: Repository<Ledger>,
+        @InjectRepository(Balance)
+        private balanceRepository: Repository<Balance>,
+        @InjectRepository(BalanceDetail)
+        private balanceDetailRepository: Repository<BalanceDetail>,
+        @InjectRepository(Puc)
+        private accountPlanRepository: Repository<Puc>,
+        @InjectRepository(Period)
+        private periodRepository: Repository<Period>,
+        private dataSource: DataSource,
+    ) { }
+
+    // Crear asiento contable
+    async crearAsiento(asientoData: CrearSeatDto) {
+
+        const queryRunner = this.dataSource.createQueryRunner();
+
+        try {
+            await queryRunner.connect();
+            await queryRunner.startTransaction();
+
+
+            // Establecer valores predeterminados para clientes si no se proporcionan
+            asientoData.acch_customers_name = asientoData.acch_customers_name || '--';
+            asientoData.acch_customers = asientoData.acch_customers || '-';
+
+            // Crear un asiento por cada movimiento
+            const asientosCreados: Seat[] = [];
+
+            // Generar código único para este asiento
+            const codigo = await this.generateCode(6);
+
+            // Crear las entradas del journal (libro diario)
+            const journalEntries: Journal[] = [];
+
+            for (let i = 0; i < asientoData.movimientos.length; i++) {
+                const movimiento = asientoData.movimientos[i];
+                // Validar que cada movimiento tenga solo un valor (debit o credit)
+                const debit = movimiento.debit || 0;
+                const credit = movimiento.credit || 0;
+
+                // Validar cuenta en el plan de cuentas para este movimiento
+                const accountPlan = await this.accountPlanRepository.findOne({
+                    where: {
+                        plcu_cmpy: In(['ALL', asientoData.acch_cmpy]),
+                        plcu_id: movimiento.account,
+                    },
+                });
+
+
+                if (!accountPlan) {
+                    throw new NotFoundException(`Cuenta ${movimiento.account} no encontrada en el plan de cuentas`);
+                }
+
+
+                const seatId = await this.getNextSeatId(queryRunner, asientoData.acch_cmpy);
+
+                const nuevoAsiento = this.asientoRepository.create({
+                    acch_id: seatId,
+                    ...asientoData,
+                    acch_code: codigo,
+                    acch_account: movimiento.account,
+                    acch_account_name: accountPlan.plcu_description,
+                    acch_debit: debit,
+                    acch_credit: credit,
+                    acch_creation_by: asientoData.acch_creation_by || 'system',
+                });
+
+                const asientoGuardado = await this.asientoRepository.manager.transaction(async (entityManager) => {
+                    return await entityManager.save(nuevoAsiento);
+                });
+
+                asientosCreados.push(asientoGuardado);
+
+                // Crear entrada en el libro diario
+                const journalEntry = queryRunner.manager.create(Journal, {
+                    accj_id: seatId,
+                    accj_cmpy: asientoData.acch_cmpy,
+                    accj_line_number: i + 1,
+                    accj_ware: asientoData.acch_ware,
+                    accj_year: asientoData.acch_year,
+                    accj_per: asientoData.acch_per,
+                    accj_code: codigo,
+                    accj_account: movimiento.account,
+                    accj_account_name: accountPlan.plcu_description,
+                    accj_debit: movimiento.debit || 0,
+                    accj_credit: movimiento.credit || 0,
+                    accj_detbin: asientoData.acch_detbin,
+                    accj_customers: asientoData.acch_customers,
+                    accj_customers_name: asientoData.acch_customers_name,
+                    accj_creation_by: asientoData.acch_creation_by,
+                    accj_is_closing_entry: false,
+                });
+
+                const savedJournalEntry = await queryRunner.manager.save(journalEntry);
+                journalEntries.push(savedJournalEntry);
+
+                // Actualizar libro mayor
+                await this.updateLedger(
+                    queryRunner,
+                    asientoData.acch_cmpy,
+                    asientoData.acch_ware,
+                    asientoData.acch_year,
+                    asientoData.acch_per,
+                    movimiento.account,
+                    accountPlan.plcu_description,
+                    movimiento.debit || 0,
+                    movimiento.credit || 0,
+                    asientoData.acch_creation_by
+                );
+            }
+
+            await queryRunner.commitTransaction();
+            //return journalEntries;
+            return asientosCreados; // Retornar un array de asientos creados
+
+        } catch (error) {
+            await queryRunner.rollbackTransaction();
+            throw new HttpException({
+                success: false,
+                message: 'Error al Crear el asiento',
+                error: error.message,
+            }, HttpStatus.INTERNAL_SERVER_ERROR);
+        } finally {
+            await queryRunner.release();
+        }
+
+
+    }
+
+
+    // Actualizar libro mayor
+    private async updateLedger(
+        queryRunner: QueryRunner,
+        cmpy: string,
+        ware: string,
+        year: number,
+        per: number,
+        account: string,
+        accountName: string,
+        debit: number,
+        credit: number,
+        userId: string
+    ): Promise<void> {
+        // Buscar o crear entrada en el libro mayor
+        let ledgerEntry = await queryRunner.manager.findOne(Ledger, {
+            where: {
+                accl_cmpy: cmpy,
+                accl_ware: ware,
+                accl_year: year,
+                accl_per: per,
+                accl_account: account,
+            },
+        });
+
+        //console.log(ledgerEntry);
+
+        if (!ledgerEntry) {
+            // Si no existe, crear nuevo registro
+            // Primero obtener saldos iniciales (del período anterior o año anterior)
+            const initialBalances = await this.getInitialBalances(queryRunner, cmpy, ware, year, per, account);
+
+            ledgerEntry = queryRunner.manager.create(Ledger, {
+                accl_cmpy: cmpy,
+                accl_ware: ware,
+                accl_year: year,
+                accl_per: per,
+                accl_account: account,
+                accl_account_name: accountName,
+                accl_initial_debit: initialBalances.initialDebit,
+                accl_initial_credit: initialBalances.initialCredit,
+                accl_period_debit: debit,
+                accl_period_credit: credit,
+                accl_final_debit: initialBalances.initialDebit + debit,
+                accl_final_credit: initialBalances.initialCredit + credit,
+                accl_last_updated: new Date(),
+                accl_creation_by: userId,
+            });
+        } else {
+            // Actualizar registro existente
+            const numPeriodDebit = typeof ledgerEntry.accl_period_debit === 'string'
+                ? Number(ledgerEntry.accl_period_debit)
+                : ledgerEntry.accl_period_debit;
+
+            const numPeriodCredit = typeof ledgerEntry.accl_period_credit === 'string'
+                ? Number(ledgerEntry.accl_period_credit)
+                : ledgerEntry.accl_period_credit;
+
+            const numInitialDebit = typeof ledgerEntry.accl_initial_debit === 'string'
+                ? Number(ledgerEntry.accl_initial_debit)
+                : ledgerEntry.accl_initial_debit;
+
+            const numInitialCredit = typeof ledgerEntry.accl_initial_credit === 'string'
+                ? Number(ledgerEntry.accl_initial_credit)
+                : ledgerEntry.accl_initial_credit;
+
+
+            // Actualizar con valores numéricos
+            ledgerEntry.accl_period_debit = numPeriodDebit + debit;
+            ledgerEntry.accl_period_credit = numPeriodCredit + credit;
+            ledgerEntry.accl_final_debit = numInitialDebit + (numPeriodDebit + debit);
+            ledgerEntry.accl_final_credit = numInitialCredit + (numPeriodCredit + credit);
+            ledgerEntry.accl_last_updated = new Date();
+            ledgerEntry.accl_updated_by = userId;
+
+
+        }
+
+        await queryRunner.manager.save(ledgerEntry);
+    }
+
+    // Obtener saldos iniciales para libro mayor
+    private async getInitialBalances(
+        queryRunner: QueryRunner,
+        cmpy: string,
+        ware: string,
+        year: number,
+        per: number,
+        account: string
+    ): Promise<{ initialDebit: number, initialCredit: number }> {
+        let initialDebit = 0;
+        let initialCredit = 0;
+
+        if (per > 1) {
+            // Si no es el primer período del año, buscar saldos del período anterior
+            const previousLedger = await queryRunner.manager.findOne(Ledger, {
+                where: {
+                    accl_cmpy: cmpy,
+                    accl_ware: ware,
+                    accl_year: year,
+                    accl_per: per - 1,
+                    accl_account: account,
+                },
+            });
+
+            if (previousLedger) {
+                initialDebit = previousLedger.accl_final_debit;
+                initialCredit = previousLedger.accl_final_credit;
+            }
+        } else if (per === 1) {
+            // Si es el primer período del año, buscar saldos del cierre del año anterior
+            const previousYearLedger = await queryRunner.manager.findOne(Ledger, {
+                where: {
+                    accl_cmpy: cmpy,
+                    accl_ware: ware,
+                    accl_year: year - 1,
+                    accl_per: 13, // Período de cierre
+                    accl_account: account,
+                },
+            });
+
+            if (previousYearLedger) {
+                initialDebit = previousYearLedger.accl_final_debit;
+                initialCredit = previousYearLedger.accl_final_credit;
+            }
+        }
+
+        return { initialDebit, initialCredit };
+    }
+
+    private async getNextSeatId(queryRunner: QueryRunner, acch_cmpy: string): Promise<number> {
+        // Consulta filtrando por compañía
+        const result = await queryRunner.manager
+            .createQueryBuilder(Seat, 'seat')
+            .select('COALESCE(MAX(CAST(seat.acch_id AS INTEGER)), 0)', 'max')
+            .where('seat.acch_cmpy = :companyCode', { companyCode: acch_cmpy })
+            .getRawOne();
+
+        return Number(result.max) + 1;
+    }   
+
+    private async calcularSaldoAcumulado(
+        cmpy: string,
+        ware: string,
+        year: number,
+        per: number,
+        account: string,
+    ): Promise<number> {
+        const asientosAnteriores = await this.asientoRepository
+            .createQueryBuilder('asiento')
+            .where('asiento.acch_cmpy = :cmpy', { cmpy })
+            .andWhere('asiento.acch_ware = :ware', { ware })
+            .andWhere('asiento.acch_year = :year', { year })
+            .andWhere('asiento.acch_per <= :per', { per })
+            .andWhere('asiento.acch_account = :account', { account })
+            .getMany();
+
+        const saldoAcumulado = asientosAnteriores.reduce((sum, asiento) => {
+            return sum + (asiento.acch_debit || 0) - (asiento.acch_credit || 0);
+        }, 0);
+
+        return saldoAcumulado;
+    }
+    private async generateCode(longitud: number = 6): Promise<string> {
+        // Generar código único
+        let codigo: string = '';
+        let existe = true;
+        const caracteres = 'abcdefgABCDEFGHIstuvwJK345LMNOP1267QRSTnopqUVWXYZ089hijklmrxyz';
+
+        while (existe) {
+            codigo = '';
+            for (let i = 0; i < longitud; i++) {
+                codigo += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
+            }
+
+            const asientoExistente = await this.asientoRepository.findOne({ where: { acch_code: codigo } });
+            existe = !!asientoExistente;
+        }
+        return codigo;
+    }
+
+    async obtenerResumenPorFechas(cmpy: string, ware: string, year: number, per: number) {
+        const asientos = await this.asientoRepository
+            .createQueryBuilder('asiento')
+            .where('asiento.acch_cmpy = :cmpy', { cmpy })
+            .andWhere('asiento.acch_ware = :ware', { ware })
+            .andWhere('asiento.acch_year = :year', { year })
+            .andWhere('asiento.acch_per = :per', { per })
+            .orderBy('asiento.acch_id', 'ASC')
+            .getMany();
+
+        return asientos;
+    }
+
+    async buscarPorCodigo(code: string): Promise<Seat[]> {
+        const asiento = await this.asientoRepository.find({ where: { acch_code: code } });
+        if (!asiento) throw new NotFoundException('Asiento no encontrado');
+        return asiento;
+    }
+
+    
+}
