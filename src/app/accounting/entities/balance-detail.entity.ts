@@ -5,6 +5,8 @@ import { Expose } from 'class-transformer';
 @Index('idx_balance_detail_cmpy_year_per', ['acbd_cmpy', 'acbd_year', 'acbd_per', 'acbd_type'])
 @Index('idx_balance_detail_account', ['acbd_account'])
 @Index('idx_balance_detail_level', ['acbd_level'])
+@Index('idx_balance_detail_date', ['acbd_date']) // Nuevo índice por fecha
+@Index('idx_balance_detail_cmpy_date', ['acbd_cmpy', 'acbd_date']) // Nuevo índice compuesto
 
 //Para los detalles de balances
 export class BalanceDetail {
@@ -27,6 +29,10 @@ export class BalanceDetail {
   @PrimaryColumn({ name: 'acbd_account', type: 'varchar', length: 20 })
   @Expose({ name: 'account' })
   acbd_account: string;
+
+  @PrimaryColumn({ name: 'acbd_date', type: 'date', default: () => 'CURRENT_DATE' }) // Nuevo campo fecha como parte de la clave primaria
+  @Expose({ name: 'date' })
+  acbd_date: Date;
 
   @Column({ name: 'acbd_account_name', type: 'varchar', length: 500 })
   @Expose({ name: 'account_name' })

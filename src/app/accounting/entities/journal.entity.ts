@@ -7,6 +7,7 @@ import { dateTransformer } from 'src/app/common/utils/fechaColombia';
 @Index('idx_journal_date', ['accj_date'])
 @Index('idx_journal_code', ['accj_code'])
 @Index('idx_journal_account', ['accj_account'])
+@Index('idx_journal_cmpy_date', ['accj_cmpy', 'accj_date']) // Nuevo índice por compañía y fecha
 //Para el libro diario
 export class Journal {
   @PrimaryColumn({ name: 'accj_id', type: 'bigint' })

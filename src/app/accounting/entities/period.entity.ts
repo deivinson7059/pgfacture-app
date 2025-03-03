@@ -1,7 +1,7 @@
 import { Entity, Column, PrimaryColumn, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
 import { Expose } from 'class-transformer';
 import { dateTransformer } from 'src/app/common/utils/fechaColombia';
-
+  
 @Entity({ schema: 'pgfacture', name: 'pg_accounting_period' })
 @Index('idx_accounting_period_cmpy_year', ['accp_cmpy', 'accp_year'])
 @Index('idx_accounting_period_status', ['accp_status'])

@@ -1,6 +1,7 @@
+// src/app/accounting/service/balance.service.ts
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { Balance, BalanceDetail, Ledger, Period, Puc } from "../entities";
-import { DataSource, QueryRunner, Repository } from "typeorm";
+import { DataSource, QueryRunner, Repository, Between, LessThanOrEqual, MoreThanOrEqual } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
 import { toNumber } from "src/app/common/utils/utils";
 
@@ -19,12 +20,15 @@ export class BalanceService {
         @InjectRepository(BalanceDetail)
         private balanceDetailRepository: Repository<BalanceDetail>,
     ) { }
+
+    // Generar balance para un período y fecha específica
     async generarBalance(
         cmpy: string,
         ware: string,
         year: number,
         per: number,
         type: string,
+        date: Date,
         userId: string
     ): Promise<Balance> {
         const queryRunner = this.dataSource.createQueryRunner();
@@ -32,12 +36,13 @@ export class BalanceService {
         await queryRunner.startTransaction();
 
         try {
-            // 1. Eliminar cualquier balance existente con el tipo, período y compañía
+            // 1. Eliminar cualquier balance existente con el tipo, período, compañía y fecha
             await queryRunner.manager.delete(BalanceDetail, {
                 acbd_cmpy: cmpy,
                 acbd_year: year,
                 acbd_per: per,
                 acbd_type: type,
+                acbd_date: date,
             });
 
             // Buscar o crear el balance principal
@@ -47,6 +52,7 @@ export class BalanceService {
                     accb_year: year,
                     accb_per: per,
                     accb_type: type,
+                    accb_date: date,
                 },
             });
 
@@ -56,6 +62,7 @@ export class BalanceService {
                     accb_year: year,
                     accb_per: per,
                     accb_type: type,
+                    accb_date: date,
                     accb_date_generated: new Date(),
                     accb_generated_by: userId,
                     accb_is_closing_balance: per === 13,
@@ -84,14 +91,41 @@ export class BalanceService {
             // 3. Obtener todas las cuentas de clase (un dígito)
             const classAccounts = allAccounts.filter(account => account.plcu_classification === 'CLASE');
 
-            // 4. Obtener movimientos del libro mayor
+            // 4. Obtener movimientos del libro mayor para la fecha específica
             const ledgerEntries = await this.ledgerRepository.find({
                 where: {
                     accl_cmpy: cmpy,
                     accl_ware: ware,
                     accl_year: year,
                     accl_per: per,
+                    accl_date: date,
                 },
+            });
+
+            // También necesitamos obtener los saldos iniciales desde el principio del período hasta la fecha
+            const period = await this.periodRepository.findOne({
+                where: {
+                    accp_cmpy: cmpy,
+                    accp_year: year,
+                    accp_per: per
+                }
+            });
+
+            if (!period) {
+                throw new NotFoundException(`Período ${per} del año ${year} no encontrado`);
+            }
+
+            const periodStartDate = period.accp_start_date;
+
+            // Obtener todos los movimientos del período hasta la fecha (para saldos acumulados)
+            const allPeriodEntries = await this.ledgerRepository.find({
+                where: {
+                    accl_cmpy: cmpy,
+                    accl_ware: ware,
+                    accl_year: year,
+                    accl_per: per,
+                    accl_date: Between(periodStartDate as Date, date as Date)
+                }
             });
 
             // Mapa para acumular saldos de todas las cuentas
@@ -116,7 +150,7 @@ export class BalanceService {
                 });
             }
 
-            // 5. Distribuir los saldos del libro mayor a las cuentas directas
+            // 5. Distribuir los saldos del libro mayor a las cuentas directas para la fecha dada
             for (const entry of ledgerEntries) {
                 const accountId = entry.accl_account;
 
@@ -128,10 +162,24 @@ export class BalanceService {
                 // Actualizar saldos de la cuenta directa
                 balance!.initialDebit += toNumber(entry.accl_initial_debit);
                 balance!.initialCredit += toNumber(entry.accl_initial_credit);
-                balance!.periodDebit += toNumber(entry.accl_period_debit);
-                balance!.periodCredit += toNumber(entry.accl_period_credit);
+                balance!.periodDebit += toNumber(entry.accl_day_debit); // Usamos el movimiento del día
+                balance!.periodCredit += toNumber(entry.accl_day_credit); // Usamos el movimiento del día
                 balance!.finalDebit += toNumber(entry.accl_final_debit);
                 balance!.finalCredit += toNumber(entry.accl_final_credit);
+            }
+
+            // Para el acumulado del período, usamos todos los movimientos del período hasta la fecha
+            for (const entry of allPeriodEntries) {
+                const accountId = entry.accl_account;
+
+                // Si la cuenta no está en el mapa, saltarla
+                if (!accountBalances.has(accountId)) continue;
+
+                const balance = accountBalances.get(accountId);
+
+                // Actualizar el acumulado del período
+                balance!.periodDebit += toNumber(entry.accl_day_debit);
+                balance!.periodCredit += toNumber(entry.accl_day_credit);
             }
 
             // 6. Propagar los saldos hacia arriba en la jerarquía
@@ -232,6 +280,7 @@ export class BalanceService {
                         acbd_year: year,
                         acbd_per: per,
                         acbd_type: type,
+                        acbd_date: date,
                         acbd_account: accountId,
                         acbd_account_name: account.plcu_description,
                         acbd_level: level,
@@ -258,6 +307,7 @@ export class BalanceService {
                     acbd_year: year,
                     acbd_per: per,
                     acbd_type: type,
+                    acbd_date: date,
                     acbd_level: 1  // Solo las cuentas de clase (nivel 1)
                 }
             });
@@ -301,44 +351,6 @@ export class BalanceService {
 
             await queryRunner.manager.save(balance);
 
-
-            // 8. Calcular los totales finales para el balance
-            let totalActivo_ = 0;
-            let totalPasivo_ = 0;
-            let totalPatrimonio_ = 0;
-            let totalIngresos_ = 0;
-            let totalGastos_ = 0;
-            let totalCostos_ = 0;
-
-            for (const account of classAccounts) {
-                const balanceData = accountBalances.get(account.plcu_id);
-                if (!balanceData) continue;
-
-                const firstDigit = account.plcu_id.charAt(0);
-                let accountBalance = 0;
-
-                if (['1', '5', '6', '7'].includes(firstDigit)) {
-                    accountBalance = balanceData.finalDebit - balanceData.finalCredit;
-                } else {
-                    accountBalance = balanceData.finalCredit - balanceData.finalDebit;
-                }
-
-                if (firstDigit === '1') {
-                    totalActivo_ += accountBalance;
-                } else if (firstDigit === '2') {
-                    totalPasivo_ += accountBalance;
-                } else if (firstDigit === '3') {
-                    totalPatrimonio_ += accountBalance;
-                } else if (firstDigit === '4') {
-                    totalIngresos_ += accountBalance;
-                } else if (firstDigit === '5') {
-                    totalGastos_ += accountBalance;
-                } else if (firstDigit === '6' || firstDigit === '7') {
-                    totalCostos_ += accountBalance;
-                }
-            }
-            
-
             await queryRunner.commitTransaction();
             return balance;
         } catch (error) {
@@ -349,229 +361,13 @@ export class BalanceService {
         }
     }
 
-
-    // Generar balance
-    async generarBalanceOnly(
-        cmpy: string,
-        ware: string,
-        year: number,
-        per: number,
-        type: string,
-        userId: string
-    ): Promise<Balance> {
-        const queryRunner = this.dataSource.createQueryRunner();
-        await queryRunner.connect();
-        await queryRunner.startTransaction();
-
-        try {
-            // Verificar que el período exista
-            const period = await this.periodRepository.findOne({
-                where: {
-                    accp_cmpy: cmpy,
-                    accp_year: year,
-                    accp_per: per,
-                },
-            });
-
-            if (!period) {
-                throw new NotFoundException(`Período ${per} del año ${year} no encontrado`);
-            }
-
-            // Buscar si ya existe un balance para este período y tipo
-            let balance = await this.balanceRepository.findOne({
-                where: {
-                    accb_cmpy: cmpy,
-                    accb_year: year,
-                    accb_per: per,
-                    accb_type: type,
-                },
-            });
-
-            // Crear o actualizar el balance
-            if (!balance) {
-                balance = this.balanceRepository.create({
-                    accb_cmpy: cmpy,
-                    accb_year: year,
-                    accb_per: per,
-                    accb_type: type,
-                    accb_date_generated: new Date(),
-                    accb_generated_by: userId,
-                    accb_is_closing_balance: per === 13,
-                    accb_status: 'A', // Active
-                });
-            } else {
-                // Si ya existe, actualizar la fecha y usuario
-                balance.accb_date_generated = new Date();
-                balance.accb_generated_by = userId;
-
-                // Eliminar los detalles existentes para recrearlos
-                await queryRunner.manager.delete(BalanceDetail, {
-                    acbd_cmpy: cmpy,
-                    acbd_year: year,
-                    acbd_per: per,
-                    acbd_type: type,
-                });
-            }
-
-            await queryRunner.manager.save(balance);
-
-            // Obtener todas las cuentas del plan contable
-            const accounts = await this.pucRepository.find({
-                where: [
-                    { plcu_cmpy: cmpy },
-                    { plcu_cmpy: 'ALL' }, // Cuentas globales
-                ],
-                order: {
-                    plcu_id: 'ASC',
-                },
-            });
-
-            // Obtener saldos del libro mayor para este período
-            const ledgerEntries = await this.ledgerRepository.find({
-                where: {
-                    accl_cmpy: cmpy,
-                    accl_ware: ware,
-                    accl_year: year,
-                    accl_per: per,
-                },
-            });
-
-            // Mapear saldos por cuenta
-            const balanceMap = new Map<string, {
-                debit: number;
-                credit: number;
-                initialDebit: number;
-                initialCredit: number;
-                periodDebit: number;
-                periodCredit: number;
-            }>();
-
-            ledgerEntries.forEach(entry => {
-                balanceMap.set(entry.accl_account, {
-                    debit: toNumber(entry.accl_final_debit),
-                    credit: toNumber(entry.accl_final_credit),
-                    initialDebit: toNumber(entry.accl_initial_debit),
-                    initialCredit: toNumber(entry.accl_initial_credit),
-                    periodDebit: toNumber(entry.accl_period_debit),
-                    periodCredit: toNumber(entry.accl_period_credit),
-                });
-            });
-
-            // Totales por categoría
-            let totalActivo = 0;
-            let totalPasivo = 0;
-            let totalPatrimonio = 0;
-            let totalIngresos = 0;
-            let totalGastos = 0;
-            let totalCostos = 0;
-
-            // Crear detalles del balance para cada cuenta relevante
-            for (const account of accounts) {
-                const balanceData = balanceMap.get(account.plcu_id);
-
-                // Saltar cuentas sin movimientos excepto cuentas de grupo (1 dígito)
-                if (!balanceData && account.plcu_id.length > 1) {
-                    continue;
-                }
-
-                // Determinar nivel de la cuenta por su longitud
-                const level = account.plcu_id.length === 1 ? 1 :
-                    account.plcu_id.length === 2 ? 2 :
-                        account.plcu_id.length <= 4 ? 3 :
-                            account.plcu_id.length <= 6 ? 4 : 5;
-
-                // Determinar cuenta padre
-                const parentAccount = account.plcu_id.length > 1 ?
-                    account.plcu_id.substring(0, account.plcu_id.length > 2 ?
-                        (account.plcu_id.length === 4 ? 2 :
-                            account.plcu_id.length === 6 ? 4 :
-                                account.plcu_id.length === 8 ? 6 :
-                                    account.plcu_id.length - 2) : 1) : null;
-
-                // Calcular saldo según la naturaleza de la cuenta
-                const firstDigit = account.plcu_id.charAt(0);
-                let accountBalance = 0;
-
-                if (balanceData) {
-                    if (['1', '5', '6', '7'].includes(firstDigit)) {
-                        // Cuentas de naturaleza débito (activos, gastos, costos)
-                        accountBalance = balanceData.debit - balanceData.credit;
-                    } else {
-                        // Cuentas de naturaleza crédito (pasivos, patrimonio, ingresos)
-                        accountBalance = balanceData.credit - balanceData.debit;
-                    }
-                }
-
-                // Crear detalle de balance
-                const balanceDetail = queryRunner.manager.create(BalanceDetail, {
-                    acbd_cmpy: cmpy,
-                    acbd_year: year,
-                    acbd_per: per,
-                    acbd_type: type,
-                    acbd_account: account.plcu_id,
-                    acbd_account_name: account.plcu_description,
-                    acbd_level: level,
-                    acbd_parent_account: parentAccount,
-                    acbd_is_total_row: account.plcu_id.length === 1,
-                    acbd_order: parseInt(account.plcu_id) || 0,
-                    acbd_initial_debit: balanceData?.initialDebit || 0,
-                    acbd_initial_credit: balanceData?.initialCredit || 0,
-                    acbd_period_debit: balanceData?.periodDebit || 0,
-                    acbd_period_credit: balanceData?.periodCredit || 0,
-                    acbd_final_debit: balanceData?.debit || 0,
-                    acbd_final_credit: balanceData?.credit || 0,
-                    acbd_balance: accountBalance,
-                });
-
-                await queryRunner.manager.save(balanceDetail);
-
-                // Actualizar totales según la categoría de la cuenta
-                if (firstDigit === '1' && account.plcu_id.length >= 2) {
-                    totalActivo += accountBalance > 0 ? accountBalance : 0;
-                } else if (firstDigit === '2' && account.plcu_id.length >= 2) {
-                    totalPasivo += accountBalance > 0 ? accountBalance : 0;
-                } else if (firstDigit === '3' && account.plcu_id.length >= 2) {
-                    totalPatrimonio += accountBalance > 0 ? accountBalance : 0;
-                } else if (firstDigit === '4' && account.plcu_id.length >= 2) {
-                    totalIngresos += accountBalance > 0 ? accountBalance : 0;
-                } else if (firstDigit === '5' && account.plcu_id.length >= 2) {
-                    totalGastos += accountBalance > 0 ? accountBalance : 0;
-                } else if ((firstDigit === '6' || firstDigit === '7') && account.plcu_id.length >= 2) {
-                    totalCostos += accountBalance > 0 ? accountBalance : 0;
-                }
-            }
-
-            // Calcular utilidad o pérdida
-            const utilidadPerdida = totalIngresos - totalGastos - totalCostos;
-
-            // Actualizar totales en el balance
-            balance.accb_activo_total = totalActivo;
-            balance.accb_pasivo_total = totalPasivo;
-            balance.accb_patrimonio_total = totalPatrimonio;
-            balance.accb_ingresos_total = totalIngresos;
-            balance.accb_gastos_total = totalGastos;
-            balance.accb_costos_total = totalCostos;
-            balance.accb_utilidad_perdida = utilidadPerdida;
-
-            await queryRunner.manager.save(balance);
-
-            await queryRunner.commitTransaction();
-            return balance;
-        } catch (error) {
-            await queryRunner.rollbackTransaction();
-            throw error;
-        } finally {
-            await queryRunner.release();
-        }
-    }
-    
-
-    // Obtener balance con estructura jerárquica
+    // Obtener balance con estructura jerárquica para una fecha específica
     async obtenerBalance(
         cmpy: string,
         year: number,
         per: number,
-        type: string
+        type: string,
+        date: Date
     ): Promise<{ balance: Balance, details: any[] }> {
         const balance = await this.balanceRepository.findOne({
             where: {
@@ -579,11 +375,12 @@ export class BalanceService {
                 accb_year: year,
                 accb_per: per,
                 accb_type: type,
+                accb_date: date,
             },
         });
 
         if (!balance) {
-            throw new NotFoundException(`Balance no encontrado para el período ${per} del año ${year}`);
+            throw new NotFoundException(`Balance no encontrado para el período ${per} del año ${year} y fecha ${date}`);
         }
 
         // Obtener todos los detalles
@@ -593,6 +390,7 @@ export class BalanceService {
                 acbd_year: year,
                 acbd_per: per,
                 acbd_type: type,
+                acbd_date: date,
             },
         });
 
@@ -659,38 +457,48 @@ export class BalanceService {
             details: sortNodes(rootAccounts)
         };
     }
-    // Obtener balance
-    async obtenerBalanceOnly(
+
+    // Generar balance para un rango de fechas
+    async generarBalancePorRangoFechas(
         cmpy: string,
-        year: number,
-        per: number,
-        type: string
-    ): Promise<{ balance: Balance, details: BalanceDetail[] }> {
-        const balance = await this.balanceRepository.findOne({
-            where: {
-                accb_cmpy: cmpy,
-                accb_year: year,
-                accb_per: per,
-                accb_type: type,
-            },
+        ware: string,
+        type: string,
+        startDate: Date,
+        endDate: Date,
+        userId: string
+    ): Promise<Balance> {
+        // Identificar el período y año correspondientes a las fechas
+        const startPeriod = await this.periodRepository.findOne({
+            where: [
+                { accp_cmpy: cmpy, accp_start_date: MoreThanOrEqual(startDate) },
+                { accp_cmpy: cmpy, accp_end_date: MoreThanOrEqual(startDate) }
+            ],
+            order: { accp_year: 'ASC', accp_per: 'ASC' }
         });
 
-        if (!balance) {
-            throw new NotFoundException(`Balance no encontrado para el período ${per} del año ${year}`);
+        const endPeriod = await this.periodRepository.findOne({
+            where: [
+                { accp_cmpy: cmpy, accp_start_date: LessThanOrEqual(endDate) },
+                { accp_cmpy: cmpy, accp_end_date: LessThanOrEqual(endDate) }
+            ],
+            order: { accp_year: 'DESC', accp_per: 'DESC' }
+        });
+
+        if (!startPeriod || !endPeriod) {
+            throw new NotFoundException(`No se encontraron períodos para el rango de fechas especificado`);
         }
 
-        const details = await this.balanceDetailRepository.find({
-            where: {
-                acbd_cmpy: cmpy,
-                acbd_year: year,
-                acbd_per: per,
-                acbd_type: type,
-            },
-            order: {
-                acbd_order: 'ASC',
-            },
-        });
-
-        return { balance, details };
+        // Usar el último día del período para el balance
+        const balanceDate = endDate;
+        
+        return this.generarBalance(
+            cmpy,
+            ware,
+            endPeriod.accp_year,
+            endPeriod.accp_per,
+            type,
+            balanceDate,
+            userId
+        );
     }
 }
