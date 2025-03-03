@@ -1,6 +1,7 @@
 import { Type } from "class-transformer";
-import { IsNotEmpty, IsString, Length, IsInt, Min, Max, IsOptional, ValidateNested, ArrayMinSize, ValidatorConstraint, ValidatorConstraintInterface, Validate } from "class-validator";
+import { IsNotEmpty, IsString, Length, IsInt, Min, Max, IsOptional, ValidateNested, ArrayMinSize, ValidatorConstraint, ValidatorConstraintInterface, Validate, IsEnum } from "class-validator";
 import { MovimientoDto } from "./movimiento.dto";
+import { SEAT_MODULE } from "src/app/common/enums";
 
 @ValidatorConstraint({ name: 'partidaDobleValidator', async: false })
 export class PartidaDobleValidator implements ValidatorConstraintInterface {
@@ -59,9 +60,8 @@ export class CrearSeatDto {
 
     // Nuevos campos para módulo y referencia
     @IsOptional()
-    @IsString()
-    @Length(0, 50)
-    module?: string;
+    @IsEnum(SEAT_MODULE, { message: 'El módulo debe ser uno de los valores permitidos en el sistema.' })   
+    module?: SEAT_MODULE;
 
     @IsOptional()
     @IsString()

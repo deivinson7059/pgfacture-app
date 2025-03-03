@@ -4,6 +4,7 @@ import { DataSource, In, QueryRunner, Repository } from 'typeorm';
 
 import { Balance, BalanceDetail, Journal, Ledger, Period, Puc, Seat } from '../entities';
 import { CrearSeatDto } from '../dto';
+import { SEAT_MODULE } from 'src/app/common/enums';
 
 @Injectable()
 export class SeatService {
@@ -34,10 +35,14 @@ export class SeatService {
             await queryRunner.connect();
             await queryRunner.startTransaction();
 
-
             // Establecer valores predeterminados para clientes si no se proporcionan
             asientoData.customers_name = asientoData.customers_name || '--';
             asientoData.customers = asientoData.customers || '-';
+
+            // Si no se proporciona un módulo, asignar MANUAL por defecto
+            if (!asientoData.module) {
+                asientoData.module = SEAT_MODULE.MANUAL;
+            }
 
             // Crear un asiento por cada movimiento
             const asientosCreados: Seat[] = [];
@@ -84,8 +89,8 @@ export class SeatService {
                     acch_debit: debit,
                     acch_credit: credit,
                     acch_creation_by: asientoData.creation_by || 'system',
-                    // Nuevos campos module y ref (pueden ser null)
-                    acch_module: asientoData.module || null,
+                    // Usar el enum SeatModule para el campo de módulo
+                    acch_module: asientoData.module,
                     acch_ref: asientoData.ref || null
                 });
 
@@ -112,7 +117,7 @@ export class SeatService {
                     accj_customers: asientoData.customers,
                     accj_customers_name: asientoData.customers_name,
                     accj_creation_by: asientoData.creation_by,
-                    accj_is_closing_entry: false,
+                    accj_is_closing_entry: asientoData.module === SEAT_MODULE.CIERRE, // Es asiento de cierre si el módulo es CIERRE
                 });
 
                 const savedJournalEntry = await queryRunner.manager.save(journalEntry);
@@ -343,6 +348,30 @@ export class SeatService {
             .getMany();
 
         return asientos;
+    }
+
+    // Método para filtrar asientos por módulo
+    async obtenerAsientosPorModulo(
+        cmpy: string, 
+        year: number, 
+        per: number, 
+        module: SEAT_MODULE
+    ) {
+        const asientos = await this.asientoRepository
+            .createQueryBuilder('asiento')
+            .where('asiento.acch_cmpy = :cmpy', { cmpy })
+            .andWhere('asiento.acch_year = :year', { year })
+            .andWhere('asiento.acch_per = :per', { per })
+            .andWhere('asiento.acch_module = :module', { module })
+            .orderBy('asiento.acch_date', 'ASC')
+            .addOrderBy('asiento.acch_id', 'ASC')
+            .getMany();
+
+        if (asientos.length === 0) {
+            throw new NotFoundException(`No se encontraron asientos del módulo ${module} para el período ${per} del año ${year}`);
+        }
+
+        return asientos; 
     }
 
     async buscarPorCodigo(code: string): Promise<Seat[]> {

@@ -6,6 +6,7 @@ import { PeriodService } from './period.service';
 import { NoteHeader, NoteLine } from '../entities';
 import { CrearSeatDto, CreateNoteDto, MovimientoDto, UpdateNoteStatusDto } from '../dto';
 import { toNumber } from 'src/app/common/utils/utils';
+import { SEAT_MODULE } from 'src/app/common/enums';
 type NoteHeaderWithLines = NoteHeader & { lines: NoteLine[] };
 @Injectable()
 export class NoteService {
@@ -270,7 +271,7 @@ export class NoteService {
             detbin: `Nota Contable ${note.acnh_id}: ${note.acnh_description || ''}`,
             creation_by: note.acnh_updated_by || note.acnh_creation_by,
             // Nuevos campos module y ref
-            module: 'NOTE', // Especificamos que viene del módulo de notas
+            module: SEAT_MODULE.NOTA, // Especificamos que viene del módulo de notas
             ref: note.acnh_id.toString(), // Referencia al ID de la nota
             movimientos: sientoMov
         }

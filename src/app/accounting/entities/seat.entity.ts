@@ -1,4 +1,5 @@
 import { Expose, Transform } from 'class-transformer';
+import { SEAT_MODULE } from 'src/app/common/enums';
 import { dateTransformer } from 'src/app/common/utils/fechaColombia';
 import { Entity,  Column, CreateDateColumn, Index, PrimaryColumn, BeforeInsert, UpdateDateColumn } from 'typeorm';
 
@@ -83,7 +84,7 @@ export class Seat {
     @Column({ name: 'acch_module', type: 'varchar', length: 50, nullable: true })
     @Index('idx_accounting_seat_module') // Índice para filtros por módulo
     @Expose({ name: 'module' })
-    acch_module: string | null; // Identificador del módulo (ej: INVOICE, NOTE, etc.)
+    acch_module: SEAT_MODULE | null; // Identificador del módulo (ej: INVOICE, NOTE, etc.)
 
     // Nueva columna para la referencia
     @Column({ name: 'acch_ref', type: 'varchar', length: 100, nullable: true })
