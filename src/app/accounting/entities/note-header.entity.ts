@@ -1,4 +1,4 @@
-// src/app/accounting/entities/accounting-note-header.entity.ts
+// src/app/accounting/entities/note-header.entity.ts
 import { Entity, Column, PrimaryGeneratedColumn, OneToMany, CreateDateColumn, UpdateDateColumn, JoinColumn, Index } from 'typeorm';
 import { Expose, Transform } from 'class-transformer';
 import { dateTransformer } from 'src/app/common/utils/fechaColombia';
@@ -107,9 +107,11 @@ export class NoteHeader {
     name: 'acnh_approved_date', 
     type: 'timestamp', 
     nullable: true, 
-})
+  })
   @Expose({ name: 'approved_date' })
   acnh_approved_date: Date;
+
+  // No necesitamos un campo adicional para la oficina, usamos acnh_ware
 
   @OneToMany(() => NoteLine, line => line.header)
   @JoinColumn({ name: 'acnh_id' })

@@ -49,6 +49,11 @@ export class NoteLineDto {
   @Length(0, 100)
   reference?: string;
 
+  @IsOptional()
+  @IsString()
+  @Length(0, 100)
+  tercero?: string;
+
   @Validate(DebitOrCreditValidator)
   validateDebitOrCredit: any;
 }

@@ -1,4 +1,3 @@
-// src/app/accounting/controller/accounting-note.controller.ts
 import { Controller, Get, Post, Body, Param, Query, Put, UseInterceptors, ClassSerializerInterceptor, UsePipes, ValidationPipe } from '@nestjs/common';
 import { apiResponse } from 'src/app/common/interfaces/common.interface';
 import { NoteService } from '../service';

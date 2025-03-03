@@ -44,6 +44,10 @@ export class NoteLine {
   @Expose({ name: 'reference' })
   acnl_reference: string;
 
+  @Column({ name: 'acnl_tercero', type: 'varchar', length: 100, nullable: true })
+  @Expose({ name: 'tercero' })
+  acnl_tercero: string;
+
   @Column({ name: 'acnl_creation_by', type: 'varchar', length: 30 })
   @Expose({ name: 'creation_by' })
   acnl_creation_by: string;

@@ -84,6 +84,7 @@ export class NoteService {
                     acnl_debit: toNumber(lineDto.debit),
                     acnl_credit: toNumber(lineDto.credit),
                     acnl_reference: lineDto.reference,
+                    acnl_tercero: lineDto.tercero || 'SISTEM ADMIN',
                     acnl_creation_by: createNoteDto.creation_by
                 });
 
@@ -201,8 +202,6 @@ export class NoteService {
 
     private async contabilizarNota(queryRunner: any, note: NoteHeader): Promise<void> {
         // Preparar DTO para crear asiento
-
-
         const sientoMov: MovimientoDto[] = [];
 
         note.lines.map(line => {
