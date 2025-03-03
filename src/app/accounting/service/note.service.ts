@@ -1,12 +1,12 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, QueryRunner } from 'typeorm';
 import { SeatService } from './seat.service';
 import { PeriodService } from './period.service';
 import { NoteHeader, NoteLine } from '../entities';
 import { CrearSeatDto, CreateNoteDto, MovimientoDto, UpdateNoteStatusDto } from '../dto';
 import { toNumber } from 'src/app/common/utils/utils';
-
+type NoteHeaderWithLines = NoteHeader & { lines: NoteLine[] };
 @Injectable()
 export class NoteService {
     constructor(
@@ -30,10 +30,7 @@ export class NoteService {
                 createNoteDto.cmpy,
                 createNoteDto.year,
                 createNoteDto.per
-            );
-
-            // Generar código único para la nota
-            const code = await this.generateNoteCode(createNoteDto.cmpy);
+            );          
 
             // Valores predeterminados
             const customer = createNoteDto.customer || '-';
@@ -52,9 +49,11 @@ export class NoteService {
                 throw new BadRequestException('La suma de débitos y créditos debe ser igual');
             }
 
+            const acnh_id = await this.getNextNoteHeadId(queryRunner, createNoteDto.cmpy);
+
             // Crear cabecera
             const header = this.noteHeaderRepository.create({
-                acnh_code: code,
+                acnh_id: acnh_id,
                 acnh_cmpy: createNoteDto.cmpy,
                 acnh_ware: createNoteDto.ware,
                 acnh_year: createNoteDto.year,
@@ -73,10 +72,17 @@ export class NoteService {
             const savedHeader = await queryRunner.manager.save(header);
 
             // Crear líneas
+
+
             for (let i = 0; i < createNoteDto.lines.length; i++) {
+
+                const acnl_id = await this.getNextNoteLineId(queryRunner, createNoteDto.cmpy);
                 const lineDto = createNoteDto.lines[i];
                 const line = this.noteLineRepository.create({
-                    acnl_header_id: savedHeader.acnh_id,
+                    acnl_id: acnl_id,
+                    acnl_acnh_id: savedHeader.acnh_id,
+                    acnl_cmpy: savedHeader.acnh_cmpy,
+                    acnl_ware: savedHeader.acnh_ware,
                     acnl_line_number: i + 1,
                     acnl_account: lineDto.account,
                     acnl_account_name: lineDto.account_name,
@@ -89,19 +95,58 @@ export class NoteService {
                 });
 
                 await queryRunner.manager.save(line);
-            }
-
+            }    
+            
             await queryRunner.commitTransaction();
 
             // Cargar las líneas para la respuesta
-            const noteWithLines = await this.findOne(savedHeader.acnh_id);
-            return noteWithLines;
+            const noteHeader = await this.noteHeaderRepository.findOne({
+                where: {
+                    acnh_id: acnh_id,
+                    acnh_cmpy: createNoteDto.cmpy
+                },
+            });
+            const noteLines = await this.noteLineRepository.find({
+                where: {
+                    acnl_acnh_id: acnh_id,
+                    acnl_cmpy: createNoteDto.cmpy
+                },
+                order: {
+                    acnl_line_number: 'ASC'
+                }
+            });           
+
+            return {
+                ...noteHeader,
+                lines: noteLines
+            } as NoteHeaderWithLines;
+
         } catch (error) {
             await queryRunner.rollbackTransaction();
             throw error;
         } finally {
             await queryRunner.release();
         }
+    }
+
+    private async getNextNoteHeadId(queryRunner: QueryRunner, acnh_cmpy: string): Promise<number> {
+        const result = await queryRunner.manager
+            .createQueryBuilder(NoteHeader, 'NoteHeader')
+            .select('COALESCE(MAX(NoteHeader.acnh_id), 0)', 'max')
+            .where('NoteHeader.acnh_cmpy = :companyCode', { companyCode: acnh_cmpy })
+            .getRawOne();
+
+        return Number(result.max) + 1;
+    }
+
+    private async getNextNoteLineId(queryRunner: QueryRunner, acnl_cmpy: string): Promise<number> {
+        const result = await queryRunner.manager
+            .createQueryBuilder(NoteLine, 'NoteLine')
+            .select('COALESCE(MAX(NoteLine.acnl_id), 0)', 'max')
+            .where('NoteLine.acnl_cmpy = :companyCode', { companyCode: acnl_cmpy })
+            .getRawOne();
+
+        return Number(result.max) + 1;
     }
 
     async findAll(
@@ -133,38 +178,40 @@ export class NoteService {
             .getMany();
     }
 
-    async findOne(id: string): Promise<NoteHeader> {
-        const note = await this.noteHeaderRepository.findOne({
-            where: { acnh_id: id },
-            relations: ['lines']
+    async findOne(cmpy:string,id: number): Promise<NoteHeaderWithLines> {
+        const noteHeader = await this.noteHeaderRepository.findOne({
+            where: {
+                acnh_id: id,
+                acnh_cmpy: cmpy
+            },
         });
 
-        if (!note) {
+        if (!noteHeader) {
             throw new NotFoundException(`Nota contable con ID ${id} no encontrada`);
         }
 
-        return note;
+        const noteLines = await this.noteLineRepository.find({
+            where: {
+                acnl_acnh_id: id,
+                acnl_cmpy: cmpy
+            },
+            order: {
+                acnl_line_number: 'ASC'
+            }
+        });       
+
+        return {
+            ...noteHeader,
+            lines: noteLines
+        } as NoteHeaderWithLines;
     }
-
-    async findByCode(code: string): Promise<NoteHeader> {
-        const note = await this.noteHeaderRepository.findOne({
-            where: { acnh_code: code },
-            relations: ['lines']
-        });
-
-        if (!note) {
-            throw new NotFoundException(`Nota contable con código ${code} no encontrada`);
-        }
-
-        return note;
-    }
-
-    async updateStatus(updateStatusDto: UpdateNoteStatusDto): Promise<NoteHeader> {
+   
+    async updateStatus(updateStatusDto: UpdateNoteStatusDto): Promise<any> {
         const queryRunner = this.dataSource.createQueryRunner();
         await queryRunner.connect();
         await queryRunner.startTransaction();
 
-        try {
+        /* try {
             const note = await this.findOne(updateStatusDto.id);
 
             // Validar transiciones de estado permitidas
@@ -197,14 +244,14 @@ export class NoteService {
             throw error;
         } finally {
             await queryRunner.release();
-        }
+        } */
     }
 
-    private async contabilizarNota(queryRunner: any, note: NoteHeader): Promise<void> {
+    private async contabilizarNota(queryRunner: any, note: NoteHeader,lines:any): Promise<void> {
         // Preparar DTO para crear asiento
-        const sientoMov: MovimientoDto[] = [];
+      const sientoMov: MovimientoDto[] = [];
 
-        note.lines.map(line => {
+        lines.map(line => {
             sientoMov.push({
                 account: line.acnl_account,
                 debit: line.acnl_debit,
@@ -219,12 +266,12 @@ export class NoteService {
             per: note.acnh_per,
             customers: note.acnh_customer,
             customers_name: note.acnh_customer_name,
-            detbin: `Nota Contable ${note.acnh_code}: ${note.acnh_description || ''}`,
+            detbin: `Nota Contable ${note.acnh_id}: ${note.acnh_description || ''}`,
             creation_by: note.acnh_updated_by || note.acnh_creation_by,
             movimientos: sientoMov
         }
         // Llamar al servicio de asientos para contabilizar
-        await this.seatService.crearAsiento(asientoData);
+        await this.seatService.crearAsiento(asientoData); 
     }
 
     private validateStatusTransition(currentStatus: string, newStatus: string): void {
@@ -239,27 +286,5 @@ export class NoteService {
         if (!allowedTransitions[currentStatus]?.includes(newStatus)) {
             throw new BadRequestException(`No se permite cambiar de estado ${currentStatus} a ${newStatus}`);
         }
-    }
-
-    private async generateNoteCode(cmpy: string): Promise<string> {
-        // Formato: NC-{CMPY}-{AÑO}-{SECUENCIAL}
-        const year = new Date().getFullYear();
-
-        // Buscar el último número secuencial
-        const lastNote = await this.noteHeaderRepository
-            .createQueryBuilder('note')
-            .where('note.acnh_cmpy = :cmpy', { cmpy })
-            .andWhere('note.acnh_code LIKE :pattern', { pattern: `NC-${cmpy}-${year}-%` })
-            .orderBy('note.acnh_code', 'DESC')
-            .getOne();
-
-        let secuencial = 1;
-        if (lastNote) {
-            const parts = lastNote.acnh_code.split('-');
-            const lastSecuencial = parseInt(parts[parts.length - 1], 10);
-            secuencial = lastSecuencial + 1;
-        }
-
-        return `NC-${cmpy}-${year}-${secuencial.toString().padStart(5, '0')}`;
     }   
 }

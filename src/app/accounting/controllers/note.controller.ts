@@ -32,23 +32,14 @@ export class NoteController {
         };
     }
 
-    @Get(':id')
-    async findOne(@Param('id') id: string): Promise<apiResponse<any>> {
-        const note = await this.accountingNoteService.findOne(id);
+    @Get(':cmpy/:id')
+    async findOne(@Param('cmpy') cmpy: string,@Param('id') id: number): Promise<apiResponse<any>> {
+        const note = await this.accountingNoteService.findOne(cmpy,id);
         return {
             message: 'Detalle de nota contable',
             data: note
         };
-    }
-
-    @Get('code/:code')
-    async findByCode(@Param('code') code: string): Promise<apiResponse<any>> {
-        const note = await this.accountingNoteService.findByCode(code);
-        return {
-            message: 'Detalle de nota contable',
-            data: note
-        };
-    }
+    }   
 
     @Put('status')
     @UsePipes(new ValidationPipe({ transform: true }))
