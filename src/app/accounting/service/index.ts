@@ -1,3 +1,5 @@
+export { JournalService } from "./journal.service"
+
 export { LedgerService } from "./ledger.service"
 
 export { NoteService } from "./note.service"

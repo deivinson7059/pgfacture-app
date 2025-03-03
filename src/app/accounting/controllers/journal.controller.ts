@@ -1,22 +1,23 @@
 // src/app/accounting/controller/ledger.controller.ts
 import { Controller, Get, Query, ClassSerializerInterceptor, UseInterceptors } from '@nestjs/common';
 import { apiResponse } from 'src/app/common/interfaces/common.interface';
-import { LedgerService } from '../service';
+import { JournalService } from '../service';
 
-@Controller('accounting/ledger') // Asegúrate de que este path sea correcto
-export class LedgerController {
-    constructor(private ledgerService: LedgerService) { }
+@Controller('accounting/journal') // Asegúrate de que este path sea correcto
+export class JournalController {
+    constructor(private journalService: JournalService) { }
 
     @Get()
-    async getLedger(
+    async getJournal(
         @Query('cmpy') cmpy: string,
+        @Query('ware') ware: string,
         @Query('year') year: number,
         @Query('per') per: number,
         @Query('account') account?: string,
     ): Promise<apiResponse<any>> {
-        const entries = await this.ledgerService.findByFilters(cmpy,  year, per, account);
+        const entries = await this.journalService.findByFilters(cmpy, ware, year, per, account);
         return {
-            message: `Libro mayor del período ${per} del año ${year}`,
+            message: `Libro diario del período ${per} del año ${year}`,
             data: entries
         };
     }

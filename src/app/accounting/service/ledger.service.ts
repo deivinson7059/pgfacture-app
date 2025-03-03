@@ -16,7 +16,6 @@ export class LedgerService {
     // Buscar registros en el libro mayor según filtros
     async findByFilters(
         cmpy: string,
-        ware: string,
         year: number,
         per: number,
         account?: string
@@ -24,7 +23,6 @@ export class LedgerService {
         const queryBuilder = this.ledgerRepository
             .createQueryBuilder('ledger')
             .where('ledger.accl_cmpy = :cmpy', { cmpy })
-            .andWhere('ledger.accl_ware = :ware', { ware })
             .andWhere('ledger.accl_year = :year', { year })
             .andWhere('ledger.accl_per = :per', { per });
 
