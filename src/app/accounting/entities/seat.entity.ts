@@ -1,6 +1,6 @@
 import { Expose, Transform } from 'class-transformer';
 import { dateTransformer } from 'src/app/common/utils/fechaColombia';
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index, PrimaryColumn, BeforeInsert, UpdateDateColumn } from 'typeorm';
+import { Entity,  Column, CreateDateColumn, Index, PrimaryColumn, BeforeInsert, UpdateDateColumn } from 'typeorm';
 
 @Entity({ schema: 'pgfacture', name: 'pg_accounting_seat' }) // Nombre de la tabla en la base de datos
 @Index('idx_accounting_seat_cmpy', ['acch_cmpy', 'acch_ware']) // Índice compuesto para filtros
@@ -75,9 +75,21 @@ export class Seat {
     @Expose({ name: 'customers' }) // Mapear a "customers"
     acch_customers: string; // Código del cliente/proveedor
 
-    @Column({ name: 'acch_customers_name', type: 'varchar', length: 500,nullable: true })
+    @Column({ name: 'acch_customers_name', type: 'varchar', length: 500, nullable: true })
     @Expose({ name: 'customers_name' }) // Mapear a "customers_name"
     acch_customers_name: string | null; // Nombre del cliente/proveedor
+
+    // Nueva columna para el módulo
+    @Column({ name: 'acch_module', type: 'varchar', length: 50, nullable: true })
+    @Index('idx_accounting_seat_module') // Índice para filtros por módulo
+    @Expose({ name: 'module' })
+    acch_module: string | null; // Identificador del módulo (ej: INVOICE, NOTE, etc.)
+
+    // Nueva columna para la referencia
+    @Column({ name: 'acch_ref', type: 'varchar', length: 100, nullable: true })
+    @Index('idx_accounting_seat_ref') // Índice para filtros por referencia
+    @Expose({ name: 'ref' })
+    acch_ref: string | null; // Referencia al registro original en el módulo
 
     @Column({ name: 'acch_creation_by', type: 'varchar', length: 30 })
     @Expose({ name: 'creation_by' }) // Mapear a "creation_by"
@@ -111,4 +123,4 @@ export class Seat {
         // Formato HH:MM:SS sin microsegundos
         this.acch_time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
     }
-}   
+}

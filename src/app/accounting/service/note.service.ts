@@ -247,10 +247,10 @@ export class NoteService {
         } */
     }
 
-    private async contabilizarNota(queryRunner: any, note: NoteHeader,lines:any): Promise<void> {
+    private async contabilizarNota(queryRunner: any, note: NoteHeader, lines: any): Promise<void> {
         // Preparar DTO para crear asiento
-      const sientoMov: MovimientoDto[] = [];
-
+        const sientoMov: MovimientoDto[] = [];
+    
         lines.map(line => {
             sientoMov.push({
                 account: line.acnl_account,
@@ -259,6 +259,7 @@ export class NoteService {
                 debitOrCredit: undefined
             });
         });
+        
         const asientoData: CrearSeatDto = {
             cmpy: note.acnh_cmpy,
             ware: note.acnh_ware,
@@ -268,8 +269,12 @@ export class NoteService {
             customers_name: note.acnh_customer_name,
             detbin: `Nota Contable ${note.acnh_id}: ${note.acnh_description || ''}`,
             creation_by: note.acnh_updated_by || note.acnh_creation_by,
+            // Nuevos campos module y ref
+            module: 'NOTE', // Especificamos que viene del módulo de notas
+            ref: note.acnh_id.toString(), // Referencia al ID de la nota
             movimientos: sientoMov
         }
+        
         // Llamar al servicio de asientos para contabilizar
         await this.seatService.crearAsiento(asientoData); 
     }

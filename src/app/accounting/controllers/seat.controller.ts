@@ -6,7 +6,7 @@ import { CrearSeatDto } from '../dto/crear-seat.dto';
 import { ApplyDecorators, CheckCmpy, CheckPeriodOpen, CheckWare, } from 'src/app/common/decorators';
 import { ParamSource } from 'src/app/common/enums';
 
-@Controller('accounting/seat')
+@Controller('accounting/seat') 
 @UseInterceptors(TrimInterceptor)
 @UseInterceptors(ClassSerializerInterceptor)
 export class SeatController {

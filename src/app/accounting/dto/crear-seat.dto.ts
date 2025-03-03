@@ -57,6 +57,17 @@ export class CrearSeatDto {
     @Length(1, 100)
     detbin?: string;
 
+    // Nuevos campos para módulo y referencia
+    @IsOptional()
+    @IsString()
+    @Length(0, 50)
+    module?: string;
+
+    @IsOptional()
+    @IsString()
+    @Length(0, 100)
+    ref?: string;
+
     @ValidateNested({ each: true })
     @Type(() => MovimientoDto)
     @ArrayMinSize(1)

@@ -57,8 +57,8 @@ export class SeatService {
                 // Validar cuenta en el plan de cuentas para este movimiento
                 const accountPlan = await this.accountPlanRepository.findOne({
                     where: {
-                        plcu_cmpy: In(['ALL', asientoData.cmpy]),
                         plcu_id: movimiento.account,
+                        plcu_cmpy: In(['ALL', asientoData.cmpy]),
                     },
                 });
 
@@ -84,6 +84,9 @@ export class SeatService {
                     acch_debit: debit,
                     acch_credit: credit,
                     acch_creation_by: asientoData.creation_by || 'system',
+                    // Nuevos campos module y ref (pueden ser null)
+                    acch_module: asientoData.module || null,
+                    acch_ref: asientoData.ref || null
                 });
 
                 const asientoGuardado = await this.asientoRepository.manager.transaction(async (entityManager) => {
