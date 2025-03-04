@@ -476,6 +476,7 @@ export class BalanceService {
             order: { accp_year: 'ASC', accp_per: 'ASC' }
         });
 
+
         const endPeriod = await this.periodRepository.findOne({
             where: [
                 { accp_cmpy: cmpy, accp_start_date: LessThanOrEqual(endDate) },

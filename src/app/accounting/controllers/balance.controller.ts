@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Query, Body, Param, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Query, Body, Param, ParseIntPipe, ParseDatePipe } from '@nestjs/common';
 import { apiResponse } from 'src/app/common/interfaces/common.interface';
 import { Balance } from '../entities';
 import { BalanceService } from '../service';
@@ -14,6 +14,7 @@ export class BalanceController {
     @Body('year') year: number,
     @Body('per') per: number,
     @Body('type') type: string,
+    @Body('date') date: Date,
     @Body('userId') userId: string,
   ): Promise<apiResponse<Balance>> {
     const balance = await this.accountingService.generarBalance(
@@ -22,6 +23,7 @@ export class BalanceController {
       year,
       per,
       type,
+      date,
       userId,
     );
 
@@ -48,6 +50,47 @@ export class BalanceController {
       data: balance,
     };
   }
+  @Post('generate-range')
+  async generateBalanceByDateRange(
+    @Body('cmpy') cmpy: string,
+    @Body('ware') ware: string,
+    @Body('type') type: string,
+    @Body('startDate') startDate: Date,
+    @Body('endDate') endDate: Date,
+    @Body('userId') userId: string,
+  ): Promise<apiResponse<Balance>> {
+    const balance = await this.accountingService.generarBalancePorRangoFechas(
+      cmpy,
+      ware,
+      type,
+      startDate,
+      endDate,
+      userId,
+    );
+
+    let balanceType: string;
+    switch (type) {
+      case 'G':
+        balanceType = 'General';
+        break;
+      case 'P':
+        balanceType = 'de Prueba';
+        break;
+      case 'S':
+        balanceType = 'de Situación';
+        break;
+      case 'R':
+        balanceType = 'de Resultados';
+        break;
+      default:
+        balanceType = '';
+    }
+
+    return {
+      message: `Balance ${balanceType} generado correctamente para el rango de fechas especificado`,
+      data: balance,
+    };
+  }
 
   @Get()
   async getBalance(
@@ -55,12 +98,14 @@ export class BalanceController {
     @Query('year') year: number,
     @Query('per') per: number,
     @Query('type') type: string,
+    @Query('date') date: Date,
   ): Promise<apiResponse<{balance: Balance, details: any[]}>> {
     const result = await this.accountingService.obtenerBalance(
       cmpy,
       year,
       per,
       type,
+      date,
     );
 
     let balanceType: string;
@@ -87,6 +132,8 @@ export class BalanceController {
     };
   }
 
+  
+
   @Get('types')
   getBalanceTypes(): apiResponse<any[]> {
     const balanceTypes = [
@@ -101,4 +148,4 @@ export class BalanceController {
       data: balanceTypes,
     };
   }
-}
+} 
