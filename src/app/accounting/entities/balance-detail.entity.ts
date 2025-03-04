@@ -5,8 +5,10 @@ import { Expose } from 'class-transformer';
 @Index('idx_balance_detail_cmpy_year_per', ['acbd_cmpy', 'acbd_year', 'acbd_per', 'acbd_type'])
 @Index('idx_balance_detail_account', ['acbd_account'])
 @Index('idx_balance_detail_level', ['acbd_level'])
-@Index('idx_balance_detail_date', ['acbd_date']) // Nuevo índice por fecha
-@Index('idx_balance_detail_cmpy_date', ['acbd_cmpy', 'acbd_date']) // Nuevo índice compuesto
+@Index('idx_balance_detail_date_ini', ['acbd_date_ini']) // Cambiado de idx_balance_detail_date
+@Index('idx_balance_detail_date_end', ['acbd_date_end']) // Nuevo índice para fecha final
+@Index('idx_balance_detail_cmpy_date_ini', ['acbd_cmpy', 'acbd_date_ini']) // Actualizado
+@Index('idx_balance_detail_cmpy_date_range', ['acbd_cmpy', 'acbd_date_ini', 'acbd_date_end']) // Nuevo índice compuesto para rango
 
 //Para los detalles de balances
 export class BalanceDetail {
@@ -30,9 +32,13 @@ export class BalanceDetail {
   @Expose({ name: 'account' })
   acbd_account: string;
 
-  @PrimaryColumn({ name: 'acbd_date', type: 'date', default: () => 'CURRENT_DATE' }) // Nuevo campo fecha como parte de la clave primaria
-  @Expose({ name: 'date' })
-  acbd_date: Date;
+  @PrimaryColumn({ name: 'acbd_date_ini', type: 'date', default: () => 'CURRENT_DATE' }) // Renombrado de acbd_date
+  @Expose({ name: 'date_ini' })
+  acbd_date_ini: Date; // Fecha inicial del rango
+  
+  @Column({ name: 'acbd_date_end', type: 'date', default: () => 'CURRENT_DATE' }) // Nuevo campo fecha final
+  @Expose({ name: 'date_end' })
+  acbd_date_end: Date; // Fecha final del rango
 
   @Column({ name: 'acbd_account_name', type: 'varchar', length: 500 })
   @Expose({ name: 'account_name' })

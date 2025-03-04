@@ -5,8 +5,10 @@ import { dateTransformer } from 'src/app/common/utils/fechaColombia';
 @Entity({ schema: 'pgfacture', name: 'pg_accounting_balance' })
 @Index('idx_balance_cmpy_year_per', ['accb_cmpy', 'accb_year', 'accb_per'])
 @Index('idx_balance_type', ['accb_type'])
-@Index('idx_balance_date', ['accb_date']) // Nuevo índice por fecha
-@Index('idx_balance_cmpy_date', ['accb_cmpy', 'accb_date']) // Nuevo índice compuesto
+@Index('idx_balance_date_ini', ['accb_date_ini']) // Cambiado de idx_balance_date
+@Index('idx_balance_date_end', ['accb_date_end']) // Nuevo índice para fecha final
+@Index('idx_balance_cmpy_date_ini', ['accb_cmpy', 'accb_date_ini']) // Actualizado
+@Index('idx_balance_cmpy_date_range', ['accb_cmpy', 'accb_date_ini', 'accb_date_end']) // Nuevo índice para rango completo
 //Para los balances
 export class Balance {
   @PrimaryColumn({ name: 'accb_cmpy', type: 'varchar', length: 10 })
@@ -25,10 +27,14 @@ export class Balance {
   @Expose({ name: 'type' })
   accb_type: string; // 'G' = General, 'P' = Prueba (Trial), 'S' = Situación (Balance Sheet), 'R' = Resultados (Income Statement)
 
-  @PrimaryColumn({ name: 'accb_date', type: 'date', default: () => 'CURRENT_DATE' }) // Nuevo campo fecha como parte de la clave primaria
-  @Expose({ name: 'date' })
-  accb_date: Date;
+  @PrimaryColumn({ name: 'accb_date_ini', type: 'date', default: () => 'CURRENT_DATE' }) // Renombrado de accb_date
+  @Expose({ name: 'date_ini' })
+  accb_date_ini: Date; // Fecha inicial del rango
 
+  @Column({ name: 'accb_date_end', type: 'date', default: () => 'CURRENT_DATE' }) // Nuevo campo para fecha final
+  @Expose({ name: 'date_end' })
+  accb_date_end: Date; // Fecha final del rango
+  
   @Column({ name: 'accb_date_generated', type: 'timestamp', transformer: dateTransformer() })
   @Expose({ name: 'date_generated' })
   accb_date_generated: Date;
