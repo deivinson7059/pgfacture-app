@@ -48,6 +48,7 @@ export class BalanceController {
       data: balance,
     };
   }
+
   @Post('generate-range')
   async generateBalanceByDateRange(
     @Body('cmpy') cmpy: string,
@@ -96,14 +97,12 @@ export class BalanceController {
     @Query('year') year: number,
     @Query('per') per: number,
     @Query('type') type: string,
-    @Query('date') date: Date,
   ): Promise<apiResponse<{balance: Balance, details: any[]}>> {
     const result = await this.accountingService.obtenerBalance(
       cmpy,
       year,
       per,
       type,
-      date,
     );
 
     let balanceType: string;
@@ -130,7 +129,43 @@ export class BalanceController {
     };
   }
 
-  
+  @Get('range')
+  async getBalancePorRangoFechas(
+    @Query('cmpy') cmpy: string,
+    @Query('startDate') startDate: Date,
+    @Query('endDate') endDate: Date,
+    @Query('type') type: string,
+  ): Promise<apiResponse<{balance: Balance, details: any[]}>> {
+    const result = await this.accountingService.obtenerBalancePorRangoFechas(
+      cmpy,
+      startDate,
+      endDate,
+      type,
+    );
+
+    let balanceType: string;
+    switch (type) {
+      case 'G':
+        balanceType = 'General';
+        break;
+      case 'P':
+        balanceType = 'de Prueba';
+        break;
+      case 'S':
+        balanceType = 'de Situación';
+        break;
+      case 'R':
+        balanceType = 'de Resultados';
+        break;
+      default:
+        balanceType = '';
+    }
+
+    return {
+      message: `Balance ${balanceType} desde ${startDate} hasta ${endDate}`,
+      data: result,
+    };
+  } 
 
   @Get('types')
   getBalanceTypes(): apiResponse<any[]> {

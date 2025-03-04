@@ -3,10 +3,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { Balance, BalanceDetail, Journal, Ledger, NoteHeader, NoteLine, Period, Puc, Seat } from './entities';
 import { BalanceController, JournalController, LedgerController, NoteController, PeriodController, PucController, SeatController } from './controllers';
-import { BalanceService, JournalService, LedgerService, NoteService, PeriodService, PucService, SeatService } from './service';
+import { BalanceService, JournalService, LedgerService, NiifReportsService, NoteService, PeriodService, PucService, SeatService } from './service';
 import { CheckCompanyGuard, CheckPeriodGuard, CheckSucursalGuard } from '../common/guards';
 import { Sucursal } from '../settings/sucursal/entities';
 import { Company } from '../settings/company/entities';
+import { NiifReportsController } from './controllers/niif-reports.controller';
 
 @Module({
     controllers: [
@@ -16,7 +17,8 @@ import { Company } from '../settings/company/entities';
         BalanceController,
         NoteController,
         LedgerController,
-        JournalController
+        JournalController,
+        NiifReportsController
     ],
     providers: [
         PucService,
@@ -26,6 +28,7 @@ import { Company } from '../settings/company/entities';
         JournalService,
         NoteService,
         LedgerService,
+        NiifReportsService,
         CheckSucursalGuard,
         CheckCompanyGuard,
         CheckPeriodGuard,

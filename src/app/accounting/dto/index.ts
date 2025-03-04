@@ -1,3 +1,5 @@
+export { GenerarNiifReporteDto } from "./generar-niif-reporte.dto";
+
 export { UpdateNoteStatusDto } from "./update-note.dto";
 
 export { NoteLineDto } from "./create-note-line.dto";
