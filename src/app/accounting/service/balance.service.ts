@@ -1,4 +1,3 @@
-// src/app/accounting/service/balance.service.ts
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { Balance, BalanceDetail, Ledger, Period, Puc } from "../entities";
 import { DataSource, QueryRunner, Repository, Between, LessThanOrEqual, MoreThanOrEqual } from "typeorm";
@@ -28,7 +27,6 @@ export class BalanceService {
         year: number,
         per: number,
         type: string,
-        date: Date,
         userId: string
     ): Promise<Balance> {
         const queryRunner = this.dataSource.createQueryRunner();
@@ -36,13 +34,31 @@ export class BalanceService {
         await queryRunner.startTransaction();
 
         try {
-            // 1. Eliminar cualquier balance existente con el tipo, período, compañía y fecha
+            // Obtener el período para obtener las fechas de inicio y fin
+            const period = await this.periodRepository.findOne({
+                where: {
+                    accp_cmpy: cmpy,
+                    accp_year: year,
+                    accp_per: per
+                }
+            });
+
+            if (!period) {
+                throw new NotFoundException(`Período ${per} del año ${year} no encontrado`);
+            }
+
+            // Usamos las fechas del período
+            const startDate = period.accp_start_date;
+            const endDate = period.accp_end_date;
+
+            // 1. Eliminar cualquier balance existente con el tipo, período, compañía y fechas
             await queryRunner.manager.delete(BalanceDetail, {
                 acbd_cmpy: cmpy,
                 acbd_year: year,
                 acbd_per: per,
                 acbd_type: type,
-                acbd_date: date,
+                acbd_date_ini: startDate,
+                acbd_date_end: endDate,
             });
 
             // Buscar o crear el balance principal
@@ -52,7 +68,7 @@ export class BalanceService {
                     accb_year: year,
                     accb_per: per,
                     accb_type: type,
-                    accb_date: date,
+                    accb_date_ini: startDate!,
                 },
             });
 
@@ -62,7 +78,8 @@ export class BalanceService {
                     accb_year: year,
                     accb_per: per,
                     accb_type: type,
-                    accb_date: date,
+                    accb_date_ini: startDate!,
+                    accb_date_end: endDate!,
                     accb_date_generated: new Date(),
                     accb_generated_by: userId,
                     accb_is_closing_balance: per === 13,
@@ -70,6 +87,7 @@ export class BalanceService {
                 });
             } else {
                 balance.accb_date_generated = new Date();
+                balance.accb_date_end = endDate!;
                 balance.accb_generated_by = userId;
             }
 
@@ -91,30 +109,18 @@ export class BalanceService {
             // 3. Obtener todas las cuentas de clase (un dígito)
             const classAccounts = allAccounts.filter(account => account.plcu_classification === 'CLASE');
 
-            // 4. Obtener movimientos del libro mayor para la fecha específica
+            // 4. Obtener movimientos del libro mayor para la fecha específica o rango de fechas
             const ledgerEntries = await this.ledgerRepository.find({
                 where: {
                     accl_cmpy: cmpy,
                     accl_ware: ware,
                     accl_year: year,
                     accl_per: per,
-                    accl_date: date,
+                    accl_date: Between(startDate!, endDate!),
                 },
             });
 
             // También necesitamos obtener los saldos iniciales desde el principio del período hasta la fecha
-            const period = await this.periodRepository.findOne({
-                where: {
-                    accp_cmpy: cmpy,
-                    accp_year: year,
-                    accp_per: per
-                }
-            });
-
-            if (!period) {
-                throw new NotFoundException(`Período ${per} del año ${year} no encontrado`);
-            }
-
             const periodStartDate = period.accp_start_date;
 
             // Obtener todos los movimientos del período hasta la fecha (para saldos acumulados)
@@ -124,7 +130,7 @@ export class BalanceService {
                     accl_ware: ware,
                     accl_year: year,
                     accl_per: per,
-                    accl_date: Between(periodStartDate as Date, date as Date)
+                    accl_date: Between(periodStartDate as Date, endDate as Date)
                 }
             });
 
@@ -150,7 +156,7 @@ export class BalanceService {
                 });
             }
 
-            // 5. Distribuir los saldos del libro mayor a las cuentas directas para la fecha dada
+            // 5. Distribuir los saldos del libro mayor a las cuentas directas para las fechas dadas
             for (const entry of ledgerEntries) {
                 const accountId = entry.accl_account;
 
@@ -280,7 +286,8 @@ export class BalanceService {
                         acbd_year: year,
                         acbd_per: per,
                         acbd_type: type,
-                        acbd_date: date,
+                        acbd_date_ini: startDate!,
+                        acbd_date_end: endDate!,
                         acbd_account: accountId,
                         acbd_account_name: account.plcu_description,
                         acbd_level: level,
@@ -307,7 +314,8 @@ export class BalanceService {
                     acbd_year: year,
                     acbd_per: per,
                     acbd_type: type,
-                    acbd_date: date,
+                    acbd_date_ini: startDate!,
+                    acbd_date_end: endDate!,
                     acbd_level: 1  // Solo las cuentas de clase (nivel 1)
                 }
             });
@@ -361,6 +369,20 @@ export class BalanceService {
         }
     }
 
+    // Generar balance para un rango de fechas
+    async generarBalancePorRangoFechas(
+        cmpy: string,
+        ware: string,
+        type: string,
+        startDate: Date,
+        endDate: Date,
+        userId: string
+    ): Promise<any> {       
+
+        // Usar el último día del período para el balance
+        //terminar el metodo
+    }
+
     // Obtener balance con estructura jerárquica para una fecha específica
     async obtenerBalance(
         cmpy: string,
@@ -369,18 +391,34 @@ export class BalanceService {
         type: string,
         date: Date
     ): Promise<{ balance: Balance, details: any[] }> {
+        // Obtener el período para conseguir las fechas
+        const period = await this.periodRepository.findOne({
+            where: {
+                accp_cmpy: cmpy,
+                accp_year: year,
+                accp_per: per
+            }
+        });
+
+        if (!period) {
+            throw new NotFoundException(`Período ${per} del año ${year} no encontrado`);
+        }
+
+        const startDate = period.accp_start_date;
+        const endDate = period.accp_end_date;
+
         const balance = await this.balanceRepository.findOne({
             where: {
                 accb_cmpy: cmpy,
                 accb_year: year,
                 accb_per: per,
                 accb_type: type,
-                accb_date: date,
+                accb_date_ini: startDate!,
             },
         });
 
         if (!balance) {
-            throw new NotFoundException(`Balance no encontrado para el período ${per} del año ${year} y fecha ${date}`);
+            throw new NotFoundException(`Balance no encontrado para el período ${per} del año ${year}`);
         }
 
         // Obtener todos los detalles
@@ -390,7 +428,8 @@ export class BalanceService {
                 acbd_year: year,
                 acbd_per: per,
                 acbd_type: type,
-                acbd_date: date,
+                acbd_date_ini: startDate!,
+                acbd_date_end: endDate!,
             },
         });
 
@@ -458,48 +497,6 @@ export class BalanceService {
         };
     }
 
-    // Generar balance para un rango de fechas
-    async generarBalancePorRangoFechas(
-        cmpy: string,
-        ware: string,
-        type: string,
-        startDate: Date,
-        endDate: Date,
-        userId: string
-    ): Promise<Balance> {
-        // Identificar el período y año correspondientes a las fechas
-        const startPeriod = await this.periodRepository.findOne({
-            where: [
-                { accp_cmpy: cmpy, accp_start_date: MoreThanOrEqual(startDate) },
-                { accp_cmpy: cmpy, accp_end_date: MoreThanOrEqual(startDate) }
-            ],
-            order: { accp_year: 'ASC', accp_per: 'ASC' }
-        });
 
-
-        const endPeriod = await this.periodRepository.findOne({
-            where: [
-                { accp_cmpy: cmpy, accp_start_date: LessThanOrEqual(endDate) },
-                { accp_cmpy: cmpy, accp_end_date: LessThanOrEqual(endDate) }
-            ],
-            order: { accp_year: 'DESC', accp_per: 'DESC' }
-        });
-
-        if (!startPeriod || !endPeriod) {
-            throw new NotFoundException(`No se encontraron períodos para el rango de fechas especificado`);
-        }
-
-        // Usar el último día del período para el balance
-        const balanceDate = endDate;
-        
-        return this.generarBalance(
-            cmpy,
-            ware,
-            endPeriod.accp_year,
-            endPeriod.accp_per,
-            type,
-            balanceDate,
-            userId
-        );
-    }
+    
 }

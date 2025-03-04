@@ -14,7 +14,6 @@ export class BalanceController {
     @Body('year') year: number,
     @Body('per') per: number,
     @Body('type') type: string,
-    @Body('date') date: Date,
     @Body('userId') userId: string,
   ): Promise<apiResponse<Balance>> {
     const balance = await this.accountingService.generarBalance(
@@ -23,7 +22,6 @@ export class BalanceController {
       year,
       per,
       type,
-      date,
       userId,
     );
 
