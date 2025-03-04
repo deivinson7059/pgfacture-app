@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { Balance, BalanceDetail, Ledger, Period, Puc } from "../entities";
-import { DataSource,  Repository, Between } from "typeorm";
+import { DataSource, Repository, Between } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
 import { toNumber } from "src/app/common/utils/utils";
 
@@ -19,7 +19,7 @@ export class BalanceService {
         @InjectRepository(BalanceDetail)
         private balanceDetailRepository: Repository<BalanceDetail>,
     ) { }
-
+   
     // Generar balance para un período y fecha específica
     async generarBalance(
         cmpy: string,
@@ -61,6 +61,8 @@ export class BalanceService {
                 acbd_date_end: endDate,
             });
 
+
+
             // Buscar o crear el balance principal
             let balance = await this.balanceRepository.findOne({
                 where: {
@@ -69,8 +71,11 @@ export class BalanceService {
                     accb_per: per,
                     accb_type: type,
                     accb_date_ini: startDate!,
+                    accb_date_end: endDate!,
                 },
             });
+
+
 
             if (!balance) {
                 balance = this.balanceRepository.create({
@@ -101,14 +106,16 @@ export class BalanceService {
                 ]
             });
 
+
+
             const accountMap = new Map<string, Puc>();
             allAccounts.forEach(account => {
                 accountMap.set(account.plcu_id, account);
             });
 
             // 3. Obtener todas las cuentas de clase (un dígito)
-            const classAccounts = allAccounts.filter(account => account.plcu_classification === 'CLASE');
-
+           // const classAccounts = allAccounts.filter(account => account.plcu_classification === 'CLASE');
+          
             // 4. Obtener movimientos del libro mayor para la fecha específica o rango de fechas
             const ledgerEntries = await this.ledgerRepository.find({
                 where: {
@@ -116,7 +123,7 @@ export class BalanceService {
                     accl_ware: ware,
                     accl_year: year,
                     accl_per: per,
-                    accl_date: Between(startDate!, endDate!),
+                    accl_date: Between(new Date(startDate!), new Date(endDate!)),
                 },
             });
 
@@ -669,7 +676,7 @@ export class BalanceService {
             await queryRunner.release();
         }
     }
- 
+
     // Obtener balance con estructura jerárquica para una fecha específica
     async obtenerBalance(
         cmpy: string,
@@ -789,18 +796,18 @@ export class BalanceService {
         startDate: Date,
         endDate: Date,
         type: string
-    ): Promise<{ balance: Balance, details: any[] }> {        
+    ): Promise<{ balance: Balance, details: any[] }> {
 
         const balance = await this.balanceRepository.findOne({
             where: {
                 accb_cmpy: cmpy,
                 accb_per: 0,
-                accb_year:0,
+                accb_year: 0,
                 accb_type: type,
                 accb_date_ini: startDate,
                 accb_date_end: endDate,
             },
-        });       
+        });
 
         if (!balance) {
             throw new NotFoundException(`Balance no encontrado para el rango ${startDate} y ${endDate}`);

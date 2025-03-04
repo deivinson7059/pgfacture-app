@@ -1,3 +1,5 @@
+export { AccountingSeedService } from "./seed.service"
+
 export { NiifReportsService } from "./niif-reports.service"
 
 export { JournalService } from "./journal.service"
