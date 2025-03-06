@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, NotFoundException,BadRequestException, ClassSerializerInterceptor, Put, Query, UseInterceptors, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body,  Param,  NotFoundException,BadRequestException, ClassSerializerInterceptor, Put, Query, UseInterceptors, UsePipes, ValidationPipe } from '@nestjs/common';
 import {  PucService } from '../service/puc.service';
 import { TrimInterceptor } from '../../common/interceptors/trim.interceptor';
 import { PucResponse, PucResponseOnly } from '../interfaces/puc.interface';
@@ -17,11 +17,7 @@ export class PucController {
         private readonly PucService: PucService,
         private readonly companyService: CompanyService,
         
-    ) { }
-
-    /**
-     * Puc (plan unico de cuentas)
-     **/
+    ) { }  
 
     @Post()
     async create(@Body() accountPlanDto: CreatePucDto): Promise<Puc> {
@@ -98,8 +94,4 @@ export class PucController {
             data: accounts
         };
     }
-
-    /**    
-     * FinPuc (plan unico de cuentas)
-     **/
 }
