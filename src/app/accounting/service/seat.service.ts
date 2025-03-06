@@ -5,6 +5,7 @@ import { DataSource, In, QueryRunner, Repository } from 'typeorm';
 import { Balance, BalanceDetail, Journal, Ledger, Period, Puc, Seat } from '../entities';
 import { CrearSeatDto } from '../dto';
 import { SEAT_MODULE } from 'src/app/common/enums';
+import { toNumber } from 'src/app/common/utils/utils';
 
 @Injectable()
 export class SeatService {
@@ -80,12 +81,19 @@ export class SeatService {
                     acch_cmpy: asientoData.cmpy,
                     acch_ware: asientoData.ware,
                     acch_year: asientoData.year,
+                    acch_date: '2025-01-11',
                     acch_per: asientoData.per,
                     acch_customers: asientoData.customers,
-                    acch_detbin: asientoData.detbin,
+                    acch_description: asientoData.description,
+                    acch_taxable_base: movimiento.taxable_base || null,
+                    acch_exempt_base: movimiento.exempt_base || null,
                     acch_code: codigo,
                     acch_account: movimiento.account,
                     acch_account_name: accountPlan.plcu_description,
+                    acch_document_type: asientoData.document_type,
+                    acch_document_number: asientoData.document_number || null,
+                    acch_cost_center: asientoData.cost_center || null,
+                    acch_elaboration_date: asientoData.elaboration_date || new Date(),
                     acch_debit: debit,
                     acch_credit: credit,
                     acch_creation_by: asientoData.creation_by || 'system',
@@ -110,10 +118,16 @@ export class SeatService {
                     accj_per: asientoData.per,
                     accj_code: codigo,
                     accj_account: movimiento.account,
+                    accj_taxable_base: movimiento.taxable_base || null,
+                    accj_exempt_base: movimiento.exempt_base || null,
+                    accj_document_type: asientoData.document_type,
+                    accj_document_number: asientoData.document_number || null,
+                    accj_cost_center: asientoData.cost_center || null,
+                    accj_elaboration_date: asientoData.elaboration_date || new Date(),
                     accj_account_name: accountPlan.plcu_description,
                     accj_debit: movimiento.debit || 0,
                     accj_credit: movimiento.credit || 0,
-                    accj_detbin: asientoData.detbin,
+                    accj_description: asientoData.description,
                     accj_customers: asientoData.customers,
                     accj_customers_name: asientoData.customers_name,
                     accj_creation_by: asientoData.creation_by,
@@ -193,14 +207,15 @@ export class SeatService {
                 accl_ware: ware,
                 accl_year: year,
                 accl_per: per,
-                accl_account: account,
+                accl_date: '2025-01-11',                
+                accl_account: account, 
                 accl_account_name: accountName,
-                accl_initial_debit: initialBalances.initialDebit,
-                accl_initial_credit: initialBalances.initialCredit,
+                accl_initial_debit: toNumber(initialBalances.initialDebit),
+                accl_initial_credit: toNumber(initialBalances.initialCredit),
                 accl_period_debit: debit,
                 accl_period_credit: credit,
-                accl_final_debit: initialBalances.initialDebit + debit,
-                accl_final_credit: initialBalances.initialCredit + credit,
+                accl_final_debit: toNumber(initialBalances.initialDebit) + toNumber(debit),
+                accl_final_credit: toNumber(initialBalances.initialCredit) + toNumber(credit),
                 accl_last_updated: new Date(),
                 accl_creation_by: userId,
             });
@@ -224,10 +239,10 @@ export class SeatService {
 
 
             // Actualizar con valores numéricos
-            ledgerEntry.accl_period_debit = numPeriodDebit + debit;
-            ledgerEntry.accl_period_credit = numPeriodCredit + credit;
-            ledgerEntry.accl_final_debit = numInitialDebit + (numPeriodDebit + debit);
-            ledgerEntry.accl_final_credit = numInitialCredit + (numPeriodCredit + credit);
+            ledgerEntry.accl_period_debit = toNumber(numPeriodDebit) + toNumber(debit);
+            ledgerEntry.accl_period_credit = toNumber(numPeriodCredit) + toNumber(credit);
+            ledgerEntry.accl_final_debit = toNumber(numInitialDebit) + (toNumber(numPeriodDebit) + toNumber(debit));
+            ledgerEntry.accl_final_credit = toNumber(numInitialCredit) + (toNumber(numPeriodCredit) + toNumber(credit));
             ledgerEntry.accl_last_updated = new Date();
             ledgerEntry.accl_updated_by = userId;
 

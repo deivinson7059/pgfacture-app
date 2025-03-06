@@ -1,7 +1,6 @@
 import { Expose, Transform } from 'class-transformer';
-import { SEAT_MODULE } from 'src/app/common/enums';
 import { dateTransformer } from 'src/app/common/utils/fechaColombia';
-import { Entity,  Column, CreateDateColumn, Index, PrimaryColumn, BeforeInsert, UpdateDateColumn } from 'typeorm';
+import { Entity, Column, CreateDateColumn, Index, PrimaryColumn, BeforeInsert, UpdateDateColumn } from 'typeorm';
 
 @Entity({ schema: 'pgfacture', name: 'pg_accounting_seat' }) // Nombre de la tabla en la base de datos
 @Index('idx_accounting_seat_cmpy', ['acch_cmpy', 'acch_ware']) // Índice compuesto para filtros
@@ -11,7 +10,7 @@ export class Seat {
     @PrimaryColumn({ type: 'bigint', name: 'acch_id' })
     @Expose({ name: 'id' }) // Mapear a "id"
     acch_id: number;
-
+    
     @Expose({ name: 'date' })
     @Column({ name: 'acch_date', type: 'date', default: () => 'CURRENT_DATE' })
     acch_date: Date;
@@ -53,8 +52,8 @@ export class Seat {
     acch_code: string; // Código alfanumérico único de 6 caracteres
 
     @Column({ type: 'varchar', length: 100, nullable: true })
-    @Expose({ name: 'detbin' }) // Mapear a "detbin"
-    acch_detbin: string; // Detalle o comentario del movimiento
+    @Expose({ name: 'description' }) // Mapear a "detbin"
+    acch_description: string; // Detalle o comentario del movimiento
 
     @Column({ name: 'acch_account', type: 'varchar', length: 20 })
     @Expose({ name: 'account' }) // Mapear a "account"
@@ -72,6 +71,10 @@ export class Seat {
     @Expose({ name: 'credit' }) // Mapear a "credit"
     acch_credit: number; // Total créditos
 
+    @Column({ name: 'acch_taxable_base', type: 'decimal', precision: 15, scale: 2, nullable: true })
+    @Expose({ name: 'taxable_base' })
+    acch_taxable_base: number | null;
+
     @Column({ name: 'acch_customers', type: 'varchar', length: 60 })
     @Expose({ name: 'customers' }) // Mapear a "customers"
     acch_customers: string; // Código del cliente/proveedor
@@ -84,7 +87,23 @@ export class Seat {
     @Column({ name: 'acch_module', type: 'varchar', length: 50, nullable: true })
     @Index('idx_accounting_seat_module') // Índice para filtros por módulo
     @Expose({ name: 'module' })
-    acch_module: SEAT_MODULE | null; // Identificador del módulo (ej: INVOICE, NOTE, etc.)
+    acch_module: string | null; // Identificador del módulo (ej: INVOICE, NOTE, etc.)
+
+    @Column({ name: 'acch_exempt_base', type: 'decimal', precision: 15, scale: 2, nullable: true })
+    @Expose({ name: 'exempt_base' })
+    acch_exempt_base: number | null;
+
+    @Column({ name: 'acch_document_type', type: 'varchar', length: 20 })
+    @Expose({ name: 'document_type' })
+    acch_document_type: string;
+    
+    @Column({ name: 'acch_document_number', type: 'varchar', length: 30, nullable: true })
+    @Expose({ name: 'document_number' })
+    acch_document_number: string | null;
+    
+    @Column({ name: 'acch_cost_center', type: 'varchar', length: 20, nullable: true })
+    @Expose({ name: 'cost_center' })
+    acch_cost_center: string | null; 
 
     // Nueva columna para la referencia
     @Column({ name: 'acch_ref', type: 'varchar', length: 100, nullable: true })
@@ -95,7 +114,11 @@ export class Seat {
     @Column({ name: 'acch_creation_by', type: 'varchar', length: 30 })
     @Expose({ name: 'creation_by' }) // Mapear a "creation_by"
     acch_creation_by: string | null; // Usuario que registró
- 
+
+    @Column({ name: 'acch_elaboration_date', type: 'date', nullable: true })
+    @Expose({ name: 'elaboration_date' })
+    acch_elaboration_date: Date | null;
+
     @CreateDateColumn({
         name: 'acch_creation_date',
         type: 'timestamp',

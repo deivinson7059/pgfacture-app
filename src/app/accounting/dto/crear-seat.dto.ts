@@ -1,5 +1,5 @@
 import { Type } from "class-transformer";
-import { IsNotEmpty, IsString, Length, IsInt, Min, Max, IsOptional, ValidateNested, ArrayMinSize, ValidatorConstraint, ValidatorConstraintInterface, Validate, IsEnum } from "class-validator";
+import { IsNotEmpty, IsNumber,IsDate,IsString, Length, IsInt, Min, Max, IsOptional, ValidateNested, ArrayMinSize, ValidatorConstraint, ValidatorConstraintInterface, Validate, IsEnum } from "class-validator";
 import { MovimientoDto } from "./movimiento.dto";
 import { SEAT_MODULE } from "src/app/common/enums";
 
@@ -56,12 +56,35 @@ export class CrearSeatDto {
     @IsOptional()
     @IsString()
     @Length(1, 100)
-    detbin?: string;
+    description?: string;
 
     // Nuevos campos para módulo y referencia
     @IsOptional()
     @IsEnum(SEAT_MODULE, { message: 'El módulo debe ser uno de los valores permitidos en el sistema.' })   
     module?: SEAT_MODULE;
+
+   
+    
+    // Nuevos campos adicionales
+    @IsNotEmpty()
+    @IsString()
+    @Length(1, 20)
+    document_type: string;
+    
+    @IsOptional()
+    @IsString()
+    @Length(1, 30)
+    document_number?: string;
+    
+    @IsOptional()
+    @IsString()
+    @Length(1, 20)
+    cost_center?: string;
+    
+    @IsOptional()
+    @IsDate()
+    @Type(() => Date)
+    elaboration_date?: Date;
 
     @IsOptional()
     @IsString()
