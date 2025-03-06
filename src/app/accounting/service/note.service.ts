@@ -31,7 +31,7 @@ export class NoteService {
                 createNoteDto.cmpy,
                 createNoteDto.year,
                 createNoteDto.per
-            );          
+            );
 
             // Valores predeterminados
             const customer = createNoteDto.customer || '-';
@@ -73,8 +73,6 @@ export class NoteService {
             const savedHeader = await queryRunner.manager.save(header);
 
             // Crear líneas
-
-
             for (let i = 0; i < createNoteDto.lines.length; i++) {
 
                 const acnl_id = await this.getNextNoteLineId(queryRunner, createNoteDto.cmpy);
@@ -96,8 +94,8 @@ export class NoteService {
                 });
 
                 await queryRunner.manager.save(line);
-            }    
-            
+            }
+
             await queryRunner.commitTransaction();
 
             // Cargar las líneas para la respuesta
@@ -115,7 +113,7 @@ export class NoteService {
                 order: {
                     acnl_line_number: 'ASC'
                 }
-            });           
+            });
 
             return {
                 ...noteHeader,
@@ -158,7 +156,6 @@ export class NoteService {
     ): Promise<NoteHeader[]> {
         const queryBuilder = this.noteHeaderRepository
             .createQueryBuilder('header')
-            .leftJoinAndSelect('header.lines', 'lines')
             .where('header.acnh_cmpy = :cmpy', { cmpy });
 
         if (year !== undefined) {
@@ -175,11 +172,10 @@ export class NoteService {
 
         return queryBuilder
             .orderBy('header.acnh_date', 'DESC')
-            .addOrderBy('header.acnh_code', 'ASC')
             .getMany();
     }
 
-    async findOne(cmpy:string,id: number): Promise<NoteHeaderWithLines> {
+    async findOne(cmpy: string, id: number): Promise<NoteHeaderWithLines> {
         const noteHeader = await this.noteHeaderRepository.findOne({
             where: {
                 acnh_id: id,
@@ -195,25 +191,26 @@ export class NoteService {
             where: {
                 acnl_acnh_id: id,
                 acnl_cmpy: cmpy
-            },
+            }, 
             order: {
                 acnl_line_number: 'ASC'
             }
-        });       
+        });
 
         return {
             ...noteHeader,
             lines: noteLines
         } as NoteHeaderWithLines;
     }
-   
+
     async updateStatus(updateStatusDto: UpdateNoteStatusDto): Promise<any> {
         const queryRunner = this.dataSource.createQueryRunner();
         await queryRunner.connect();
         await queryRunner.startTransaction();
 
-        /* try {
-            const note = await this.findOne(updateStatusDto.id);
+        try {
+            // Obtener la nota y verificar que exista
+            const note = await this.findOne(updateStatusDto.id.split('-')[0], parseInt(updateStatusDto.id.split('-')[1]));
 
             // Validar transiciones de estado permitidas
             this.validateStatusTransition(note.acnh_status, updateStatusDto.status);
@@ -231,7 +228,7 @@ export class NoteService {
 
             // Si está aprobado, contabilizar (crear asientos)
             if (updateStatusDto.status === 'A') {
-                await this.contabilizarNota(queryRunner, note);
+                await this.contabilizarNota(queryRunner, note, note.lines);
 
                 // Actualizar estado a Contabilizado
                 note.acnh_status = 'C';
@@ -239,28 +236,30 @@ export class NoteService {
             }
 
             await queryRunner.commitTransaction();
-            return await this.findOne(note.acnh_id);
+            return await this.findOne(note.acnh_cmpy, note.acnh_id);
         } catch (error) {
             await queryRunner.rollbackTransaction();
             throw error;
         } finally {
             await queryRunner.release();
-        } */
+        }
     }
 
-    private async contabilizarNota(queryRunner: any, note: NoteHeader, lines: any): Promise<void> {
+    private async contabilizarNota(queryRunner: any, note: NoteHeader, lines: NoteLine[]): Promise<void> {
         // Preparar DTO para crear asiento
         const sientoMov: MovimientoDto[] = [];
-    
+
         lines.map(line => {
             sientoMov.push({
                 account: line.acnl_account,
                 debit: line.acnl_debit,
                 credit: line.acnl_credit,
+                taxable_base: 0,
+                exempt_base: 0,
                 debitOrCredit: undefined
             });
         });
-        
+
         const asientoData: CrearSeatDto = {
             cmpy: note.acnh_cmpy,
             ware: note.acnh_ware,
@@ -268,16 +267,20 @@ export class NoteService {
             per: note.acnh_per,
             customers: note.acnh_customer,
             customers_name: note.acnh_customer_name,
-            detbin: `Nota Contable ${note.acnh_id}: ${note.acnh_description || ''}`,
+            description: `Nota Contable ${note.acnh_id}: ${note.acnh_description || ''}`,
             creation_by: note.acnh_updated_by || note.acnh_creation_by,
+            document_type: "NOTA",
+            document_number: note.acnh_id.toString(),
+            cost_center: null,
+            elaboration_date: new Date(),
             // Nuevos campos module y ref
             module: SEAT_MODULE.NOTA, // Especificamos que viene del módulo de notas
             ref: note.acnh_id.toString(), // Referencia al ID de la nota
             movimientos: sientoMov
         }
-        
+
         // Llamar al servicio de asientos para contabilizar
-        await this.seatService.crearAsiento(asientoData); 
+        await this.seatService.crearAsiento(asientoData);
     }
 
     private validateStatusTransition(currentStatus: string, newStatus: string): void {
@@ -292,5 +295,5 @@ export class NoteService {
         if (!allowedTransitions[currentStatus]?.includes(newStatus)) {
             throw new BadRequestException(`No se permite cambiar de estado ${currentStatus} a ${newStatus}`);
         }
-    }   
+    }
 }

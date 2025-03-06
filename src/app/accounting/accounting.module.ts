@@ -9,6 +9,7 @@ import { Sucursal } from '../settings/sucursal/entities';
 import { Company } from '../settings/company/entities';
 import { NiifReportsController } from './controllers/niif-reports.controller';
 import { AccountingSeedController } from './controllers/seed.controller';
+import { CompanyService } from '../settings/company/company.service';
 
 @Module({
     controllers: [
@@ -35,6 +36,7 @@ import { AccountingSeedController } from './controllers/seed.controller';
         CheckSucursalGuard,
         CheckCompanyGuard,
         CheckPeriodGuard,
+        CompanyService,
     ],
     imports: [
         TypeOrmModule.forFeature(

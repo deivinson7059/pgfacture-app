@@ -22,6 +22,19 @@ export class Journal {
     @Expose({ name: 'ware' })
     accj_ware: string;
 
+    @Column({ name: 'accj_code', type: 'varchar', length: 90 })
+    @Expose({ name: 'code' })
+    accj_code: string;
+
+    @Column({ name: 'accj_per', type: 'int' })
+    @Expose({ name: 'per' })
+    accj_per: number;
+
+    @Column({ name: 'accj_year', type: 'int' })
+    @Expose({ name: 'year' })
+    accj_year: number;   
+
+
     @PrimaryColumn({ name: 'accj_line_number', type: 'int' })
     @Expose({ name: 'line_number' })
     accj_line_number: number;
@@ -45,19 +58,17 @@ export class Journal {
     @Expose({ name: 'time' })
     accj_time: string;
 
+    @Column({ name: 'accj_document_type', type: 'varchar', length: 20 })
+    @Expose({ name: 'document_type' })
+    accj_document_type: string;
     
+    @Column({ name: 'accj_document_number', type: 'varchar', length: 30, nullable: true })
+    @Expose({ name: 'document_number' })
+    accj_document_number: string | null;
 
-    @Column({ name: 'accj_year', type: 'int' })
-    @Expose({ name: 'year' })
-    accj_year: number;
-
-    @Column({ name: 'accj_per', type: 'int' })
-    @Expose({ name: 'per' })
-    accj_per: number;
-
-    @Column({ name: 'accj_code', type: 'varchar', length: 90 })
-    @Expose({ name: 'code' })
-    accj_code: string;
+    @Column({ name: 'accj_description', type: 'varchar', length: 100, nullable: true })
+    @Expose({ name: 'description' })
+    accj_description: string | null;    
 
     @Column({ name: 'accj_account', type: 'varchar', length: 20 })
     @Expose({ name: 'account' })
@@ -73,7 +84,7 @@ export class Journal {
 
     @Column({ name: 'accj_credit', type: 'decimal', precision: 15, scale: 2, default: 0 })
     @Expose({ name: 'credit' })
-    accj_credit: number;
+    accj_credit: number; 
 
     @Column({ name: 'accj_taxable_base', type: 'decimal', precision: 15, scale: 2, nullable: true })
     @Expose({ name: 'taxable_base' })
@@ -83,13 +94,13 @@ export class Journal {
     @Expose({ name: 'exempt_base' })
     accj_exempt_base: number | null;
 
-    @Column({ name: 'accj_description', type: 'varchar', length: 100, nullable: true })
-    @Expose({ name: 'description' })
-    accj_description: string | null;
+    @Column({ name: 'accj_cost_center', type: 'varchar', length: 20, nullable: true })
+    @Expose({ name: 'cost_center' })
+    accj_cost_center: string | null; 
 
-    @Column({ name: 'accj_documents_ref', type: 'varchar', length: 100, nullable: true })
-    @Expose({ name: 'documents_ref' })
-    accj_documents_ref: string | null;
+    @Column({ name: 'accj_ref', type: 'varchar', length: 100, nullable: true })
+    @Expose({ name: 'ref' })
+    accj_ref: string | null;
 
     @Column({ name: 'accj_customers', type: 'varchar', length: 60 })
     @Expose({ name: 'customers' })
@@ -97,20 +108,7 @@ export class Journal {
 
     @Column({ name: 'accj_customers_name', type: 'varchar', length: 500 })
     @Expose({ name: 'customers_name' })
-    accj_customers_name: string;
-
-    // Nuevos campos adicionales
-    @Column({ name: 'accj_document_type', type: 'varchar', length: 20 })
-    @Expose({ name: 'document_type' })
-    accj_document_type: string;
-    
-    @Column({ name: 'accj_document_number', type: 'varchar', length: 30, nullable: true })
-    @Expose({ name: 'document_number' })
-    accj_document_number: string | null;
-    
-    @Column({ name: 'accj_cost_center', type: 'varchar', length: 20, nullable: true })
-    @Expose({ name: 'cost_center' })
-    accj_cost_center: string | null;
+    accj_customers_name: string;    
     
     @Column({ name: 'accj_elaboration_date', type: 'date', nullable: true })
     @Expose({ name: 'elaboration_date' })

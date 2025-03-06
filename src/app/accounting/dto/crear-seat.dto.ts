@@ -79,7 +79,7 @@ export class CrearSeatDto {
     @IsOptional()
     @IsString()
     @Length(1, 20)
-    cost_center?: string;
+    cost_center?: string |null;
     
     @IsOptional()
     @IsDate()

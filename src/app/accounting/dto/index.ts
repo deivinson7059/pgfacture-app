@@ -1,3 +1,4 @@
+export { SearchPucDto } from "./search-puc.dto";
 export { GenerarNiifReporteDto } from "./generar-niif-reporte.dto";
 
 export { UpdateNoteStatusDto } from "./update-note.dto";

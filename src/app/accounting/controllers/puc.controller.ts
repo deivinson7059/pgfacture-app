@@ -1,10 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, BadRequestException, ClassSerializerInterceptor, Put, Query, UseInterceptors, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, NotFoundException,BadRequestException, ClassSerializerInterceptor, Put, Query, UseInterceptors, UsePipes, ValidationPipe } from '@nestjs/common';
 import {  PucService } from '../service/puc.service';
 import { TrimInterceptor } from '../../common/interceptors/trim.interceptor';
 import { PucResponse, PucResponseOnly } from '../interfaces/puc.interface';
 import { CreatePucDto, UpdatePucDto } from '../dto';
-import { ListPucDto } from '../dto/list-puc.dto';
+import { ListPucDto,SearchPucDto } from '../dto';
 import { Puc } from '../entities/puc.entity';
+import { CompanyService } from 'src/app/settings/company/company.service';
+import { apiResponse } from 'src/app/common/interfaces/common.interface';
 
 @Controller('accounting/puc')
 @UseInterceptors(TrimInterceptor)
@@ -13,6 +15,8 @@ export class PucController {
     constructor(
         /* private readonly Service: Service, */
         private readonly PucService: PucService,
+        private readonly companyService: CompanyService,
+        
     ) { }
 
     /**
@@ -59,6 +63,39 @@ export class PucController {
         return {
             message: `Detalle de la cuenta ${accountId}`,
             data: await this.PucService.getAccountHierarchy(cmpy, accountId),
+        };
+    }
+
+    /**
+    * Busca cuentas auxiliares según compañía y cuenta, limitado a 10 resultados
+    */
+    @Post('/search')
+    @UsePipes(new ValidationPipe({ transform: true }))
+    async searchAccounts(
+        @Body() searchDto: SearchPucDto
+    ): Promise<apiResponse<Puc[]>> {
+
+        const {cmpy,account} = searchDto
+        if (!cmpy) {
+            throw new BadRequestException('El código de compañía es requerido');
+        }
+        
+        // Verificar que la compañía existe
+        const companyExists = await this.companyService.verifyCompanyIdExists(cmpy);
+        if (!companyExists) {
+            throw new NotFoundException(`La compañía con código ${cmpy} no existe`);
+        }
+        
+        // Usar el cmpy de la URL y la cuenta del body
+        const accounts = await this.PucService.searchAuxiliaryAccounts(
+            cmpy,
+            account,
+            100 // Límite fijo de 100 resultados
+        );
+        
+        return {
+            message: "Resultados de búsqueda",
+            data: accounts
         };
     }
 

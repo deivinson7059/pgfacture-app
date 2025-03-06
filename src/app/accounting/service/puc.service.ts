@@ -234,4 +234,44 @@ export class PucService {
 
         return accountHierarchy;
     }
+
+    /**
+ * Busca cuentas auxiliares según criterios específicos con un límite de resultados
+ * @param cmpy Código de la compañía
+ * @param account Número de cuenta para búsqueda exacta o parcial (máximo 10 dígitos)
+ * @param limit Límite de resultados (por defecto 10)
+ * @returns Lista limitada de cuentas auxiliares que coinciden con los criterios
+ */
+    async searchAuxiliaryAccounts(cmpy: string, account?: string, limit: number = 10): Promise<Puc[]> {
+        // Crear consulta base para buscar cuentas auxiliares (8 y 10 dígitos)
+        const queryBuilder = this.accountPlanRepository
+            .createQueryBuilder('puc')
+            .where('(puc.plcu_classification = :aux1 OR puc.plcu_classification = :aux2)', {
+                aux1: 'AUXILIAR',
+                aux2: 'AUXILIAR2'
+            })
+            .andWhere('puc.plcu_active = :active', { active: 'Y' });
+
+        // Aplicar filtro por compañía
+        if (cmpy !== 'ALL') {
+            queryBuilder.andWhere('(puc.plcu_cmpy = :cmpy OR puc.plcu_cmpy = :all)', {
+                cmpy: cmpy,
+                all: 'ALL'
+            });
+        }
+
+        // Aplicar filtro por número de cuenta si existe
+        if (account && account.trim() !== '') {
+            // Búsqueda exacta o parcial por el número de cuenta
+            queryBuilder.andWhere('puc.plcu_id LIKE :account', {
+                account: `%${account.trim()}%`
+            });
+        }
+
+        // Obtener y retornar resultados limitados
+        return queryBuilder
+            .orderBy('puc.plcu_id', 'ASC')
+            .take(limit) // Limitar resultados
+            .getMany();
+    }
 }
