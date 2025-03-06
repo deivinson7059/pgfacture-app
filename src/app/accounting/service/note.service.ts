@@ -31,7 +31,7 @@ export class NoteService {
                 createNoteDto.cmpy,
                 createNoteDto.year,
                 createNoteDto.per
-            );
+            );          
 
             // Valores predeterminados
             const customer = createNoteDto.customer || '-';
@@ -96,8 +96,8 @@ export class NoteService {
                 });
 
                 await queryRunner.manager.save(line);
-            }
-
+            }    
+            
             await queryRunner.commitTransaction();
 
             // Cargar las líneas para la respuesta
@@ -115,7 +115,7 @@ export class NoteService {
                 order: {
                     acnl_line_number: 'ASC'
                 }
-            });
+            });           
 
             return {
                 ...noteHeader,
@@ -179,7 +179,7 @@ export class NoteService {
             .getMany();
     }
 
-    async findOne(cmpy: string, id: number): Promise<NoteHeaderWithLines> {
+    async findOne(cmpy:string,id: number): Promise<NoteHeaderWithLines> {
         const noteHeader = await this.noteHeaderRepository.findOne({
             where: {
                 acnh_id: id,
@@ -199,14 +199,14 @@ export class NoteService {
             order: {
                 acnl_line_number: 'ASC'
             }
-        });
+        });       
 
         return {
             ...noteHeader,
             lines: noteLines
         } as NoteHeaderWithLines;
     }
-
+   
     async updateStatus(updateStatusDto: UpdateNoteStatusDto): Promise<any> {
         const queryRunner = this.dataSource.createQueryRunner();
         await queryRunner.connect();
@@ -251,18 +251,16 @@ export class NoteService {
     private async contabilizarNota(queryRunner: any, note: NoteHeader, lines: any): Promise<void> {
         // Preparar DTO para crear asiento
         const sientoMov: MovimientoDto[] = [];
-
+    
         lines.map(line => {
             sientoMov.push({
                 account: line.acnl_account,
                 debit: line.acnl_debit,
                 credit: line.acnl_credit,
-                taxable_base: line.taxable_base || null,
-                exempt_base: line.exempt_base || null,
                 debitOrCredit: undefined
             });
         });
-
+        
         const asientoData: CrearSeatDto = {
             cmpy: note.acnh_cmpy,
             ware: note.acnh_ware,
@@ -270,20 +268,16 @@ export class NoteService {
             per: note.acnh_per,
             customers: note.acnh_customer,
             customers_name: note.acnh_customer_name,
-            description: `Nota Contable ${note.acnh_id}: ${note.acnh_description || ''}`,
+            detbin: `Nota Contable ${note.acnh_id}: ${note.acnh_description || ''}`,
             creation_by: note.acnh_updated_by || note.acnh_creation_by,
-            document_type: note.document_type,
-            document_number: note.document_number || null,
-            cost_center: note.cost_center || null,
-            elaboration_date: note.elaboration_date || new Date(),
             // Nuevos campos module y ref
             module: SEAT_MODULE.NOTA, // Especificamos que viene del módulo de notas
             ref: note.acnh_id.toString(), // Referencia al ID de la nota
             movimientos: sientoMov
         }
-
+        
         // Llamar al servicio de asientos para contabilizar
-        await this.seatService.crearAsiento(asientoData);
+        await this.seatService.crearAsiento(asientoData); 
     }
 
     private validateStatusTransition(currentStatus: string, newStatus: string): void {
@@ -298,5 +292,5 @@ export class NoteService {
         if (!allowedTransitions[currentStatus]?.includes(newStatus)) {
             throw new BadRequestException(`No se permite cambiar de estado ${currentStatus} a ${newStatus}`);
         }
-    }
+    }   
 }

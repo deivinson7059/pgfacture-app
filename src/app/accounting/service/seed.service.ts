@@ -65,12 +65,7 @@ export class AccountingSeedService {
                         warehouseId,
                         period.accp_year,
                         period.accp_per,
-                        "FACTURA",
-                        null,
-                        null,
-                        new Date,  
-                        accounts,
-                                             
+                        accounts
                     );
                     totalAsientos++;
                 }
@@ -120,10 +115,6 @@ export class AccountingSeedService {
         warehouseId: string,
         year: number,
         period: number,
-        document_type:string,
-        document_number:number | null,
-        cost_center:number | null,
-        elaboration_date:Date | null,
         accountsByClass: Record<number, Puc[]>
     ): Promise<void> {
         // Generamos un código único para el asiento
@@ -225,14 +216,8 @@ export class AccountingSeedService {
                 acch_code: codigo,
                 acch_account: movimiento.account,
                 acch_account_name: movimiento.accountName,
-                acch_taxable_base: movimiento.taxable_base || null,
-                acch_exempt_base: movimiento.exempt_base || null,
                 acch_debit: movimiento.debit,
                 acch_credit: movimiento.credit,
-                acch_document_type: document_type,
-                acch_document_number: document_number || null,
-                acch_cost_center: cost_center || null,
-                acch_elaboration_date: elaboration_date || new Date(),
                 acch_customers: 'CLIENTE-GENERICO',
                 acch_customers_name: 'Cliente Genérico S.A.',
                 acch_detbin: descripcion,
@@ -255,15 +240,9 @@ export class AccountingSeedService {
                 accj_code: codigo,
                 accj_account: movimiento.account,
                 accj_account_name: movimiento.accountName,
-                accj_taxable_base: movimiento.taxable_base || null,
-                accj_exempt_base: movimiento.exempt_base || null,
                 accj_debit: movimiento.debit,
                 accj_credit: movimiento.credit,
-                accj_document_type: document_type,
-                accj_document_number: document_number || null,
-                accj_cost_center: cost_center || null,
-                accj_elaboration_date: elaboration_date || new Date(),
-                accj_descripcion: descripcion,
+                accj_detbin: descripcion,
                 accj_customers: 'CLIENTE-GENERICO',
                 accj_customers_name: 'Cliente Genérico S.A.',
                 accj_creation_by: 'SEED',
@@ -314,7 +293,7 @@ export class AccountingSeedService {
             },
         });
 
-        const currentDate = new Date();
+         const currentDate = new Date();
 
         if (!ledgerEntry) {
             // Si no existe, crear un nuevo registro con saldos iniciales en cero
