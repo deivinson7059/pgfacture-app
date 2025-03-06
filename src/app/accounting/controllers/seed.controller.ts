@@ -1,8 +1,9 @@
-import { Controller, Post, Body, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, HttpException, HttpStatus, ClassSerializerInterceptor, UseInterceptors } from '@nestjs/common';
 import { apiResponse } from 'src/app/common/interfaces/common.interface';
 import { AccountingSeedService } from '../service';
 
 @Controller('seed/accounting')
+@UseInterceptors(ClassSerializerInterceptor)
 export class AccountingSeedController {
   constructor(private readonly accountingSeedService: AccountingSeedService) {}
 

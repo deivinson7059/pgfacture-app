@@ -3,10 +3,8 @@ import { CreatePeriodDto, CreateYearPeriodsDto } from '../dto/create-period.dto'
 import { apiResponse } from 'src/app/common/interfaces/common.interface';
 import { Period } from '../entities/period.entity';
 import { PeriodService } from '../service';
-import { TrimInterceptor } from 'src/app/common/interceptors/trim.interceptor';
 
 @Controller('accounting/period')
-@UseInterceptors(TrimInterceptor)
 @UseInterceptors(ClassSerializerInterceptor)
 export class PeriodController {
     constructor(private readonly periodService: PeriodService) { }

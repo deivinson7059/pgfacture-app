@@ -4,6 +4,7 @@ import { apiResponse } from 'src/app/common/interfaces/common.interface';
 import { LedgerService } from '../service';
 
 @Controller('accounting/ledger') // Asegúrate de que este path sea correcto
+@UseInterceptors(ClassSerializerInterceptor)
 export class LedgerController {
     constructor(private ledgerService: LedgerService) { }
 

@@ -4,9 +4,10 @@ import { apiResponse } from 'src/app/common/interfaces/common.interface';
 import { JournalService } from '../service';
 
 @Controller('accounting/journal') // Asegúrate de que este path sea correcto
+@UseInterceptors(ClassSerializerInterceptor)
 export class JournalController {
     constructor(private journalService: JournalService) { }
-
+    
     @Get()
     async getJournal(
         @Query('cmpy') cmpy: string,

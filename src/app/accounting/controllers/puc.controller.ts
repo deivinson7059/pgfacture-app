@@ -1,6 +1,5 @@
 import { Controller, Get, Post, Body,  Param,  NotFoundException,BadRequestException, ClassSerializerInterceptor, Put, Query, UseInterceptors, UsePipes, ValidationPipe } from '@nestjs/common';
 import {  PucService } from '../service/puc.service';
-import { TrimInterceptor } from '../../common/interceptors/trim.interceptor';
 import { PucResponse, PucResponseOnly } from '../interfaces/puc.interface';
 import { CreatePucDto, UpdatePucDto } from '../dto';
 import { ListPucDto,SearchPucDto } from '../dto';
@@ -9,7 +8,6 @@ import { CompanyService } from 'src/app/settings/company/company.service';
 import { apiResponse } from 'src/app/common/interfaces/common.interface';
 
 @Controller('accounting/puc')
-@UseInterceptors(TrimInterceptor)
 @UseInterceptors(ClassSerializerInterceptor)
 export class PucController {
     constructor(
