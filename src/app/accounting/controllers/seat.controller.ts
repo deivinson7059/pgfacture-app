@@ -38,8 +38,11 @@ export class SeatController {
         return this.seatService.obtenerResumenPorFechas(cmpy, ware, year, per);
     }
 
-    @Get('codigo/:code')
-    async obtenerPorCodigo(@Param('code') code: string) {
-        return this.seatService.buscarPorCodigo(code);
+    @Get(':cmpy/codigo/:code')
+    @ApplyDecorators([
+        CheckCmpy(ParamSource.PARAMS),     
+    ]) 
+    async obtenerPorCodigo(@Param('cmpy') cmpy: string,@Param('code') code: string) {
+        return this.seatService.buscarPorCodigo(cmpy,code);
     }
 }

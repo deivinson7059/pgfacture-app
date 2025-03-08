@@ -224,8 +224,6 @@ export class PucService {
             }
         });
 
-
-
         // Buscar la cuenta específica y su jerarquía
         const accountHierarchy = accountsMap.get(accountId);
         if (!accountHierarchy) {
@@ -235,14 +233,14 @@ export class PucService {
         return accountHierarchy;
     }
 
-    /**
+/**
  * Busca cuentas auxiliares según criterios específicos con un límite de resultados
  * @param cmpy Código de la compañía
- * @param account Número de cuenta para búsqueda exacta o parcial (máximo 10 dígitos)
+ * @param account Número de cuenta o descripcion para búsqueda exacta o parcial 
  * @param limit Límite de resultados (por defecto 10)
  * @returns Lista limitada de cuentas auxiliares que coinciden con los criterios
  */
-    async searchAuxiliaryAccounts(cmpy: string, account?: string, limit: number = 10): Promise<Puc[]> {
+    async searchAuxiliaryAccounts(cmpy: string, account?: string, limit: number = 100): Promise<Puc[]> {
         // Crear consulta base para buscar cuentas auxiliares (8 y 10 dígitos)
         const queryBuilder = this.accountPlanRepository
             .createQueryBuilder('puc')
@@ -251,7 +249,7 @@ export class PucService {
                 aux2: 'AUXILIAR2'
             })
             .andWhere('puc.plcu_active = :active', { active: 'Y' });
-
+    
         // Aplicar filtro por compañía
         if (cmpy !== 'ALL') {
             queryBuilder.andWhere('(puc.plcu_cmpy = :cmpy OR puc.plcu_cmpy = :all)', {
@@ -259,15 +257,33 @@ export class PucService {
                 all: 'ALL'
             });
         }
-
-        // Aplicar filtro por número de cuenta si existe
+    
+        // Aplicar filtro por número de cuenta o nombre de cuenta si existe
         if (account && account.trim() !== '') {
-            // Búsqueda exacta o parcial por el número de cuenta
-            queryBuilder.andWhere('puc.plcu_id LIKE :account', {
-                account: `%${account.trim()}%`
-            });
+            const searchTerm = account.trim();
+            const isNumeric = /^\d+$/.test(searchTerm);
+            
+            if (isNumeric) {
+                // Búsqueda por número de cuenta
+                queryBuilder.andWhere('puc.plcu_id LIKE :account', {
+                    account: `%${searchTerm}%`
+                });
+            } else {
+                // Búsqueda por palabras en el nombre/descripción de cuenta
+                // Dividimos el término de búsqueda en palabras individuales
+                const searchWords = searchTerm.split(/\s+/).filter(word => word.length > 0);
+                
+                if (searchWords.length > 0) {
+                    // Crear condiciones para cada palabra
+                    searchWords.forEach((word, index) => {
+                        queryBuilder.andWhere(`LOWER(puc.plcu_description) LIKE LOWER(:word${index})`, {
+                            [`word${index}`]: `%${word}%`
+                        });
+                    });
+                }
+            }
         }
-
+    
         // Obtener y retornar resultados limitados
         return queryBuilder
             .orderBy('puc.plcu_id', 'ASC')

@@ -1,5 +1,6 @@
 import { Expose, Transform } from 'class-transformer';
 import { dateTransformer } from 'src/app/common/utils/fechaColombia';
+import { formatDecimal } from 'src/app/common/utils/transform';
 import { Entity, Column, CreateDateColumn, Index, PrimaryColumn, BeforeInsert, UpdateDateColumn } from 'typeorm';
 
 @Entity({ schema: 'pgfacture', name: 'pg_accounting_seat' }) // Nombre de la tabla en la base de datos
@@ -30,7 +31,7 @@ export class Seat {
     @Column()
     @Expose({ name: 'year' }) // Mapear a "year"
     acch_year: number; // Año contable    
-    
+
     @Expose({ name: 'date' })
     @Column({ name: 'acch_date', type: 'date', default: () => 'CURRENT_DATE' })
     acch_date: Date;
@@ -49,12 +50,12 @@ export class Seat {
         }
         return value;
     })
-    acch_time: string;  
-    
+    acch_time: string;
+
     @Column({ name: 'acch_document_type', type: 'varchar', length: 20 })
     @Expose({ name: 'document_type' })
     acch_document_type: string;
-    
+
     @Column({ name: 'acch_document_number', type: 'varchar', length: 30, nullable: true })
     @Expose({ name: 'document_number' })
     acch_document_number: string | null;
@@ -71,25 +72,34 @@ export class Seat {
     @Expose({ name: 'account_name' }) // Mapear a "account_name"
     acch_account_name: string; // Detalle de la cuenta
 
-    @Column({ name: 'acch_debit', type: 'decimal', precision: 15, scale: 2, default: 0 })
+    @Column({ name: 'acch_debit', type: 'decimal', precision: 30, scale: 5, default: 0 })
     @Expose({ name: 'debit' }) // Mapear a "debit"
+    @Transform(formatDecimal(2), { toPlainOnly: true })
     acch_debit: number; // Total débitos
 
-    @Column({ name: 'acch_credit', type: 'decimal', precision: 15, scale: 2, default: 0 })
+    @Column({ name: 'acch_credit', type: 'decimal', precision: 30, scale: 5, default: 0 })
     @Expose({ name: 'credit' }) // Mapear a "credit"
+    @Transform(formatDecimal(2), { toPlainOnly: true })
     acch_credit: number; // Total créditos
 
-    @Column({ name: 'acch_taxable_base', type: 'decimal', precision: 15, scale: 2, nullable: true })
+    @Column({ name: 'acch_balance', type: 'decimal', precision: 30, scale: 5, default: 0 })
+    @Expose({ name: 'balance' })
+    @Transform(formatDecimal(2), { toPlainOnly: true }) 
+    acch_balance: number;
+
+    @Column({ name: 'acch_taxable_base', type: 'decimal', precision: 30, scale: 5, nullable: true })
     @Expose({ name: 'taxable_base' })
+    @Transform(formatDecimal(2), { toPlainOnly: true })
     acch_taxable_base: number | null;
 
-    @Column({ name: 'acch_exempt_base', type: 'decimal', precision: 15, scale: 2, nullable: true })
+    @Column({ name: 'acch_exempt_base', type: 'decimal', precision: 30, scale: 5, nullable: true })
     @Expose({ name: 'exempt_base' })
+    @Transform(formatDecimal(2), { toPlainOnly: true })
     acch_exempt_base: number | null;
 
     @Column({ name: 'acch_cost_center', type: 'varchar', length: 20, nullable: true })
     @Expose({ name: 'cost_center' })
-    acch_cost_center: string | null; 
+    acch_cost_center: string | null;
 
     // Nueva columna para la referencia
     @Column({ name: 'acch_ref', type: 'varchar', length: 100, nullable: true })
@@ -113,7 +123,7 @@ export class Seat {
 
     @Column({ name: 'acch_elaboration_date', type: 'date', nullable: true })
     @Expose({ name: 'elaboration_date' })
-    acch_elaboration_date: Date | null;  
+    acch_elaboration_date: Date | null;
 
 
     @Column({ name: 'acch_creation_by', type: 'varchar', length: 30 })

@@ -1,6 +1,7 @@
 import { Entity, Column, PrimaryColumn, CreateDateColumn, Index } from 'typeorm';
 import { Expose, Transform } from 'class-transformer';
 import { dateTransformer } from 'src/app/common/utils/fechaColombia';
+import { formatDecimal } from 'src/app/common/utils/transform';
 
 @Entity({ schema: 'pgfacture', name: 'pg_accounting_journal' })
 @Index('idx_journal_cmpy_year_per', ['accj_cmpy', 'accj_year', 'accj_per'])
@@ -78,19 +79,27 @@ export class Journal {
     @Expose({ name: 'account_name' })
     accj_account_name: string;
 
-    @Column({ name: 'accj_debit', type: 'decimal', precision: 15, scale: 2, default: 0 })
+    @Column({ name: 'accj_debit', type: 'decimal', precision: 30, scale: 5, default: 0 })
     @Expose({ name: 'debit' })
+    @Transform(formatDecimal(2), { toPlainOnly: true })
     accj_debit: number;
 
-    @Column({ name: 'accj_credit', type: 'decimal', precision: 15, scale: 2, default: 0 })
+    @Column({ name: 'accj_credit', type: 'decimal', precision: 30, scale: 5, default: 0 })
     @Expose({ name: 'credit' })
+    @Transform(formatDecimal(2), { toPlainOnly: true })
     accj_credit: number; 
 
-    @Column({ name: 'accj_taxable_base', type: 'decimal', precision: 15, scale: 2, nullable: true })
+    @Column({ name: 'accj_balance', type: 'decimal', precision: 30, scale: 5, default: 0 })
+    @Expose({ name: 'balance' })
+    @Transform(formatDecimal(2), { toPlainOnly: true }) 
+    accj_balance: number;
+
+    @Column({ name: 'accj_taxable_base', type: 'decimal', precision: 30, scale: 5, nullable: true })
     @Expose({ name: 'taxable_base' })
+    @Transform(formatDecimal(2), { toPlainOnly: true })
     accj_taxable_base: number | null;
 
-    @Column({ name: 'accj_exempt_base', type: 'decimal', precision: 15, scale: 2, nullable: true })
+    @Column({ name: 'accj_exempt_base', type: 'decimal', precision: 30, scale: 5, nullable: true })
     @Expose({ name: 'exempt_base' })
     accj_exempt_base: number | null;
 
