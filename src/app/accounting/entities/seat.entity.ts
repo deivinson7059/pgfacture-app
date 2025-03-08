@@ -60,7 +60,7 @@ export class Seat {
     @Expose({ name: 'document_number' })
     acch_document_number: string | null;
 
-    @Column({ type: 'varchar', length: 100, nullable: true })
+    @Column({ type: 'varchar', length: 300, nullable: true })
     @Expose({ name: 'description' }) // Mapear a "detbin"
     acch_description: string; // Detalle o comentario del movimiento
 
@@ -102,7 +102,7 @@ export class Seat {
     acch_cost_center: string | null;
 
     // Nueva columna para la referencia
-    @Column({ name: 'acch_ref', type: 'varchar', length: 100, nullable: true })
+    @Column({ name: 'acch_ref', type: 'varchar', length: 190, nullable: true })
     @Index('idx_accounting_seat_ref') // Índice para filtros por referencia
     @Expose({ name: 'ref' })
     acch_ref: string | null; // Referencia al registro original en el módulo

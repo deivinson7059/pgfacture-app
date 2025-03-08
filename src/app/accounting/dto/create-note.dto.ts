@@ -1,5 +1,4 @@
-// src/app/accounting/dto/create-accounting-note.dto.ts
-import { IsNotEmpty, IsString, IsInt, Min, Max, IsOptional, Length, ValidateNested, ArrayMinSize, IsArray } from 'class-validator';
+import { IsNotEmpty, IsString, IsInt, Min, Max, IsOptional, Length, ValidateNested, ArrayMinSize, IsArray, IsIn, IsBoolean, IsDateString } from 'class-validator';
 import { Type } from 'class-transformer';
 import { NoteLineDto } from '.';
 
@@ -41,7 +40,7 @@ export class CreateNoteDto {
 
   @IsOptional()
   @IsString()
-  @Length(0, 100)
+  @Length(0, 190)
   reference?: string;
 
   @IsNotEmpty()
@@ -54,4 +53,39 @@ export class CreateNoteDto {
   @ArrayMinSize(1)
   @Type(() => NoteLineDto)
   lines: NoteLineDto[];
+
+  // Nuevos campos añadidos
+  @IsOptional()
+  @IsString()
+  @Length(0, 1000)
+  observations?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(0, 190)
+  external_reference?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(0, 50)
+  doc_type?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(0, 50)
+  area?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(1, 1)
+  @IsIn(['A', 'M', 'N', 'B'])
+  priority?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  auto_accounting?: boolean;
+
+  @IsOptional()
+  @IsDateString()
+  accounting_date?: string;
 }

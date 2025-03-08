@@ -55,7 +55,7 @@ export class CrearSeatDto {
 
     @IsOptional()
     @IsString()
-    @Length(1, 100)
+    @Length(1, 300)
     description?: string;
 
     // Nuevos campos para módulo y referencia
@@ -88,7 +88,7 @@ export class CrearSeatDto {
 
     @IsOptional()
     @IsString()
-    @Length(0, 100)
+    @Length(0, 190)
     ref?: string;
 
     @ValidateNested({ each: true })

@@ -46,12 +46,12 @@ export class NoteLineDto {
 
   @IsOptional()
   @IsString()
-  @Length(0, 100)
+  @Length(0, 190)
   reference?: string;
 
   @IsOptional()
   @IsString()
-  @Length(0, 100)
+  @Length(0, 190)
   tercero?: string;
 
   @Validate(DebitOrCreditValidator)

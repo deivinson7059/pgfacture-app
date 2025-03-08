@@ -67,7 +67,7 @@ export class Journal {
     @Expose({ name: 'document_number' })
     accj_document_number: string | null;
 
-    @Column({ name: 'accj_description', type: 'varchar', length: 100, nullable: true })
+    @Column({ name: 'accj_description', type: 'varchar', length: 190, nullable: true })
     @Expose({ name: 'description' })
     accj_description: string | null;    
 
@@ -107,7 +107,7 @@ export class Journal {
     @Expose({ name: 'cost_center' })
     accj_cost_center: string | null; 
 
-    @Column({ name: 'accj_ref', type: 'varchar', length: 100, nullable: true })
+    @Column({ name: 'accj_ref', type: 'varchar', length: 190, nullable: true })
     @Expose({ name: 'ref' })
     accj_ref: string | null;
 

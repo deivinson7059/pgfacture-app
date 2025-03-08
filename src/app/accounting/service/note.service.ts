@@ -52,7 +52,7 @@ export class NoteService {
 
             const acnh_id = await this.getNextNoteHeadId(queryRunner, createNoteDto.cmpy);
 
-            // Crear cabecera
+            // Crear cabecera con los nuevos campos
             const header = this.noteHeaderRepository.create({
                 acnh_id: acnh_id,
                 acnh_cmpy: createNoteDto.cmpy,
@@ -67,14 +67,22 @@ export class NoteService {
                 acnh_total_debit: totalDebit,
                 acnh_total_credit: totalCredit,
                 acnh_reference: createNoteDto.reference,
-                acnh_creation_by: createNoteDto.creation_by
-            });
+                acnh_creation_by: createNoteDto.creation_by,
+                // Nuevos campos
+                acnh_observations: createNoteDto.observations || null,
+                acnh_external_reference: createNoteDto.external_reference || null,
+                acnh_doc_type: createNoteDto.doc_type || null,
+                acnh_area: createNoteDto.area || null,
+                acnh_priority: createNoteDto.priority || 'N',
+                acnh_auto_accounting: createNoteDto.auto_accounting || false,
+                acnh_accounting_date: createNoteDto.accounting_date ? new Date(createNoteDto.accounting_date) : null
+            }); 
 
             const savedHeader = await queryRunner.manager.save(header);
 
             // Crear líneas
+            const noteLines: NoteLine[] = [];
             for (let i = 0; i < createNoteDto.lines.length; i++) {
-
                 const acnl_id = await this.getNextNoteLineId(queryRunner, createNoteDto.cmpy);
                 const lineDto = createNoteDto.lines[i];
                 const line = this.noteLineRepository.create({
@@ -93,34 +101,37 @@ export class NoteService {
                     acnl_creation_by: createNoteDto.creation_by
                 });
 
-                await queryRunner.manager.save(line);
+                const savedLine = await queryRunner.manager.save(line);
+                noteLines.push(savedLine);
+            }
+
+            // Si está configurado para contabilización automática, contabilizar inmediatamente
+            if (savedHeader.acnh_auto_accounting) {
+                // Cambiar estado a Aprobado
+                savedHeader.acnh_status = 'A';
+                savedHeader.acnh_approved_by = savedHeader.acnh_creation_by;
+                savedHeader.acnh_approved_date = new Date();
+                await queryRunner.manager.save(savedHeader);
+                
+                // Contabilizar la nota
+                await this.contabilizarNota(queryRunner, savedHeader, noteLines);
+                
+                // Actualizar estado a Contabilizado
+                savedHeader.acnh_status = 'C';
+                savedHeader.acnh_accounting_date = new Date();
+                await queryRunner.manager.save(savedHeader);
             }
 
             await queryRunner.commitTransaction();
 
             // Cargar las líneas para la respuesta
-            const noteHeader = await this.noteHeaderRepository.findOne({
-                where: {
-                    acnh_id: acnh_id,
-                    acnh_cmpy: createNoteDto.cmpy
-                },
-            });
-            const noteLines = await this.noteLineRepository.find({
-                where: {
-                    acnl_acnh_id: acnh_id,
-                    acnl_cmpy: createNoteDto.cmpy
-                },
-                order: {
-                    acnl_line_number: 'ASC'
-                }
-            });
-
             return {
-                ...noteHeader,
+                ...savedHeader,
                 lines: noteLines
             } as NoteHeaderWithLines;
 
         } catch (error) {
+            console.error(error);
             await queryRunner.rollbackTransaction();
             throw error;
         } finally {
@@ -232,6 +243,7 @@ export class NoteService {
 
                 // Actualizar estado a Contabilizado
                 note.acnh_status = 'C';
+                note.acnh_accounting_date = new Date();
                 await queryRunner.manager.save(note);
             }
 
@@ -260,6 +272,12 @@ export class NoteService {
             });
         });
 
+        // Agregar información de observaciones a la descripción si existe
+        let description = `Nota Contable ${note.acnh_id}: ${note.acnh_description || ''}`;
+        if (note.acnh_observations) {
+            description += ` - Obs: ${note.acnh_observations}`;
+        }
+
         const asientoData: CrearSeatDto = {
             cmpy: note.acnh_cmpy,
             ware: note.acnh_ware,
@@ -267,15 +285,15 @@ export class NoteService {
             per: note.acnh_per,
             customers: note.acnh_customer,
             customers_name: note.acnh_customer_name,
-            description: `Nota Contable ${note.acnh_id}: ${note.acnh_description || ''}`,
+            description: description,
             creation_by: note.acnh_updated_by || note.acnh_creation_by,
-            document_type: "NOTA",
+            document_type: note.acnh_doc_type || "NOTA",
             document_number: note.acnh_id.toString(),
-            cost_center: null,
-            elaboration_date: new Date(),
-            // Nuevos campos module y ref
-            module: SEAT_MODULE.NOTA, // Especificamos que viene del módulo de notas
-            ref: note.acnh_id.toString(), // Referencia al ID de la nota
+            cost_center: note.acnh_area || null,
+            elaboration_date: note.acnh_accounting_date || new Date(),
+            // Campos adicionales
+            module: SEAT_MODULE.NOTA,
+            ref: note.acnh_external_reference || note.acnh_id.toString(),
             movimientos: sientoMov
         }
 

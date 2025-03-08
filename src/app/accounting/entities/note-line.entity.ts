@@ -51,11 +51,11 @@ export class NoteLine {
     @Expose({ name: 'credit' })
     acnl_credit: number;
 
-    @Column({ name: 'acnl_reference', type: 'varchar', length: 100, nullable: true })
+    @Column({ name: 'acnl_reference', type: 'varchar', length: 190, nullable: true })
     @Expose({ name: 'reference' })
     acnl_reference: string;
 
-    @Column({ name: 'acnl_tercero', type: 'varchar', length: 100, nullable: true })
+    @Column({ name: 'acnl_tercero', type: 'varchar', length: 190, nullable: true })
     @Expose({ name: 'tercero' })
     acnl_tercero: string;
 

@@ -1,8 +1,8 @@
-// src/app/accounting/entities/note-header.entity.ts
 import { Entity, Column, PrimaryGeneratedColumn, OneToMany, CreateDateColumn, UpdateDateColumn, JoinColumn, Index, PrimaryColumn } from 'typeorm';
 import { Expose, Transform } from 'class-transformer';
 import { dateTransformer } from 'src/app/common/utils/fechaColombia';
 import { NoteLine } from '.';
+import { formatDecimal } from 'src/app/common/utils/transform';
 
 @Entity({ schema: 'pgfacture', name: 'pg_accounting_note_header' })
 //notas contables header
@@ -20,7 +20,7 @@ export class NoteHeader {
     @Column({ name: 'acnh_ware', type: 'varchar', length: 190 })
     @Expose({ name: 'ware' })
     @Index('accounting_note_ware_fk2')
-    acnh_ware: string;    
+    acnh_ware: string;
 
     @Column({ name: 'acnh_year', type: 'int' })
     @Expose({ name: 'year' })
@@ -52,7 +52,7 @@ export class NoteHeader {
     @Expose({ name: 'customer_name' })
     acnh_customer_name: string;
 
-    @Column({ name: 'acnh_description', type: 'varchar', length: 500, default: ''})
+    @Column({ name: 'acnh_description', type: 'varchar', length: 500, default: '' })
     @Expose({ name: 'description' })
     acnh_description: string;
 
@@ -60,15 +60,17 @@ export class NoteHeader {
     @Expose({ name: 'status' })
     acnh_status: string; // P: Pendiente, A: Aprobado, R: Rechazado, C: Contabilizado
 
-    @Column({ name: 'acnh_total_debit', type: 'decimal', precision: 15, scale: 2, default: 0 })
+    @Column({ name: 'acnh_total_debit', type: 'decimal', precision: 30, scale: 5, default: 0 })
     @Expose({ name: 'total_debit' })
+    @Transform(formatDecimal(2), { toPlainOnly: true })
     acnh_total_debit: number;
 
-    @Column({ name: 'acnh_total_credit', type: 'decimal', precision: 15, scale: 2, default: 0 })
+    @Column({ name: 'acnh_total_credit', type: 'decimal', precision: 30, scale: 5, default: 0 })
     @Expose({ name: 'total_credit' })
+    @Transform(formatDecimal(2), { toPlainOnly: true })
     acnh_total_credit: number;
 
-    @Column({ name: 'acnh_reference', type: 'varchar', length: 100, nullable: true })
+    @Column({ name: 'acnh_reference', type: 'varchar', length: 190, nullable: true })
     @Expose({ name: 'reference' })
     acnh_reference: string;
 
@@ -99,7 +101,7 @@ export class NoteHeader {
     })
     @Expose({ name: 'updated_date' })
     acnh_updated_date: Date;
-
+ 
     @Column({ name: 'acnh_approved_by', type: 'varchar', length: 30, nullable: true })
     @Expose({ name: 'approved_by' })
     acnh_approved_by: string;
@@ -111,4 +113,33 @@ export class NoteHeader {
     })
     @Expose({ name: 'approved_date' })
     acnh_approved_date: Date;
+
+    // Nuevos campos añadidos
+    @Column({ name: 'acnh_observations', type: 'text', nullable: true })
+    @Expose({ name: 'observations' })
+    acnh_observations: string | null;
+
+    @Column({ name: 'acnh_external_reference', type: 'varchar', length: 190, nullable: true })
+    @Expose({ name: 'external_reference' })
+    acnh_external_reference: string | null;
+
+    @Column({ name: 'acnh_doc_type', type: 'varchar', length: 50, nullable: true })
+    @Expose({ name: 'doc_type' })
+    acnh_doc_type: string | null;
+
+    @Column({ name: 'acnh_area', type: 'varchar', length: 50, nullable: true })
+    @Expose({ name: 'area' })
+    acnh_area: string | null;
+
+    @Column({ name: 'acnh_priority', type: 'char', length: 1, default: 'N' })
+    @Expose({ name: 'priority' })
+    acnh_priority: string; // A: Alta, M: Media, N: Normal, B: Baja
+
+    @Column({ name: 'acnh_auto_accounting', type: 'boolean', default: false })
+    @Expose({ name: 'auto_accounting' })
+    acnh_auto_accounting: boolean;
+
+    @Column({ name: 'acnh_accounting_date', type: 'date', nullable: true })
+    @Expose({ name: 'accounting_date' })
+    acnh_accounting_date: Date | null;
 }

@@ -2,6 +2,10 @@ import { Controller, Get, Post, Body, Param, Query, Put, UseInterceptors, ClassS
 import { apiResponse } from 'src/app/common/interfaces/common.interface';
 import { NoteService } from '../service';
 import { CreateNoteDto, UpdateNoteStatusDto } from '../dto';
+import { ApplyDecorators, CheckCmpy, CheckPeriodOpen, CheckWare } from 'src/app/common/decorators';
+import { ParamSource } from 'src/app/common/enums';
+import { NoteHeader } from '../entities';
+
 
 @Controller('accounting/notes')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -9,11 +13,22 @@ export class NoteController {
     constructor(private readonly accountingNoteService: NoteService) { }
 
     @Post()
-    @UsePipes(new ValidationPipe({ transform: true }))
-    async create(@Body() createNoteDto: CreateNoteDto): Promise<apiResponse<any>> {
+    @ApplyDecorators([
+        CheckCmpy(ParamSource.BODY),
+        CheckWare(ParamSource.BODY),
+        CheckPeriodOpen(ParamSource.BODY),
+        UsePipes(new ValidationPipe({ transform: true }))
+    ])
+    async create(@Body() createNoteDto: CreateNoteDto): Promise<apiResponse<NoteHeader>> {
         const note = await this.accountingNoteService.create(createNoteDto);
-        return {
-            message: 'Nota contable creada exitosamente',
+
+        let message = 'Nota contable creada exitosamente';
+        if (note.acnh_auto_accounting) {
+            message += ' y contabilizada automáticamente';
+        }
+
+        return { 
+            message,
             data: note
         };
     }
@@ -33,13 +48,13 @@ export class NoteController {
     }
 
     @Get(':cmpy/:id')
-    async findOne(@Param('cmpy') cmpy: string,@Param('id') id: number): Promise<apiResponse<any>> {
-        const note = await this.accountingNoteService.findOne(cmpy,id);
+    async findOne(@Param('cmpy') cmpy: string, @Param('id') id: number): Promise<apiResponse<any>> {
+        const note = await this.accountingNoteService.findOne(cmpy, id);
         return {
             message: 'Detalle de nota contable',
             data: note
         };
-    }   
+    }
 
     @Put('status')
     @UsePipes(new ValidationPipe({ transform: true }))
