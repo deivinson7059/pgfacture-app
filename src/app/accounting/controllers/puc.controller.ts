@@ -43,7 +43,10 @@ export class PucController {
     }
 
     @Get(':cmpy/account/:accountId')
-    @UsePipes(new ValidationPipe({ transform: true }))
+    @ApplyDecorators([
+        CheckCmpy(ParamSource.PARAMS),
+        UsePipes(new ValidationPipe({ transform: true }))
+    ])
     async getAccountHierarchy(
         @Param('cmpy') cmpy: string,
         @Param('accountId') accountId: string
