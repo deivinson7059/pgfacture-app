@@ -7,7 +7,8 @@ import { NoteHeader, NoteLine } from '../entities';
 import { CrearSeatDto, CreateNoteDto, MovimientoDto, UpdateNoteStatusDto } from '../dto';
 import { toNumber } from 'src/app/common/utils/utils';
 import { SEAT_MODULE } from 'src/app/common/enums';
-type NoteHeaderWithLines = NoteHeader & { lines: NoteLine[] };
+import { NoteHeaderWithLines, NoteWithLines } from '../interfaces/note.interface';
+
 @Injectable()
 export class NoteService {
     constructor(
@@ -20,7 +21,7 @@ export class NoteService {
         private periodService: PeriodService
     ) { }
 
-    async create(createNoteDto: CreateNoteDto): Promise<NoteHeader> {
+    async create(createNoteDto: CreateNoteDto): Promise<NoteWithLines> {
         const queryRunner = this.dataSource.createQueryRunner();
         await queryRunner.connect();
         await queryRunner.startTransaction();
@@ -125,13 +126,33 @@ export class NoteService {
             await queryRunner.commitTransaction();
 
             // Cargar las líneas para la respuesta
-            return {
-                ...savedHeader,
+
+            const NoteWithLines_: NoteWithLines = {
+               
+                id: savedHeader.acnh_id,
+                cmpy: savedHeader.acnh_cmpy,
+                ware: savedHeader.acnh_ware,
+                year: savedHeader.acnh_year,
+                per: savedHeader.acnh_per,
+                date: savedHeader.acnh_date,
+                time: savedHeader.acnh_time,
+                customer: savedHeader.acnh_customer,
+                customer_name: savedHeader.acnh_customer_name,
+                description: savedHeader.acnh_description,
+                status: savedHeader.acnh_status,
+                total_debit: savedHeader.acnh_total_debit,
+                total_credit: savedHeader.acnh_total_credit,
+                reference: savedHeader.acnh_reference,
+                creation_by: savedHeader.acnh_creation_by,
+                creation_date: savedHeader.acnh_creation_date,
+                priority: savedHeader.acnh_priority,
+                auto_accounting: savedHeader.acnh_auto_accounting,
                 lines: noteLines
-            } as NoteHeaderWithLines;
+            }
+            
+            return NoteWithLines_;
 
         } catch (error) {
-            console.error(error);
             await queryRunner.rollbackTransaction();
             throw error;
         } finally {

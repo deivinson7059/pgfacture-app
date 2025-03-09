@@ -290,4 +290,33 @@ export class PucService {
             .take(limit) // Limitar resultados
             .getMany();
     }
+
+    /**
+     * Cragar cuentas auxiliares según compañía y cuenta, limitado a 100 resultados
+     */
+    async auxiliaryAccounts(cmpy: string, limit: number = 100): Promise<Puc[]> {
+        // Crear consulta base para buscar cuentas auxiliares (8 y 10 dígitos)
+        const queryBuilder = this.accountPlanRepository
+            .createQueryBuilder('puc')
+            .where('(puc.plcu_classification = :aux1 OR puc.plcu_classification = :aux2)', {
+                aux1: 'AUXILIAR',
+                aux2: 'AUXILIAR2'
+            })
+            .andWhere('puc.plcu_active = :active', { active: 'Y' });
+    
+        // Aplicar filtro por compañía
+        if (cmpy !== 'ALL') {
+            queryBuilder.andWhere('(puc.plcu_cmpy = :cmpy OR puc.plcu_cmpy = :all)', {
+                cmpy: cmpy,
+                all: 'ALL'
+            });
+        }  
+       
+    
+        // Obtener y retornar resultados limitados
+        return queryBuilder
+            .orderBy('puc.plcu_id', 'ASC')
+            .take(limit) // Limitar resultados
+            .getMany();
+    }
 }

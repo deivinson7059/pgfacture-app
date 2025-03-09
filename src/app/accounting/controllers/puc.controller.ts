@@ -1,11 +1,13 @@
-import { Controller, Get, Post, Body,  Param,  NotFoundException,BadRequestException, ClassSerializerInterceptor, Put, Query, UseInterceptors, UsePipes, ValidationPipe } from '@nestjs/common';
-import {  PucService } from '../service/puc.service';
+import { Controller, Get, Post, Body, Param, NotFoundException, BadRequestException, ClassSerializerInterceptor, Put, Query, UseInterceptors, UsePipes, ValidationPipe } from '@nestjs/common';
+import { PucService } from '../service/puc.service';
 import { PucResponse, PucResponseOnly } from '../interfaces/puc.interface';
-import { CreatePucDto, UpdatePucDto } from '../dto';
-import { ListPucDto,SearchPucDto } from '../dto';
+import { allPucDto, CreatePucDto, UpdatePucDto } from '../dto';
+import { ListPucDto, SearchPucDto } from '../dto';
 import { Puc } from '../entities/puc.entity';
 import { CompanyService } from 'src/app/settings/company/company.service';
 import { apiResponse } from 'src/app/common/interfaces/common.interface';
+import { ApplyDecorators, CheckCmpy } from 'src/app/common/decorators';
+import { ParamSource } from 'src/app/common/enums';
 
 @Controller('accounting/puc')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -14,8 +16,8 @@ export class PucController {
         /* private readonly Service: Service, */
         private readonly PucService: PucService,
         private readonly companyService: CompanyService,
-        
-    ) { }  
+
+    ) { }
 
     @Post()
     async create(@Body() accountPlanDto: CreatePucDto): Promise<Puc> {
@@ -64,29 +66,55 @@ export class PucController {
     * Busca cuentas auxiliares según compañía y cuenta, limitado a 10 resultados
     */
     @Post('/search')
-    @UsePipes(new ValidationPipe({ transform: true }))
+    @ApplyDecorators([
+        CheckCmpy(ParamSource.BODY),
+        UsePipes(new ValidationPipe({ transform: true }))
+    ])
     async searchAccounts(
         @Body() searchDto: SearchPucDto
     ): Promise<apiResponse<Puc[]>> {
 
-        const {cmpy,account} = searchDto
+        const { cmpy, account } = searchDto
         if (!cmpy) {
             throw new BadRequestException('El código de compañía es requerido');
-        }
-        
-        // Verificar que la compañía existe
-        const companyExists = await this.companyService.verifyCompanyIdExists(cmpy);
-        if (!companyExists) {
-            throw new NotFoundException(`La compañía con código ${cmpy} no existe`);
-        }
-        
+        }        
+
         // Usar el cmpy de la URL y la cuenta del body
         const accounts = await this.PucService.searchAuxiliaryAccounts(
             cmpy,
             account,
             100 // Límite fijo de 100 resultados
         );
-        
+
+        return {
+            message: "Resultados de búsqueda",
+            data: accounts
+        };
+    }
+
+    /**
+   * Cargar todas las cuentas auxiliares según compañía y cuenta, limitado a 10 resultados
+   */
+    @Post('/all')
+    @ApplyDecorators([
+        CheckCmpy(ParamSource.BODY),
+        UsePipes(new ValidationPipe({ transform: true }))
+    ])
+    async searchAccountsAll(
+        @Body() searchDto: allPucDto
+    ): Promise<apiResponse<Puc[]>> {
+
+        const { cmpy } = searchDto
+        if (!cmpy) {
+            throw new BadRequestException('El código de compañía es requerido');
+        }       
+
+        // Usar el cmpy de la URL y la cuenta del body
+        const accounts = await this.PucService.auxiliaryAccounts(
+            cmpy,
+            300 // Límite fijo de 100 resultados
+        );
+
         return {
             message: "Resultados de búsqueda",
             data: accounts

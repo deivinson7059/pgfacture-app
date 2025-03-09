@@ -5,7 +5,7 @@ import { dateTransformer } from 'src/app/common/utils/fechaColombia';
 @Entity({ schema: 'pgfacture', name: 'pg_accounting_note_line' })
 //notas contables lineas
 export class NoteLine {
-
+ 
     @Column({ name: 'acnl_id', type: 'bigint' })
     @PrimaryColumn({ name: 'acnl_id' })
     @Expose({ name: 'id' })

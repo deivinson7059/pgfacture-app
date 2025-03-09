@@ -4,7 +4,7 @@ import { NoteService } from '../service';
 import { CreateNoteDto, UpdateNoteStatusDto } from '../dto';
 import { ApplyDecorators, CheckCmpy, CheckPeriodOpen, CheckWare } from 'src/app/common/decorators';
 import { ParamSource } from 'src/app/common/enums';
-import { NoteHeader } from '../entities';
+import { NoteWithLines } from '../interfaces/note.interface';
 
 
 @Controller('accounting/notes')
@@ -19,11 +19,11 @@ export class NoteController {
         CheckPeriodOpen(ParamSource.BODY),
         UsePipes(new ValidationPipe({ transform: true }))
     ])
-    async create(@Body() createNoteDto: CreateNoteDto): Promise<apiResponse<NoteHeader>> {
+    async create(@Body() createNoteDto: CreateNoteDto): Promise<apiResponse<NoteWithLines>> {
         const note = await this.accountingNoteService.create(createNoteDto);
 
         let message = 'Nota contable creada exitosamente';
-        if (note.acnh_auto_accounting) {
+        if (note.auto_accounting) {
             message += ' y contabilizada automáticamente';
         }
 

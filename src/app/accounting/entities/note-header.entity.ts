@@ -1,8 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, OneToMany, CreateDateColumn, UpdateDateColumn, JoinColumn, Index, PrimaryColumn } from 'typeorm';
 import { Expose, Transform } from 'class-transformer';
-import { dateTransformer } from 'src/app/common/utils/fechaColombia';
-import { NoteLine } from '.';
 import { formatDecimal } from 'src/app/common/utils/transform';
+import { dateTransformer } from 'src/app/common/utils/fechaColombia';
 
 @Entity({ schema: 'pgfacture', name: 'pg_accounting_note_header' })
 //notas contables header
@@ -86,7 +85,9 @@ export class NoteHeader {
         name: 'acnh_creation_date',
         type: 'timestamp',
         precision: 6,
+        transformer: dateTransformer()
     })
+
     @Expose({ name: 'creation_date' })
     acnh_creation_date: Date;
 
@@ -98,10 +99,11 @@ export class NoteHeader {
         name: 'acnh_updated_date',
         type: 'timestamp',
         precision: 6,
+        transformer: dateTransformer()
     })
     @Expose({ name: 'updated_date' })
     acnh_updated_date: Date;
- 
+
     @Column({ name: 'acnh_approved_by', type: 'varchar', length: 30, nullable: true })
     @Expose({ name: 'approved_by' })
     acnh_approved_by: string;
@@ -109,7 +111,9 @@ export class NoteHeader {
     @Column({
         name: 'acnh_approved_date',
         type: 'timestamp',
+        precision: 6,
         nullable: true,
+        transformer: dateTransformer()
     })
     @Expose({ name: 'approved_date' })
     acnh_approved_date: Date;
@@ -137,7 +141,7 @@ export class NoteHeader {
 
     @Column({ name: 'acnh_auto_accounting', type: 'boolean', default: false })
     @Expose({ name: 'auto_accounting' })
-    acnh_auto_accounting: boolean;
+    acnh_auto_accounting: boolean; 
 
     @Column({ name: 'acnh_accounting_date', type: 'date', nullable: true })
     @Expose({ name: 'accounting_date' })
