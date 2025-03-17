@@ -20,6 +20,7 @@ export class NoteController {
         UsePipes(new ValidationPipe({ transform: true }))
     ])
     async create(@Body() createNoteDto: CreateNoteDto): Promise<apiResponse<NoteWithLines>> {
+        // console.log(createNoteDto);
         const note = await this.accountingNoteService.create(createNoteDto);
 
         let message = 'Nota contable creada exitosamente';
@@ -27,7 +28,7 @@ export class NoteController {
             message += ' y contabilizada automáticamente';
         }
 
-        return { 
+        return {
             message,
             data: note
         };

@@ -22,6 +22,8 @@ export class NoteService {
     ) { }
 
     async create(createNoteDto: CreateNoteDto): Promise<NoteWithLines> {
+
+        createNoteDto.auto_accounting = createNoteDto.auto_accounting || true;
         const queryRunner = this.dataSource.createQueryRunner();
         await queryRunner.connect();
         await queryRunner.startTransaction();
@@ -77,7 +79,7 @@ export class NoteService {
                 acnh_priority: createNoteDto.priority || 'N',
                 acnh_auto_accounting: createNoteDto.auto_accounting || false,
                 acnh_accounting_date: createNoteDto.accounting_date ? new Date(createNoteDto.accounting_date) : null
-            }); 
+            });
 
             const savedHeader = await queryRunner.manager.save(header);
 
@@ -113,10 +115,10 @@ export class NoteService {
                 savedHeader.acnh_approved_by = savedHeader.acnh_creation_by;
                 savedHeader.acnh_approved_date = new Date();
                 await queryRunner.manager.save(savedHeader);
-                
+
                 // Contabilizar la nota
                 await this.contabilizarNota(queryRunner, savedHeader, noteLines);
-                
+
                 // Actualizar estado a Contabilizado
                 savedHeader.acnh_status = 'C';
                 savedHeader.acnh_accounting_date = new Date();
@@ -128,7 +130,7 @@ export class NoteService {
             // Cargar las líneas para la respuesta
 
             const NoteWithLines_: NoteWithLines = {
-               
+
                 id: savedHeader.acnh_id,
                 cmpy: savedHeader.acnh_cmpy,
                 ware: savedHeader.acnh_ware,
@@ -149,7 +151,7 @@ export class NoteService {
                 auto_accounting: savedHeader.acnh_auto_accounting,
                 lines: noteLines
             }
-            
+
             return NoteWithLines_;
 
         } catch (error) {
@@ -223,7 +225,7 @@ export class NoteService {
             where: {
                 acnl_acnh_id: id,
                 acnl_cmpy: cmpy
-            }, 
+            },
             order: {
                 acnl_line_number: 'ASC'
             }

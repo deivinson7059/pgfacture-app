@@ -40,24 +40,6 @@ export class PucService {
             plcu_creation_by: creation_by,
         });
 
-        /* // Guardar la nueva cuenta
-
-        const save_accountPlan = await this.accountPlanRepository.save(accountPlan);
-
-        return {
-            code: save_accountPlan.PLCU_ID,
-            cmpy: save_accountPlan.PLCU_CMPY.trim(),
-            description: save_accountPlan.PLCU_DESCRIPTION,
-            nature: save_accountPlan.PLCU_NATURE,
-            classification: save_accountPlan.PLCU_CLASSIFICATION!,
-            parent_account: save_accountPlan.PLCU_PARENT_ACCOUNT,
-            active: save_accountPlan.PLCU_ACTIVE,
-            creation_by: save_accountPlan.PLCU_CREATION_BY,
-            creation_date: save_accountPlan.PLCU_CREATION_DATE,
-            updated_by: save_accountPlan.PLCU_UPDATED_BY,
-            updated_date: save_accountPlan.PLCU_UPDATED_DATE,
-        } */
-
         return this.accountPlanRepository.save(accountPlan);
     }
 
@@ -74,7 +56,6 @@ export class PucService {
             throw new BadRequestException('La cuenta no existe.');
         }
 
-        //accountPlan.PLCU_CMPY = accountPlan.PLCU_CMPY.trim();
         // Actualizar los campos permitidos
         if (description !== undefined) {
             accountPlan.plcu_description = description;
@@ -85,24 +66,6 @@ export class PucService {
         if (updated_by !== undefined) {
             accountPlan.plcu_updated_by = updated_by;
         }
-
-
-        /*  
-        // Guardar los cambios
-         //const save_accountPlan = await this.accountPlanRepository.save(accountPlan);
-        return {
-             code: save_accountPlan.PLCU_ID,
-             cmpy: save_accountPlan.PLCU_CMPY.trim(),
-             description: save_accountPlan.PLCU_DESCRIPTION,
-             nature: save_accountPlan.PLCU_NATURE,
-             classification: save_accountPlan.PLCU_CLASSIFICATION!,
-             parent_account: save_accountPlan.PLCU_PARENT_ACCOUNT,
-             active: save_accountPlan.PLCU_ACTIVE,
-             creation_by: save_accountPlan.PLCU_CREATION_BY,
-             creation_date: save_accountPlan.PLCU_CREATION_DATE,
-             updated_by: save_accountPlan.PLCU_UPDATED_BY,
-             updated_date: save_accountPlan.PLCU_UPDATED_DATE,
-         } */
 
         // Guardar los cambios
         return this.accountPlanRepository.save(accountPlan);
@@ -127,7 +90,6 @@ export class PucService {
                 order: { plcu_id: 'ASC' },
             });
         }
-        //accounts = await this.accountPlanRepository.find({ order: { PLCU_ID: 'ASC' } });
         return this.buildHierarchy(accounts);
     }
 
@@ -146,10 +108,6 @@ export class PucService {
                 classification: account.plcu_classification!,
                 parent_account: account.plcu_parent_account,
                 active: account.plcu_active,
-                //creation_by: account.plcu_creation_by,
-                //  creation_date: account.plcu_creation_date, // convertir la fecha a string
-                // updated_by: account.plcu_updated_by,
-                // updated_date: account.plcu_updated_date, // Convertir la fecha a string
                 children: [], // Inicializar el arreglo de hijos
             };
             map.set(account.plcu_id, transformedAccount);
@@ -204,10 +162,6 @@ export class PucService {
                 classification: account.plcu_classification!,
                 parent_account: account.plcu_parent_account,
                 active: account.plcu_active,
-                //creation_by: account.plcu_creation_by,
-                //creation_date: account.plcu_creation_date,
-                //updated_by: account.plcu_updated_by,
-                //updated_date: account.plcu_updated_date,
                 children: [],
             };
             accountsMap.set(account.plcu_id, transformedAccount);
@@ -233,20 +187,48 @@ export class PucService {
         return accountHierarchy;
     }
 
-/**
- * Busca cuentas auxiliares según criterios específicos con un límite de resultados
- * @param cmpy Código de la compañía
- * @param account Número de cuenta o descripcion para búsqueda exacta o parcial 
- * @param limit Límite de resultados (por defecto 10)
- * @returns Lista limitada de cuentas auxiliares que coinciden con los criterios
- */
+
+
+    /**
+     * Método principal para buscar cuentas auxiliares 
+     * Determina automáticamente si se debe buscar por número o por descripción
+     * @param cmpy Código de la compañía
+     * @param account Texto de búsqueda (número o descripción)
+     * @param limit Límite de resultados
+     * @returns Lista de cuentas auxiliares que coinciden con la búsqueda
+     */
     async searchAuxiliaryAccounts(cmpy: string, account?: string, limit: number = 100): Promise<Puc[]> {
-        // Crear consulta base para buscar cuentas auxiliares (8 y 10 dígitos)
+        // Si no se proporciona parámetro de búsqueda, lanzar error
+        if (!account || account.trim() === '') {
+            throw new BadRequestException('Debe proporcionar un parámetro de búsqueda');
+        }
+
+        const searchTerm = account.trim();
+        const isNumeric = /^\d+$/.test(searchTerm);
+
+        // Determinar automáticamente el tipo de búsqueda y llamar al método correspondiente
+        if (isNumeric) {
+            // Si es numérico, buscar por número de cuenta
+            return this.searchAccountsByNumber(cmpy, searchTerm, limit);
+        } else {
+            // Si no es numérico, buscar por descripción
+            return this.searchAccountsByDescription(cmpy, searchTerm, limit);
+        }
+    }
+
+    /**
+    * Método para buscar cuentas auxiliares por número de cuenta
+    * @param cmpy Código de la compañía
+    * @param accountNumber Número de cuenta para búsqueda (debe ser numérico)
+    * @param limit Límite de resultados (por defecto 100)
+    * @returns Lista limitada de cuentas auxiliares que coinciden con el número
+    */
+    private async searchAccountsByNumber(cmpy: string, accountNumber: string, limit: number = 100): Promise<Puc[]> {
+        // Crear consulta base para buscar cuentas auxiliares (6, 8 y 10 dígitos)
         const queryBuilder = this.accountPlanRepository
             .createQueryBuilder('puc')
-            .where('(puc.plcu_classification = :aux1 OR puc.plcu_classification = :aux2)', {
-                aux1: 'AUXILIAR',
-                aux2: 'AUXILIAR2'
+            .where('puc.plcu_classification IN (:...classifications)', {
+                classifications: ['SUBCUENTA', 'AUXILIAR', 'AUXILIAR2']
             })
             .andWhere('puc.plcu_active = :active', { active: 'Y' });
     
@@ -258,61 +240,81 @@ export class PucService {
             });
         }
     
-        // Aplicar filtro por número de cuenta o nombre de cuenta si existe
-        if (account && account.trim() !== '') {
-            const searchTerm = account.trim();
-            const isNumeric = /^\d+$/.test(searchTerm);
-            
-            if (isNumeric) {
-                // Búsqueda por número de cuenta
-                queryBuilder.andWhere('puc.plcu_id LIKE :account', {
-                    account: `%${searchTerm}%`
-                });
-            } else {
-                // Búsqueda por palabras en el nombre/descripción de cuenta
-                // Dividimos el término de búsqueda en palabras individuales
-                const searchWords = searchTerm.split(/\s+/).filter(word => word.length > 0);
-                
-                if (searchWords.length > 0) {
-                    // Crear condiciones para cada palabra
-                    searchWords.forEach((word, index) => {
-                        queryBuilder.andWhere(`LOWER(puc.plcu_description) LIKE LOWER(:word${index})`, {
-                            [`word${index}`]: `%${word}%`
-                        });
-                    });
-                }
-            }
-        }
+        // Buscar cuentas que empiecen con el número proporcionado
+        queryBuilder.andWhere('puc.plcu_id LIKE :account', {
+            account: `${accountNumber}%` // Busca cuentas que EMPIECEN con el número
+        });
     
         // Obtener y retornar resultados limitados
         return queryBuilder
             .orderBy('puc.plcu_id', 'ASC')
-            .take(limit) // Limitar resultados
+            .take(limit)
             .getMany();
     }
 
     /**
-     * Cragar cuentas auxiliares según compañía y cuenta, limitado a 100 resultados
+     * Método para buscar cuentas auxiliares por descripción
+     * @param cmpy Código de la compañía
+     * @param description Texto para buscar en la descripción de las cuentas
+     * @param limit Límite de resultados (por defecto 100)
+     * @returns Lista limitada de cuentas auxiliares que coinciden con la descripción
      */
-    async auxiliaryAccounts(cmpy: string, limit: number = 100): Promise<Puc[]> {
+    private async searchAccountsByDescription(cmpy: string, description: string, limit: number = 100): Promise<Puc[]> {
         // Crear consulta base para buscar cuentas auxiliares (8 y 10 dígitos)
         const queryBuilder = this.accountPlanRepository
-            .createQueryBuilder('puc')
-            .where('(puc.plcu_classification = :aux1 OR puc.plcu_classification = :aux2)', {
-                aux1: 'AUXILIAR',
-                aux2: 'AUXILIAR2'
-            })
-            .andWhere('puc.plcu_active = :active', { active: 'Y' });
-    
+        .createQueryBuilder('puc')
+        .where('puc.plcu_classification IN (:...classifications)', {
+            classifications: ['SUBCUENTA', 'AUXILIAR', 'AUXILIAR2']
+        })
+        .andWhere('puc.plcu_active = :active', { active: 'Y' });
+
         // Aplicar filtro por compañía
         if (cmpy !== 'ALL') {
             queryBuilder.andWhere('(puc.plcu_cmpy = :cmpy OR puc.plcu_cmpy = :all)', {
                 cmpy: cmpy,
                 all: 'ALL'
             });
-        }  
-       
-    
+        }
+
+        // Dividir la descripción en palabras para búsqueda más precisa
+        const searchWords = description.trim().split(/\s+/).filter(word => word.length > 0);
+
+        if (searchWords.length > 0) {
+            // Crear condiciones para cada palabra (deben coincidir todas las palabras)
+            searchWords.forEach((word, index) => {
+                queryBuilder.andWhere(`LOWER(puc.plcu_description) LIKE LOWER(:word${index})`, {
+                    [`word${index}`]: `%${word}%`
+                });
+            });
+        }
+
+        // Obtener y retornar resultados limitados
+        return queryBuilder
+            .orderBy('puc.plcu_id', 'ASC')
+            .take(limit)
+            .getMany();
+    }
+
+    /**
+     * Cargar todas las cuentas auxiliares según compañía, limitado a un número específico de resultados
+     */
+    async auxiliaryAccounts(cmpy: string, limit: number = 100): Promise<Puc[]> {
+        // Crear consulta base para buscar cuentas auxiliares (8 y 10 dígitos)
+        const queryBuilder = this.accountPlanRepository
+        .createQueryBuilder('puc')
+        .where('puc.plcu_classification IN (:...classifications)', {
+            classifications: ['SUBCUENTA', 'AUXILIAR', 'AUXILIAR2']
+        })
+        .andWhere('puc.plcu_active = :active', { active: 'Y' });
+
+        // Aplicar filtro por compañía
+        if (cmpy !== 'ALL') {
+            queryBuilder.andWhere('(puc.plcu_cmpy = :cmpy OR puc.plcu_cmpy = :all)', {
+                cmpy: cmpy,
+                all: 'ALL'
+            });
+        }
+
         // Obtener y retornar resultados limitados
         return queryBuilder
             .orderBy('puc.plcu_id', 'ASC')

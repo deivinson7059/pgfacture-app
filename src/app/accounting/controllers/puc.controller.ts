@@ -30,7 +30,10 @@ export class PucController {
     }
 
     @Get(':cmpy')
-    @UsePipes(new ValidationPipe({ transform: true }))
+    @ApplyDecorators([
+        CheckCmpy(ParamSource.PARAMS),
+        UsePipes(new ValidationPipe({ transform: true }))
+    ])
     async listCatalog(@Param('cmpy') cmpy: string, @Query() query: ListPucDto): Promise<PucResponse> {
         // Aquí puedes hacer la validación adicional si necesitas más lógica
         if (!cmpy) {
@@ -66,7 +69,8 @@ export class PucController {
     }
 
     /**
-    * Busca cuentas auxiliares según compañía y cuenta, limitado a 10 resultados
+    * Busca cuentas auxiliares según compañía y cuenta, limitado a 100 resultados
+    * Determina automáticamente si buscar por número o descripción
     */
     @Post('/search')
     @ApplyDecorators([
@@ -82,7 +86,11 @@ export class PucController {
             throw new BadRequestException('El código de compañía es requerido');
         }        
 
-        // Usar el cmpy de la URL y la cuenta del body
+        if (!account) {
+            throw new BadRequestException('El parámetro de búsqueda es requerido');
+        }
+
+        // Usar el cmpy y la cuenta del body
         const accounts = await this.PucService.searchAuxiliaryAccounts(
             cmpy,
             account,
@@ -96,7 +104,7 @@ export class PucController {
     }
 
     /**
-   * Cargar todas las cuentas auxiliares según compañía y cuenta, limitado a 10 resultados
+   * Cargar todas las cuentas auxiliares según compañía, limitado a 300 resultados
    */
     @Post('/all')
     @ApplyDecorators([
@@ -112,14 +120,14 @@ export class PucController {
             throw new BadRequestException('El código de compañía es requerido');
         }       
 
-        // Usar el cmpy de la URL y la cuenta del body
+        // Usar el cmpy del body
         const accounts = await this.PucService.auxiliaryAccounts(
             cmpy,
-            300 // Límite fijo de 100 resultados
+            300 // Límite fijo de 300 resultados
         );
 
         return {
-            message: "Resultados de búsqueda",
+            message: "Listado de cuentas auxiliares",
             data: accounts
         };
     }
