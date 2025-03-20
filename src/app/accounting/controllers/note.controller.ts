@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Query, Put, UseInterceptors, ClassSerializerInterceptor, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, Put, UseInterceptors, ClassSerializerInterceptor, UsePipes, ValidationPipe, HttpCode, HttpStatus } from '@nestjs/common';
 import { apiResponse } from 'src/app/common/interfaces/common.interface';
 import { NoteService } from '../service';
 import { CreateNoteDto, UpdateNoteStatusDto } from '../dto';
@@ -19,6 +19,7 @@ export class NoteController {
         CheckPeriodOpen(ParamSource.BODY),
         UsePipes(new ValidationPipe({ transform: true }))
     ])
+    @HttpCode(HttpStatus.OK)
     async create(@Body() createNoteDto: CreateNoteDto): Promise<apiResponse<NoteWithLines>> {
         // console.log(createNoteDto);
         const note = await this.accountingNoteService.create(createNoteDto);
@@ -35,6 +36,7 @@ export class NoteController {
     }
 
     @Get()
+    @HttpCode(HttpStatus.OK)
     async findAll(
         @Query('cmpy') cmpy: string,
         @Query('year') year?: number,
@@ -59,6 +61,7 @@ export class NoteController {
 
     @Put('status')
     @UsePipes(new ValidationPipe({ transform: true }))
+    @HttpCode(HttpStatus.OK)
     async updateStatus(@Body() updateStatusDto: UpdateNoteStatusDto): Promise<apiResponse<any>> {
         const note = await this.accountingNoteService.updateStatus(updateStatusDto);
 

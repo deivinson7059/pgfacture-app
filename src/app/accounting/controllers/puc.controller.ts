@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, NotFoundException, BadRequestException, ClassSerializerInterceptor, Put, Query, UseInterceptors, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, NotFoundException, BadRequestException, ClassSerializerInterceptor, Put, Query, UseInterceptors, UsePipes, ValidationPipe, HttpStatus, HttpCode } from '@nestjs/common';
 import { PucService } from '../service/puc.service';
 import { PucResponse, PucResponseOnly } from '../interfaces/puc.interface';
 import { allPucDto, CreatePucDto, UpdatePucDto } from '../dto';
@@ -84,7 +84,7 @@ export class PucController {
         const { cmpy, account } = searchDto
         if (!cmpy) {
             throw new BadRequestException('El código de compañía es requerido');
-        }        
+        }
 
         if (!account) {
             throw new BadRequestException('El parámetro de búsqueda es requerido');
@@ -111,6 +111,7 @@ export class PucController {
         CheckCmpy(ParamSource.BODY),
         UsePipes(new ValidationPipe({ transform: true }))
     ])
+    @HttpCode(HttpStatus.OK)
     async searchAccountsAll(
         @Body() searchDto: allPucDto
     ): Promise<apiResponse<Puc[]>> {
@@ -118,7 +119,7 @@ export class PucController {
         const { cmpy } = searchDto
         if (!cmpy) {
             throw new BadRequestException('El código de compañía es requerido');
-        }       
+        }
 
         // Usar el cmpy del body
         const accounts = await this.PucService.auxiliaryAccounts(
