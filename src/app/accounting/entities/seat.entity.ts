@@ -60,7 +60,7 @@ export class Seat {
     @Expose({ name: 'document_number' })
     acch_document_number: string | null;
 
-    @Column({ type: 'varchar', length: 300, nullable: true })
+    @Column({ name: 'acch_description', type: 'text', nullable: true })
     @Expose({ name: 'description' }) // Mapear a "detbin"
     acch_description: string; // Detalle o comentario del movimiento
 
@@ -72,19 +72,19 @@ export class Seat {
     @Expose({ name: 'account_name' }) // Mapear a "account_name"
     acch_account_name: string; // Detalle de la cuenta
 
-    @Column({ name: 'acch_debit', type: 'decimal', precision: 30, scale: 5, default: 0 })
+    @Column({ name: 'acch_debit', type: 'decimal', precision: 30, scale: 5, nullable: true })
     @Expose({ name: 'debit' }) // Mapear a "debit"
     @Transform(formatDecimal(2), { toPlainOnly: true })
-    acch_debit: number; // Total débitos
+    acch_debit: number | null; // Total débitos
 
-    @Column({ name: 'acch_credit', type: 'decimal', precision: 30, scale: 5, default: 0 })
+    @Column({ name: 'acch_credit', type: 'decimal', precision: 30, scale: 5, nullable: true })
     @Expose({ name: 'credit' }) // Mapear a "credit"
     @Transform(formatDecimal(2), { toPlainOnly: true })
-    acch_credit: number; // Total créditos
+    acch_credit: number | null; // Total créditos
 
     @Column({ name: 'acch_balance', type: 'decimal', precision: 30, scale: 5, default: 0 })
     @Expose({ name: 'balance' })
-    @Transform(formatDecimal(2), { toPlainOnly: true }) 
+    @Transform(formatDecimal(2), { toPlainOnly: true })
     acch_balance: number;
 
     @Column({ name: 'acch_taxable_base', type: 'decimal', precision: 30, scale: 5, nullable: true })

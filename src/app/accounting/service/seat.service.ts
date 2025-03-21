@@ -29,7 +29,6 @@ export class SeatService {
 
     // Crear asiento contable
     async crearAsiento(asientoData: CrearSeatDto) {
-
         const queryRunner = this.dataSource.createQueryRunner();
 
         try {
@@ -56,9 +55,10 @@ export class SeatService {
 
             for (let i = 0; i < asientoData.movimientos.length; i++) {
                 const movimiento = asientoData.movimientos[i];
-                // Validar que cada movimiento tenga solo un valor (debit o credit)
-                const debit = movimiento.debit || 0;
-                const credit = movimiento.credit || 0;
+
+                // Para cálculos, convertimos null a 0
+                const debit = movimiento.debit !== null && movimiento.debit !== undefined ? toNumber(movimiento.debit) : 0;
+                const credit = movimiento.credit !== null && movimiento.credit !== undefined ? toNumber(movimiento.credit) : 0;
 
                 // Validar cuenta en el plan de cuentas para este movimiento
                 const accountPlan = await this.accountPlanRepository.findOne({
@@ -67,7 +67,6 @@ export class SeatService {
                         plcu_cmpy: In(['ALL', asientoData.cmpy]),
                     },
                 });
-
 
                 if (!accountPlan) {
                     throw new NotFoundException(`Cuenta ${movimiento.account} no encontrada en el plan de cuentas`);
@@ -87,12 +86,11 @@ export class SeatService {
 
                 if (['1', '5', '6', '7'].includes(firstDigit)) {
                     // Cuentas de naturaleza débito
-                    newBalance += toNumber(debit) - toNumber(credit);
+                    newBalance += debit - credit;
                 } else {
                     // Cuentas de naturaleza crédito
-                    newBalance += toNumber(credit) - toNumber(debit);
+                    newBalance += credit - debit;
                 }
-
 
                 const seatId = await this.getNextSeatId(queryRunner, asientoData.cmpy);
 
@@ -114,9 +112,9 @@ export class SeatService {
                     acch_document_number: asientoData.document_number || null,
                     acch_cost_center: asientoData.cost_center || null,
                     acch_elaboration_date: asientoData.elaboration_date || new Date(),
-                    acch_debit: debit,
-                    acch_credit: credit,
-                    acch_balance: newBalance, // Asignar el nuevo balance calculado
+                    acch_debit: movimiento.debit, // Mantenemos null si viene null
+                    acch_credit: movimiento.credit, // Mantenemos null si viene null
+                    acch_balance: newBalance, // Balance siempre es numérico para cálculos
                     acch_creation_by: asientoData.creation_by || 'system',
                     // Usar el enum SeatModule para el campo de módulo
                     acch_module: asientoData.module,
@@ -146,9 +144,9 @@ export class SeatService {
                     accj_cost_center: asientoData.cost_center || null,
                     accj_elaboration_date: asientoData.elaboration_date || new Date(),
                     accj_account_name: accountPlan.plcu_description,
-                    accj_debit: movimiento.debit || 0,
-                    accj_credit: movimiento.credit || 0,
-                    accj_balance: newBalance, // Asignar el mismo balance al diario
+                    accj_debit: movimiento.debit, // Mantenemos null si viene null
+                    accj_credit: movimiento.credit, // Mantenemos null si viene null
+                    accj_balance: newBalance, // Balance siempre es numérico para cálculos
                     accj_description: asientoData.description,
                     accj_customers: asientoData.customers,
                     accj_customers_name: asientoData.customers_name,
@@ -159,7 +157,7 @@ export class SeatService {
                 const savedJournalEntry = await queryRunner.manager.save(journalEntry);
                 journalEntries.push(savedJournalEntry);
 
-                // Actualizar libro mayor
+                // Actualizar libro mayor, utilizando valores numéricos para cálculos (debit y credit como 0 si son null)
                 await this.updateLedger(
                     queryRunner,
                     asientoData.cmpy,
@@ -168,14 +166,13 @@ export class SeatService {
                     asientoData.per,
                     movimiento.account,
                     accountPlan.plcu_description,
-                    movimiento.debit || 0,
-                    movimiento.credit || 0,
+                    debit,
+                    credit,
                     asientoData.creation_by
                 );
             }
 
             await queryRunner.commitTransaction();
-            //return journalEntries;
             return asientosCreados; // Retornar un array de asientos creados
 
         } catch (error) {
@@ -188,8 +185,6 @@ export class SeatService {
         } finally {
             await queryRunner.release();
         }
-
-
     }
 
     // Método auxiliar para obtener el balance actual de una cuenta

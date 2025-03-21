@@ -40,19 +40,15 @@ export class NoteLine {
     @Expose({ name: 'account_name' })
     acnl_account_name: string;
 
-    @Column({ name: 'acnl_description', type: 'varchar', length: 500, nullable: true })
-    @Expose({ name: 'description' })
-    acnl_description: string;
-
-    @Column({ name: 'acnl_debit', type: 'decimal', precision: 15, scale: 2, default: 0 })
+    @Column({ name: 'acnl_debit', type: 'decimal', precision: 15, scale: 2, nullable: true })
     @Expose({ name: 'debit' })
     @Transform(formatDecimal(2), { toPlainOnly: true })
-    acnl_debit: number;
+    acnl_debit: number | null;
 
-    @Column({ name: 'acnl_credit', type: 'decimal', precision: 15, scale: 2, default: 0 })
+    @Column({ name: 'acnl_credit', type: 'decimal', precision: 15, scale: 2, nullable: true })
     @Expose({ name: 'credit' })
     @Transform(formatDecimal(2), { toPlainOnly: true })
-    acnl_credit: number;
+    acnl_credit: number | null;
 
     @Column({ name: 'acnl_taxable_base', type: 'decimal', precision: 30, scale: 5, nullable: true })
     @Expose({ name: 'taxable_base' })
@@ -64,13 +60,13 @@ export class NoteLine {
     @Transform(formatDecimal(2), { toPlainOnly: true })
     acnl_exempt_base: number | null;
 
-    @Column({ name: 'acnl_reference', type: 'varchar', length: 190, nullable: true })
-    @Expose({ name: 'reference' })
-    acnl_reference: string;
+    @Column({ name: 'acnl_customers', type: 'varchar', length: 190, nullable: true })
+    @Expose({ name: 'customers' })
+    acnl_customers: string;
 
-    @Column({ name: 'acnl_tercero', type: 'varchar', length: 190, nullable: true })
-    @Expose({ name: 'tercero' })
-    acnl_tercero: string;
+    @Column({ name: 'acnl_customers_name', type: 'varchar', length: 500, nullable: true })
+    @Expose({ name: 'customers_name' }) // Mapear a "customers_name"
+    acnl_customers_name: string | null; // Nombre del cliente/proveedor    
 
     @Column({ name: 'acnl_creation_by', type: 'varchar', length: 30 })
     @Expose({ name: 'creation_by' })

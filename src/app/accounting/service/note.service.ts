@@ -44,8 +44,8 @@ export class NoteService {
             let totalDebit = 0;
             let totalCredit = 0;
             createNoteDto.lines.forEach(line => {
-                totalDebit += toNumber(line.debit);
-                totalCredit += toNumber(line.credit);
+                totalDebit += line.debit !== null && line.debit !== undefined ? toNumber(line.debit) : 0;
+                totalCredit += line.credit !== null && line.credit !== undefined ? toNumber(line.credit) : 0;
             });
 
             // Verificar partida doble
@@ -75,7 +75,6 @@ export class NoteService {
                 acnh_reference: createNoteDto.reference,
                 acnh_creation_by: createNoteDto.creation_by,
                 acnh_code: codigo,
-                // Nuevos campos
                 acnh_cost_center: createNoteDto.cost_center || null,
                 acnh_observations: createNoteDto.observations || null,
                 acnh_external_reference: createNoteDto.external_reference || null,
@@ -100,13 +99,12 @@ export class NoteService {
                     acnl_line_number: i + 1,
                     acnl_account: lineDto.account,
                     acnl_account_name: lineDto.account_name || 'Cuenta sin nombre',
-                    acnl_description: lineDto.description,
-                    acnl_debit: toNumber(lineDto.debit),
-                    acnl_credit: toNumber(lineDto.credit),
-                    acnl_taxable_base: lineDto.taxable_base || null,
-                    acnl_exempt_base: lineDto.exempt_base || null,
-                    acnl_reference: lineDto.reference,
-                    acnl_tercero: lineDto.tercero || customer,
+                    acnl_debit: lineDto.debit !== null && lineDto.debit !== undefined ? toNumber(lineDto.debit) : null,
+                    acnl_credit: lineDto.credit !== null && lineDto.credit !== undefined ? toNumber(lineDto.credit) : null,
+                    acnl_taxable_base: lineDto.taxable_base !== null && lineDto.taxable_base !== undefined ? toNumber(lineDto.taxable_base) : null,
+                    acnl_exempt_base: lineDto.exempt_base !== null && lineDto.exempt_base !== undefined ? toNumber(lineDto.exempt_base) : null,
+                    acnl_customers: lineDto.customer || customer,
+                    acnl_customers_name: lineDto.customer_name || customerName,
                     acnl_creation_by: createNoteDto.creation_by
                 });
 
@@ -298,8 +296,8 @@ export class NoteService {
                 account: line.acnl_account,
                 debit: line.acnl_debit,
                 credit: line.acnl_credit,
-                taxable_base: line.acnl_taxable_base || 0,
-                exempt_base: line.acnl_exempt_base || 0,
+                taxable_base: line.acnl_taxable_base,
+                exempt_base: line.acnl_exempt_base,
                 debitOrCredit: undefined
             });
         });
@@ -319,14 +317,13 @@ export class NoteService {
             customers_name: note.acnh_customer_name,
             description: description,
             creation_by: note.acnh_updated_by || note.acnh_creation_by,
-            document_type: note.acnh_doc_type || "NOTA",
+            document_type: "NOTA",
             document_number: note.acnh_id.toString(),
             cost_center: note.acnh_cost_center || null,
             elaboration_date: note.acnh_date || new Date(),
             code: note.acnh_code || undefined,
-            // Campos adicionales
             module: SEAT_MODULE.NOTA,
-            ref: note.acnh_external_reference || note.acnh_id.toString(),
+            ref: note.acnh_reference || note.acnh_id.toString(),
             movimientos: sientoMov
         }
 

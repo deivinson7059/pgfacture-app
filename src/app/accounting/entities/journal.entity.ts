@@ -33,7 +33,7 @@ export class Journal {
 
     @Column({ name: 'accj_year', type: 'int' })
     @Expose({ name: 'year' })
-    accj_year: number;   
+    accj_year: number;
 
 
     @PrimaryColumn({ name: 'accj_line_number', type: 'int' })
@@ -62,14 +62,14 @@ export class Journal {
     @Column({ name: 'accj_document_type', type: 'varchar', length: 20 })
     @Expose({ name: 'document_type' })
     accj_document_type: string;
-    
+
     @Column({ name: 'accj_document_number', type: 'varchar', length: 30, nullable: true })
     @Expose({ name: 'document_number' })
     accj_document_number: string | null;
 
     @Column({ name: 'accj_description', type: 'varchar', length: 190, nullable: true })
     @Expose({ name: 'description' })
-    accj_description: string | null;    
+    accj_description: string | null;
 
     @Column({ name: 'accj_account', type: 'varchar', length: 20 })
     @Expose({ name: 'account' })
@@ -79,19 +79,19 @@ export class Journal {
     @Expose({ name: 'account_name' })
     accj_account_name: string;
 
-    @Column({ name: 'accj_debit', type: 'decimal', precision: 30, scale: 5, default: 0 })
+    @Column({ name: 'accj_debit', type: 'decimal', precision: 30, scale: 5, nullable: true })
     @Expose({ name: 'debit' })
     @Transform(formatDecimal(2), { toPlainOnly: true })
-    accj_debit: number;
+    accj_debit: number | null;
 
-    @Column({ name: 'accj_credit', type: 'decimal', precision: 30, scale: 5, default: 0 })
+    @Column({ name: 'accj_credit', type: 'decimal', precision: 30, scale: 5, nullable: true })
     @Expose({ name: 'credit' })
     @Transform(formatDecimal(2), { toPlainOnly: true })
-    accj_credit: number; 
+    accj_credit: number | null;
 
     @Column({ name: 'accj_balance', type: 'decimal', precision: 30, scale: 5, default: 0 })
     @Expose({ name: 'balance' })
-    @Transform(formatDecimal(2), { toPlainOnly: true }) 
+    @Transform(formatDecimal(2), { toPlainOnly: true })
     accj_balance: number;
 
     @Column({ name: 'accj_taxable_base', type: 'decimal', precision: 30, scale: 5, nullable: true })
@@ -105,7 +105,7 @@ export class Journal {
 
     @Column({ name: 'accj_cost_center', type: 'varchar', length: 20, nullable: true })
     @Expose({ name: 'cost_center' })
-    accj_cost_center: string | null; 
+    accj_cost_center: string | null;
 
     @Column({ name: 'accj_ref', type: 'varchar', length: 190, nullable: true })
     @Expose({ name: 'ref' })
@@ -117,8 +117,8 @@ export class Journal {
 
     @Column({ name: 'accj_customers_name', type: 'varchar', length: 500 })
     @Expose({ name: 'customers_name' })
-    accj_customers_name: string;    
-    
+    accj_customers_name: string;
+
     @Column({ name: 'accj_elaboration_date', type: 'date', nullable: true })
     @Expose({ name: 'elaboration_date' })
     accj_elaboration_date: Date | null;

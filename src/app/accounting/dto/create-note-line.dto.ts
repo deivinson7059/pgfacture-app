@@ -5,8 +5,8 @@ import { IsNotEmpty, IsString, Min, IsNumber, IsOptional, Length, ValidateIf, Va
 export class DebitOrCreditValidator implements ValidatorConstraintInterface {
     validate(value: any, args: ValidationArguments) {
         const obj = args.object as NoteLineDto;
-        const hasDebit = obj.debit !== undefined && obj.debit > 0;
-        const hasCredit = obj.credit !== undefined && obj.credit > 0;
+        const hasDebit = obj.debit !== undefined && obj.debit !== null;
+        const hasCredit = obj.credit !== undefined && obj.credit !== null;
 
         return (hasDebit && !hasCredit) || (!hasDebit && hasCredit);
     }
@@ -34,35 +34,37 @@ export class NoteLineDto {
     @Length(0, 500)
     description?: string;
 
+    @IsOptional()
     @IsNumber()
     @Min(0)
-    @ValidateIf(o => !o.credit || o.credit === 0)
-    debit: number;
-
-    @IsNumber()
-    @Min(0)
-    @ValidateIf(o => !o.debit || o.debit === 0)
-    credit: number;
+    @ValidateIf(o => o.credit === undefined || o.credit === null)
+    debit: number | null;
 
     @IsOptional()
     @IsNumber()
     @Min(0)
-    taxable_base?: number;
+    @ValidateIf(o => o.debit === undefined || o.debit === null)
+    credit: number | null;
 
     @IsOptional()
     @IsNumber()
     @Min(0)
-    exempt_base?: number;
+    taxable_base?: number | null;
 
     @IsOptional()
-    @IsString()
-    @Length(0, 190)
-    reference?: string;
+    @IsNumber()
+    @Min(0)
+    exempt_base?: number | null;
 
     @IsOptional()
     @IsString()
-    @Length(0, 190)
-    tercero?: string;
+    @Length(0, 60)
+    customer?: string;
+
+    @IsOptional()
+    @IsString()
+    @Length(0, 200)
+    customer_name?: string;
 
     @Validate(DebitOrCreditValidator)
     validateDebitOrCredit: any;
