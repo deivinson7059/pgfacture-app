@@ -77,9 +77,6 @@ export class NoteService {
                 acnh_code: codigo,
                 acnh_cost_center: createNoteDto.cost_center || null,
                 acnh_observations: createNoteDto.observations || null,
-                acnh_external_reference: createNoteDto.external_reference || null,
-                acnh_doc_type: createNoteDto.doc_type || null,
-                acnh_priority: createNoteDto.priority || 'N',
                 acnh_auto_accounting: createNoteDto.auto_accounting || false,
                 acnh_accounting_date: createNoteDto.accounting_date ? new Date(createNoteDto.accounting_date) : null
             });
@@ -125,14 +122,14 @@ export class NoteService {
 
                 // Actualizar estado a Contabilizado
                 savedHeader.acnh_status = 'C';
-                savedHeader.acnh_accounting_date = new Date();
+                savedHeader.acnh_updated_by = savedHeader.acnh_creation_by;
                 await queryRunner.manager.save(savedHeader);
             }
 
             await queryRunner.commitTransaction();
 
             // Cargar las líneas para la respuesta
-            const NoteWithLines_: NoteWithLines = {
+            const noteWithLines: NoteWithLines = {
                 id: savedHeader.acnh_id,
                 cmpy: savedHeader.acnh_cmpy,
                 ware: savedHeader.acnh_ware,
@@ -149,17 +146,21 @@ export class NoteService {
                 reference: savedHeader.acnh_reference,
                 creation_by: savedHeader.acnh_creation_by,
                 creation_date: savedHeader.acnh_creation_date,
-                priority: savedHeader.acnh_priority,
-                auto_accounting: savedHeader.acnh_auto_accounting,
-                cost_center: savedHeader.acnh_cost_center!,
+                updated_by: savedHeader.acnh_updated_by,
+                updated_date: savedHeader.acnh_updated_date,
+                approved_by: savedHeader.acnh_approved_by,
+                approved_date: savedHeader.acnh_approved_date,
                 observations: savedHeader.acnh_observations!,
-                doc_type: savedHeader.acnh_doc_type!,
+                cost_center: savedHeader.acnh_cost_center!,
+                doc_type: "NOTE",
+                priority: 'N', // Valor por defecto
+                auto_accounting: savedHeader.acnh_auto_accounting,
                 accounting_date: savedHeader.acnh_accounting_date!,
                 code: savedHeader.acnh_code!,
                 lines: noteLines
-            }
+            };
 
-            return NoteWithLines_;
+            return noteWithLines;
 
         } catch (error) {
             await queryRunner.rollbackTransaction();
@@ -171,8 +172,9 @@ export class NoteService {
 
     private async getNextNoteHeadId(queryRunner: QueryRunner, acnh_cmpy: string): Promise<number> {
         const result = await queryRunner.manager
-            .createQueryBuilder(NoteHeader, 'NoteHeader')
+            .createQueryBuilder()
             .select('COALESCE(MAX(NoteHeader.acnh_id), 0)', 'max')
+            .from(NoteHeader, 'NoteHeader')
             .where('NoteHeader.acnh_cmpy = :companyCode', { companyCode: acnh_cmpy })
             .getRawOne();
 
@@ -181,8 +183,9 @@ export class NoteService {
 
     private async getNextNoteLineId(queryRunner: QueryRunner, acnl_cmpy: string): Promise<number> {
         const result = await queryRunner.manager
-            .createQueryBuilder(NoteLine, 'NoteLine')
+            .createQueryBuilder()
             .select('COALESCE(MAX(NoteLine.acnl_id), 0)', 'max')
+            .from(NoteLine, 'NoteLine')
             .where('NoteLine.acnl_cmpy = :companyCode', { companyCode: acnl_cmpy })
             .getRawOne();
 
@@ -250,35 +253,40 @@ export class NoteService {
         await queryRunner.startTransaction();
 
         try {
+            const [cmpy, idStr] = updateStatusDto.id.split('-');
+            const id = parseInt(idStr);
+
             // Obtener la nota y verificar que exista
-            const note = await this.findOne(updateStatusDto.id.split('-')[0], parseInt(updateStatusDto.id.split('-')[1]));
+            const noteWithLines = await this.findOne(cmpy, id);
 
             // Validar transiciones de estado permitidas
-            this.validateStatusTransition(note.acnh_status, updateStatusDto.status);
+            this.validateStatusTransition(noteWithLines.acnh_status, updateStatusDto.status);
 
-            // Actualizar estado
-            note.acnh_status = updateStatusDto.status;
-            note.acnh_updated_by = updateStatusDto.updated_by;
+            // Actualizar estado en el objeto de la nota
+            noteWithLines.acnh_status = updateStatusDto.status;
+            noteWithLines.acnh_updated_by = updateStatusDto.updated_by;
 
             if (updateStatusDto.status === 'A') { // Aprobado
-                note.acnh_approved_by = updateStatusDto.updated_by;
-                note.acnh_approved_date = new Date();
+                noteWithLines.acnh_approved_by = updateStatusDto.updated_by;
+                noteWithLines.acnh_approved_date = new Date();
             }
 
-            await queryRunner.manager.save(note);
+            // Quitamos las líneas para guardar solo el encabezado
+            const { lines, ...noteHeader } = noteWithLines;
+            await queryRunner.manager.save(NoteHeader, noteHeader);
 
             // Si está aprobado, contabilizar (crear asientos)
             if (updateStatusDto.status === 'A') {
-                await this.contabilizarNota(queryRunner, note, note.lines);
+                await this.contabilizarNota(queryRunner, noteHeader, lines);
 
                 // Actualizar estado a Contabilizado
-                note.acnh_status = 'C';
-                note.acnh_accounting_date = new Date();
-                await queryRunner.manager.save(note);
+                noteHeader.acnh_status = 'C';
+                noteHeader.acnh_accounting_date = new Date();
+                await queryRunner.manager.save(noteHeader);
             }
 
             await queryRunner.commitTransaction();
-            return await this.findOne(note.acnh_cmpy, note.acnh_id);
+            return await this.findOne(cmpy, id);
         } catch (error) {
             await queryRunner.rollbackTransaction();
             throw error;
@@ -291,7 +299,7 @@ export class NoteService {
         // Preparar DTO para crear asiento
         const sientoMov: MovimientoDto[] = [];
 
-        lines.map(line => {
+        lines.forEach(line => {
             sientoMov.push({
                 account: line.acnl_account,
                 debit: line.acnl_debit,
@@ -325,7 +333,7 @@ export class NoteService {
             module: SEAT_MODULE.NOTA,
             ref: note.acnh_reference || note.acnh_id.toString(),
             movimientos: sientoMov
-        }
+        };
 
         // Llamar al servicio de asientos para contabilizar
         await this.seatService.crearAsiento(asientoData);
