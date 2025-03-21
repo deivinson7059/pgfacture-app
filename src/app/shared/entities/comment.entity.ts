@@ -29,7 +29,7 @@ export class Comment {
     @Expose({ name: 'table' })
     co_table: string;
 
-    @Column({ name: 'co_comment', type: 'varchar', length: 500 })
+    @Column({ name: 'co_comment', type: 'text', nullable: false })
     @Expose({ name: 'comment' })
     co_comment: string;
 
