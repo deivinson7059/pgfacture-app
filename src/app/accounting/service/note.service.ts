@@ -30,11 +30,7 @@ export class NoteService {
 
         try {
             // Verificar que el período exista y esté abierto
-            await this.periodService.findOne(
-                createNoteDto.cmpy,
-                createNoteDto.year,
-                createNoteDto.per
-            );
+            const openPeriod = await this.periodService.findOpenPeriod(createNoteDto.cmpy);
 
             // Valores predeterminados
             const customer = createNoteDto.customer || '-';
@@ -63,8 +59,8 @@ export class NoteService {
                 acnh_id: acnh_id,
                 acnh_cmpy: createNoteDto.cmpy,
                 acnh_ware: createNoteDto.ware,
-                acnh_year: createNoteDto.year,
-                acnh_per: createNoteDto.per,
+                acnh_year: openPeriod.accp_year,
+                acnh_per: openPeriod.accp_per,
                 acnh_date: new Date(),
                 acnh_customer: customer,
                 acnh_customer_name: customerName,
@@ -134,6 +130,8 @@ export class NoteService {
                 ware: savedHeader.acnh_ware,
                 year: savedHeader.acnh_year,
                 per: savedHeader.acnh_per,
+                code: savedHeader.acnh_code!,
+                accounting_date: savedHeader.acnh_accounting_date!,
                 date: savedHeader.acnh_date,
                 time: savedHeader.acnh_time,
                 customer: savedHeader.acnh_customer,
@@ -150,11 +148,7 @@ export class NoteService {
                 approved_date: savedHeader.acnh_approved_date,
                 observations: savedHeader.acnh_observations!,
                 cost_center: savedHeader.acnh_cost_center!,
-                doc_type: "NOTE",
-                priority: 'N', // Valor por defecto
                 auto_accounting: savedHeader.acnh_auto_accounting,
-                accounting_date: savedHeader.acnh_accounting_date!,
-                code: savedHeader.acnh_code!,
                 lines: noteLines
             };
 

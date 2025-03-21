@@ -46,6 +46,25 @@ export class PeriodService {
         return period;
     }
 
+    async findOpenPeriod(cmpy: string): Promise<Period> {
+        const period = await this.periodRepository.findOne({
+            where: {
+                accp_cmpy: cmpy,
+                accp_status: 'O' // 'O' significa Open/Abierto
+            },
+            order: {
+                accp_year: 'DESC',
+                accp_per: 'ASC'
+            }
+        });
+
+        if (!period) {
+            throw new NotFoundException(`No existe un período contable abierto para la compañía ${cmpy}. Por favor, active un período para continuar.`);
+        }
+
+        return period;
+    }
+
     async create(createPeriodDto: CreatePeriodDto): Promise<Period> {
         const { cmpy, year, per, description, start_date, end_date, is_closing_period, creation_by } = createPeriodDto;
 
@@ -82,8 +101,6 @@ export class PeriodService {
 
         return this.periodRepository.save(newPeriod);
     }
-
-
 
     async createYearPeriods(createYearPeriodsDto: CreateYearPeriodsDto): Promise<Period[]> {
         const { cmpy, year, creation_by } = createYearPeriodsDto;
@@ -179,8 +196,6 @@ export class PeriodService {
                 throw new BadRequestException(`El período ${period} del año ${year} para la compañía ${cmpy} ya está cerrado`);
             }
 
-
-
             // Actualizar el período
             accountingPeriod.accp_status = 'C'; // Closed
             accountingPeriod.accp_closed_by = userId;
@@ -189,10 +204,8 @@ export class PeriodService {
 
             await queryRunner.manager.save(accountingPeriod);
 
-
             // Si no es el período 13 (cierre anual), ejecutar cierre de mes regular
             if (period < 13) {
-
                 //actualizamos O el segirnte periodo
 
                 // Verificar si existe el período siguiente en el mismo año
@@ -254,7 +267,7 @@ export class PeriodService {
                 accp_cmpy: cmpy,
                 accp_year: year,
                 accp_per: nextPeriod,
-            }, 
+            },
         });
 
         if (!nextAccountingPeriod) {

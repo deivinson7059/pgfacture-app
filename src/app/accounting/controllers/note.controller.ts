@@ -16,7 +16,6 @@ export class NoteController {
     @ApplyDecorators([
         CheckCmpy(ParamSource.BODY),
         CheckWare(ParamSource.BODY),
-        CheckPeriodOpen(ParamSource.BODY),
         UsePipes(new ValidationPipe({ transform: true }))
     ])
     @HttpCode(HttpStatus.OK)

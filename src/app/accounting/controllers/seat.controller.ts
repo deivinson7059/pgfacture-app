@@ -5,17 +5,16 @@ import { CrearSeatDto } from '../dto/crear-seat.dto';
 import { ApplyDecorators, CheckCmpy, CheckPeriodOpen, CheckWare, } from 'src/app/common/decorators';
 import { ParamSource } from 'src/app/common/enums';
 
-@Controller('accounting/seat') 
+@Controller('accounting/seat')
 @UseInterceptors(ClassSerializerInterceptor)
 export class SeatController {
     constructor(private seatService: SeatService) { }
-    
-    @Post()   
+
+    @Post()
     @ApplyDecorators([
-        CheckCmpy(ParamSource.BODY),     
-        CheckWare(ParamSource.BODY),      
-        CheckPeriodOpen(ParamSource.BODY), 
-        UsePipes(new ValidationPipe({ transform: true })) 
+        CheckCmpy(ParamSource.BODY),
+        CheckWare(ParamSource.BODY),
+        UsePipes(new ValidationPipe({ transform: true }))
     ])
     async crearAsiento(
         @Body(AccountValidationPipe) data: CrearSeatDto,
@@ -25,10 +24,10 @@ export class SeatController {
 
     @Get('resumen')
     @ApplyDecorators([
-        CheckCmpy(ParamSource.QUERY),     
-        CheckWare(ParamSource.QUERY),      
-        CheckPeriodOpen(ParamSource.QUERY), 
-    ])   
+        CheckCmpy(ParamSource.QUERY),
+        CheckWare(ParamSource.QUERY),
+        CheckPeriodOpen(ParamSource.QUERY),
+    ])
     async obtenerResumen(
         @Query('cmpy') cmpy: string,
         @Query('ware') ware: string,
@@ -40,9 +39,9 @@ export class SeatController {
 
     @Get(':cmpy/codigo/:code')
     @ApplyDecorators([
-        CheckCmpy(ParamSource.PARAMS),     
-    ]) 
-    async obtenerPorCodigo(@Param('cmpy') cmpy: string,@Param('code') code: string) {
-        return this.seatService.buscarPorCodigo(cmpy,code);
+        CheckCmpy(ParamSource.PARAMS),
+    ])
+    async obtenerPorCodigo(@Param('cmpy') cmpy: string, @Param('code') code: string) {
+        return this.seatService.buscarPorCodigo(cmpy, code);
     }
 }

@@ -24,9 +24,6 @@ export interface NoteWithLines {
     approved_by?: string;
     approved_date?: Date;
     observations?: string;
-    external_reference?: string;
-    doc_type?: string;
-    priority: string;
     auto_accounting: boolean;
     accounting_date?: Date;
     code?: string;

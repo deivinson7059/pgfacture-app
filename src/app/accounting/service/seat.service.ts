@@ -6,6 +6,7 @@ import { Balance, BalanceDetail, Journal, Ledger, Period, Puc, Seat } from '../e
 import { CrearSeatDto } from '../dto';
 import { SEAT_MODULE } from 'src/app/common/enums';
 import { toNumber } from 'src/app/common/utils/utils';
+import { PeriodService } from './period.service';
 
 @Injectable()
 export class SeatService {
@@ -25,6 +26,7 @@ export class SeatService {
         @InjectRepository(Period)
         private periodRepository: Repository<Period>,
         private dataSource: DataSource,
+        private periodService: PeriodService,
     ) { }
 
     // Crear asiento contable
@@ -34,6 +36,11 @@ export class SeatService {
         try {
             await queryRunner.connect();
             await queryRunner.startTransaction();
+
+
+            // Verificar que el período exista y esté abierto
+            const openPeriod = await this.periodService.findOpenPeriod(asientoData.cmpy);
+
 
             // Establecer valores predeterminados para clientes si no se proporcionan
             asientoData.customers_name = asientoData.customers_name || '--';
@@ -98,9 +105,9 @@ export class SeatService {
                     acch_id: seatId,
                     acch_cmpy: asientoData.cmpy,
                     acch_ware: asientoData.ware,
-                    acch_year: asientoData.year,
+                    acch_year: openPeriod.accp_year,
                     acch_date: new Date(),
-                    acch_per: asientoData.per,
+                    acch_per: openPeriod.accp_per,
                     acch_customers: asientoData.customers,
                     acch_description: asientoData.description,
                     acch_taxable_base: movimiento.taxable_base || null,
@@ -133,8 +140,8 @@ export class SeatService {
                     accj_cmpy: asientoData.cmpy,
                     accj_line_number: i + 1,
                     accj_ware: asientoData.ware,
-                    accj_year: asientoData.year,
-                    accj_per: asientoData.per,
+                    accj_year: openPeriod.accp_year,
+                    accj_per: openPeriod.accp_per,
                     accj_code: codigo,
                     accj_account: movimiento.account,
                     accj_taxable_base: movimiento.taxable_base || null,
@@ -162,8 +169,8 @@ export class SeatService {
                     queryRunner,
                     asientoData.cmpy,
                     asientoData.ware,
-                    asientoData.year,
-                    asientoData.per,
+                    openPeriod.accp_year,
+                    openPeriod.accp_per,
                     movimiento.account,
                     accountPlan.plcu_description,
                     debit,

@@ -30,15 +30,15 @@ export class CrearSeatDto {
     @Length(1, 190)
     ware: string;
 
-    @IsNotEmpty()
+    @IsOptional()
     @IsInt()
-    year: number;
+    year?: number;
 
-    @IsNotEmpty()
+    @IsOptional()
     @IsInt()
     @Min(1, { message: 'El período debe estar entre 1 y 13.' })
     @Max(13, { message: 'El período debe estar entre 1 y 13.' })
-    per: number;
+    per?: number;
 
     @IsString()
     @Length(1, 60)
