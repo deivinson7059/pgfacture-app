@@ -65,10 +65,9 @@ export class NoteService {
                 acnh_ware: createNoteDto.ware,
                 acnh_year: createNoteDto.year,
                 acnh_per: createNoteDto.per,
-                acnh_date: createNoteDto.date ? new Date(createNoteDto.date) : new Date(),
+                acnh_date: new Date(),
                 acnh_customer: customer,
                 acnh_customer_name: customerName,
-                acnh_description: createNoteDto.description,
                 acnh_status: 'P', // Pendiente por defecto
                 acnh_total_debit: totalDebit,
                 acnh_total_credit: totalCredit,
@@ -78,7 +77,7 @@ export class NoteService {
                 acnh_cost_center: createNoteDto.cost_center || null,
                 acnh_observations: createNoteDto.observations || null,
                 acnh_auto_accounting: createNoteDto.auto_accounting || false,
-                acnh_accounting_date: createNoteDto.accounting_date ? new Date(createNoteDto.accounting_date) : null
+                acnh_accounting_date: createNoteDto.date ? new Date(createNoteDto.date) : new Date()
             });
 
             const savedHeader = await queryRunner.manager.save(header);

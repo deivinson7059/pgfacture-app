@@ -8,8 +8,8 @@ export class JournalService {
     constructor(
         @InjectRepository(Journal)
         private journalRepository: Repository<Journal>,
-    ) { 
-        
+    ) {
+
     }
 
     // Buscar registros en el libro diario según filtros
@@ -35,9 +35,9 @@ export class JournalService {
 
         // Filtrar por rango de fechas si se proporcionan
         if (startDate && endDate) {
-            queryBuilder.andWhere('journal.accj_date BETWEEN :startDate AND :endDate', { 
-                startDate, 
-                endDate 
+            queryBuilder.andWhere('journal.accj_date BETWEEN :startDate AND :endDate', {
+                startDate,
+                endDate
             });
         } else if (startDate) {
             queryBuilder.andWhere('journal.accj_date >= :startDate', { startDate });
@@ -94,9 +94,9 @@ export class JournalService {
         const queryBuilder = this.journalRepository
             .createQueryBuilder('journal')
             .where('journal.accj_cmpy = :cmpy', { cmpy })
-            .andWhere('journal.accj_date BETWEEN :startDate AND :endDate', { 
-                startDate, 
-                endDate 
+            .andWhere('journal.accj_date BETWEEN :startDate AND :endDate', {
+                startDate,
+                endDate
             });
 
         if (account) {

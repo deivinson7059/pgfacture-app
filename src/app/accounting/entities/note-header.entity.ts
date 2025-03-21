@@ -33,9 +33,9 @@ export class NoteHeader {
     @Expose({ name: 'code' })
     acnh_code: string | null;
 
-    @Column({ name: 'acnh_accounting_date', type: 'date', nullable: true })
+    @Column({ name: 'acnh_accounting_date', type: 'date', default: () => 'CURRENT_DATE' })
     @Expose({ name: 'accounting_date' })
-    acnh_accounting_date: Date | null;
+    acnh_accounting_date: Date;
 
     @Column({ name: 'acnh_date', type: 'date', default: () => 'CURRENT_DATE' })
     @Expose({ name: 'date' })

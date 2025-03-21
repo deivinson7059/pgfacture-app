@@ -25,7 +25,7 @@ export class CreateNoteDto {
 
     @IsOptional()
     @IsDateString()
-    date?: string;
+    date: string;
 
     @IsOptional()
     @IsString()
@@ -88,8 +88,4 @@ export class CreateNoteDto {
     @IsOptional()
     @IsBoolean()
     auto_accounting?: boolean;
-
-    @IsOptional()
-    @IsDateString()
-    accounting_date?: string;
 }
