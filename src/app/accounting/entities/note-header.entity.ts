@@ -59,10 +59,6 @@ export class NoteHeader {
     @Expose({ name: 'customer_name' })
     acnh_customer_name: string;
 
-    @Column({ name: 'acnh_description', type: 'varchar', length: 500, default: '' })
-    @Expose({ name: 'description' })
-    acnh_description: string;
-
     @Column({ name: 'acnh_status', type: 'char', length: 1, default: 'P' })
     @Expose({ name: 'status' })
     acnh_status: string; // P: Pendiente, A: Aprobado, R: Rechazado, C: Contabilizado

@@ -139,7 +139,6 @@ export class NoteService {
                 time: savedHeader.acnh_time,
                 customer: savedHeader.acnh_customer,
                 customer_name: savedHeader.acnh_customer_name,
-                description: savedHeader.acnh_description,
                 status: savedHeader.acnh_status,
                 total_debit: savedHeader.acnh_total_debit,
                 total_credit: savedHeader.acnh_total_credit,
@@ -311,7 +310,7 @@ export class NoteService {
         });
 
         // Agregar información de observaciones a la descripción si existe
-        let description = `Nota Contable ${note.acnh_id}: ${note.acnh_description || ''}`;
+        let description = `Nota Contable ${note.acnh_id}`;
         if (note.acnh_observations) {
             description += ` - Obs: ${note.acnh_observations}`;
         }

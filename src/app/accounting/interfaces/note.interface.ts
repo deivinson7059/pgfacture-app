@@ -12,7 +12,6 @@ export interface NoteWithLines {
     time: string;
     customer: string;
     customer_name: string;
-    description: string;
     status: string;
     total_debit: number;
     total_credit: number;
