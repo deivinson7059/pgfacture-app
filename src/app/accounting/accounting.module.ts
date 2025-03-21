@@ -5,11 +5,10 @@ import { Balance, BalanceDetail, Journal, Ledger, NoteHeader, NoteLine, Period, 
 import { BalanceController, JournalController, LedgerController, NoteController, PeriodController, PucController, SeatController } from './controllers';
 import { AccountingSeedService, BalanceService, JournalService, LedgerService, NiifReportsService, NoteService, PeriodService, PucService, SeatService } from './service';
 import { CheckCompanyGuard, CheckPeriodGuard, CheckSucursalGuard } from '../common/guards';
-import { Sucursal } from '../settings/sucursal/entities';
-import { Company } from '../settings/company/entities';
 import { NiifReportsController } from './controllers/niif-reports.controller';
 import { AccountingSeedController } from './controllers/seed.controller';
-import { CompanyService } from '../settings/company/company.service';
+import { CompanyService } from '../settings/services/company.service';
+import { Company, Sucursal } from '../settings/entities';
 
 @Module({
     controllers: [

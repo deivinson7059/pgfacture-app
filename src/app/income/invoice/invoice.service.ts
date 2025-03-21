@@ -5,8 +5,7 @@ import { CreateInvoiceDto } from "./dto";
 import { ICreateInvoiceResponse } from "./interfaces/invoice.interface";
 import { InvoiceHead } from "./entities/invoice-head.entity";
 import { InvoiceLine } from "./entities/invoice-line.entity";
-import { Company } from "src/app/settings/company/entities";
-import { Sucursal } from "src/app/settings/sucursal/entities";
+import { Company, Sucursal } from "src/app/settings/entities";
 
 @Injectable()
 export class InvoiceService {

@@ -3,8 +3,8 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, Repository } from "typeorm";
 
 import { apiResponse } from "src/app/common/interfaces/common.interface";
-import { CreateCompanyDto, UpdateCompanyDto } from "./dto";
-import { Company } from "./entities";
+import { CreateCompanyDto, UpdateCompanyDto } from "../dto";
+import { Company } from "../entities";
 
 @Injectable()
 export class CompanyService {

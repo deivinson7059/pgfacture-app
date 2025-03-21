@@ -1,8 +1,8 @@
 import { Controller, Get, Post, Body, Param, Delete, NotFoundException, Put, ClassSerializerInterceptor, UseInterceptors } from '@nestjs/common';
 import { apiResponse } from '../../common/interfaces/common.interface';
-import { CreateCompanyDto, UpdateCompanyDto } from './dto';
-import { Company } from './entities';
-import { CompanyService } from './company.service';
+import { CreateCompanyDto, UpdateCompanyDto } from '../dto';
+import { Company } from '../entities';
+import { CompanyService } from '../services/company.service';
 
 @Controller('settings/company')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -44,6 +44,6 @@ export class CompanyController {
     }
     /**
      * Fin Compañias
-     **/  
+     **/
 
 }

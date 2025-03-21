@@ -1,8 +1,8 @@
 import { Injectable, ConflictException, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository, DataSource } from "typeorm";
-import { Sucursal } from "../sucursal/entities/sucursal.entity";
-import { CreateSucursalDto } from "../sucursal/dto";
+import { CreateSucursalDto } from "../dto";
+import { Sucursal } from "../entities";
 
 @Injectable()
 export class SucursalService {
@@ -104,6 +104,6 @@ export class SucursalService {
         if (result.affected === 0) {
             throw new NotFoundException(`Sucursal ${ware} no encontrada Existe`);
         }
-    }    
+    }
 
 }

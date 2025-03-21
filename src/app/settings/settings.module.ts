@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
-import { CompanyController } from './company/company.controller';
+import { CompanyController } from './controllers/company.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { SucursalController } from './sucursal/sucursal.controller';
-import { CompanyService } from './company/company.service';
-import { Company } from './company/entities';
-import { SucursalService } from './sucursal/sucursal.service';
-import { Sucursal } from './sucursal/entities/sucursal.entity';
+import { SucursalController } from './controllers/sucursal.controller';
+import { CompanyService } from './services/company.service';
+import { Company } from './entities';
+import { SucursalService } from './services/sucursal.service';
+import { Sucursal } from './entities/sucursal.entity';
 
 @Module({
     controllers: [

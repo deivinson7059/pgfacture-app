@@ -4,7 +4,7 @@ import { PucResponse, PucResponseOnly } from '../interfaces/puc.interface';
 import { allPucDto, CreatePucDto, UpdatePucDto } from '../dto';
 import { ListPucDto, SearchPucDto } from '../dto';
 import { Puc } from '../entities/puc.entity';
-import { CompanyService } from 'src/app/settings/company/company.service';
+import { CompanyService } from 'src/app/settings/services/company.service';
 import { apiResponse } from 'src/app/common/interfaces/common.interface';
 import { ApplyDecorators, CheckCmpy } from 'src/app/common/decorators';
 import { ParamSource } from 'src/app/common/enums';
