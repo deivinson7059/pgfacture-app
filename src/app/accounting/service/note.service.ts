@@ -23,7 +23,7 @@ export class NoteService {
 
     async create(createNoteDto: CreateNoteDto): Promise<NoteWithLines> {
 
-        createNoteDto.auto_accounting = createNoteDto.auto_accounting || true;
+        createNoteDto.auto_accounting = createNoteDto.auto_accounting ?? true;
         const queryRunner = this.dataSource.createQueryRunner();
         await queryRunner.connect();
         await queryRunner.startTransaction();
@@ -55,6 +55,9 @@ export class NoteService {
 
             const acnh_id = await this.getNextNoteHeadId(queryRunner, createNoteDto.cmpy);
 
+            // Generar código único para este asiento
+            const codigo = await this.generateCode(createNoteDto.cmpy, 6);
+
             // Crear cabecera con los nuevos campos
             const header = this.noteHeaderRepository.create({
                 acnh_id: acnh_id,
@@ -62,7 +65,7 @@ export class NoteService {
                 acnh_ware: createNoteDto.ware,
                 acnh_year: createNoteDto.year,
                 acnh_per: createNoteDto.per,
-                acnh_date: new Date(),
+                acnh_date: createNoteDto.date ? new Date(createNoteDto.date) : new Date(),
                 acnh_customer: customer,
                 acnh_customer_name: customerName,
                 acnh_description: createNoteDto.description,
@@ -71,11 +74,12 @@ export class NoteService {
                 acnh_total_credit: totalCredit,
                 acnh_reference: createNoteDto.reference,
                 acnh_creation_by: createNoteDto.creation_by,
+                acnh_code: codigo,
                 // Nuevos campos
+                acnh_cost_center: createNoteDto.cost_center || null,
                 acnh_observations: createNoteDto.observations || null,
                 acnh_external_reference: createNoteDto.external_reference || null,
                 acnh_doc_type: createNoteDto.doc_type || null,
-                acnh_area: createNoteDto.area || null,
                 acnh_priority: createNoteDto.priority || 'N',
                 acnh_auto_accounting: createNoteDto.auto_accounting || false,
                 acnh_accounting_date: createNoteDto.accounting_date ? new Date(createNoteDto.accounting_date) : null
@@ -95,12 +99,14 @@ export class NoteService {
                     acnl_ware: savedHeader.acnh_ware,
                     acnl_line_number: i + 1,
                     acnl_account: lineDto.account,
-                    acnl_account_name: lineDto.account_name,
+                    acnl_account_name: lineDto.account_name || 'Cuenta sin nombre',
                     acnl_description: lineDto.description,
                     acnl_debit: toNumber(lineDto.debit),
                     acnl_credit: toNumber(lineDto.credit),
+                    acnl_taxable_base: lineDto.taxable_base || null,
+                    acnl_exempt_base: lineDto.exempt_base || null,
                     acnl_reference: lineDto.reference,
-                    acnl_tercero: lineDto.tercero || 'SISTEM ADMIN',
+                    acnl_tercero: lineDto.tercero || customer,
                     acnl_creation_by: createNoteDto.creation_by
                 });
 
@@ -128,9 +134,7 @@ export class NoteService {
             await queryRunner.commitTransaction();
 
             // Cargar las líneas para la respuesta
-
             const NoteWithLines_: NoteWithLines = {
-
                 id: savedHeader.acnh_id,
                 cmpy: savedHeader.acnh_cmpy,
                 ware: savedHeader.acnh_ware,
@@ -149,6 +153,11 @@ export class NoteService {
                 creation_date: savedHeader.acnh_creation_date,
                 priority: savedHeader.acnh_priority,
                 auto_accounting: savedHeader.acnh_auto_accounting,
+                cost_center: savedHeader.acnh_cost_center!,
+                observations: savedHeader.acnh_observations!,
+                doc_type: savedHeader.acnh_doc_type!,
+                accounting_date: savedHeader.acnh_accounting_date!,
+                code: savedHeader.acnh_code!,
                 lines: noteLines
             }
 
@@ -289,8 +298,8 @@ export class NoteService {
                 account: line.acnl_account,
                 debit: line.acnl_debit,
                 credit: line.acnl_credit,
-                taxable_base: 0,
-                exempt_base: 0,
+                taxable_base: line.acnl_taxable_base || 0,
+                exempt_base: line.acnl_exempt_base || 0,
                 debitOrCredit: undefined
             });
         });
@@ -312,8 +321,9 @@ export class NoteService {
             creation_by: note.acnh_updated_by || note.acnh_creation_by,
             document_type: note.acnh_doc_type || "NOTA",
             document_number: note.acnh_id.toString(),
-            cost_center: note.acnh_area || null,
-            elaboration_date: note.acnh_accounting_date || new Date(),
+            cost_center: note.acnh_cost_center || null,
+            elaboration_date: note.acnh_date || new Date(),
+            code: note.acnh_code || undefined,
             // Campos adicionales
             module: SEAT_MODULE.NOTA,
             ref: note.acnh_external_reference || note.acnh_id.toString(),
@@ -336,5 +346,29 @@ export class NoteService {
         if (!allowedTransitions[currentStatus]?.includes(newStatus)) {
             throw new BadRequestException(`No se permite cambiar de estado ${currentStatus} a ${newStatus}`);
         }
+    }
+
+    private async generateCode(cmpy: string, length: number = 6): Promise<string> {
+        // Generar código único
+        let code: string = '';
+        let exists = true;
+        const characters = 'abcdefgABCDEFGHIstuvwJK345LMNOP1267QRSTnopqUVWXYZ089hijklmrxyz';
+
+        while (exists) {
+            code = '';
+            for (let i = 0; i < length; i++) {
+                code += characters.charAt(Math.floor(Math.random() * characters.length));
+            }
+
+            const existingNote = await this.noteHeaderRepository.findOne({
+                where: {
+                    acnh_code: code,
+                    acnh_cmpy: cmpy
+                }
+            });
+
+            exists = !!existingNote;
+        }
+        return code;
     }
 }

@@ -17,7 +17,7 @@ export interface NoteWithLines {
     total_debit: number;
     total_credit: number;
     reference: string;
-    ccosto?: string;
+    cost_center?: string;
     creation_by: string;
     creation_date: Date;
     updated_by?: string;
@@ -27,9 +27,9 @@ export interface NoteWithLines {
     observations?: string;
     external_reference?: string;
     doc_type?: string;
-    area?: string;
     priority: string;
     auto_accounting: boolean;
     accounting_date?: Date;
+    code?: string;
     lines: any[];
 }

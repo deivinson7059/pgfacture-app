@@ -1,11 +1,12 @@
 import { Entity, Column, PrimaryColumn, Index, CreateDateColumn, } from 'typeorm';
-import { Expose } from 'class-transformer';
+import { Expose, Transform } from 'class-transformer';
 import { dateTransformer } from 'src/app/common/utils/fechaColombia';
+import { formatDecimal } from 'src/app/common/utils/transform';
 
 @Entity({ schema: 'pgfacture', name: 'pg_accounting_note_line' })
 //notas contables lineas
 export class NoteLine {
- 
+
     @Column({ name: 'acnl_id', type: 'bigint' })
     @PrimaryColumn({ name: 'acnl_id' })
     @Expose({ name: 'id' })
@@ -45,11 +46,23 @@ export class NoteLine {
 
     @Column({ name: 'acnl_debit', type: 'decimal', precision: 15, scale: 2, default: 0 })
     @Expose({ name: 'debit' })
+    @Transform(formatDecimal(2), { toPlainOnly: true })
     acnl_debit: number;
 
     @Column({ name: 'acnl_credit', type: 'decimal', precision: 15, scale: 2, default: 0 })
     @Expose({ name: 'credit' })
+    @Transform(formatDecimal(2), { toPlainOnly: true })
     acnl_credit: number;
+
+    @Column({ name: 'acnl_taxable_base', type: 'decimal', precision: 30, scale: 5, nullable: true })
+    @Expose({ name: 'taxable_base' })
+    @Transform(formatDecimal(2), { toPlainOnly: true })
+    acnl_taxable_base: number | null;
+
+    @Column({ name: 'acnl_exempt_base', type: 'decimal', precision: 30, scale: 5, nullable: true })
+    @Expose({ name: 'exempt_base' })
+    @Transform(formatDecimal(2), { toPlainOnly: true })
+    acnl_exempt_base: number | null;
 
     @Column({ name: 'acnl_reference', type: 'varchar', length: 190, nullable: true })
     @Expose({ name: 'reference' })
@@ -70,5 +83,5 @@ export class NoteLine {
         transformer: dateTransformer(),
     })
     @Expose({ name: 'creation_date' })
-    acnl_creation_date: Date;   
+    acnl_creation_date: Date;
 }

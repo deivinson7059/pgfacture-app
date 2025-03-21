@@ -73,10 +73,6 @@ export class NoteHeader {
     @Expose({ name: 'reference' })
     acnh_reference: string;
 
-    @Column({ name: 'acnh_ccosto', type: 'varchar', length: 20, nullable: true })
-    @Expose({ name: 'ccosto' })
-    acnh_ccosto?: string;
-
     @Column({ name: 'acnh_creation_by', type: 'varchar', length: 30 })
     @Expose({ name: 'creation_by' })
     acnh_creation_by: string;
@@ -118,7 +114,7 @@ export class NoteHeader {
     @Expose({ name: 'approved_date' })
     acnh_approved_date: Date;
 
-    // Nuevos campos añadidos
+    // Campos adicionales
     @Column({ name: 'acnh_observations', type: 'text', nullable: true })
     @Expose({ name: 'observations' })
     acnh_observations: string | null;
@@ -131,9 +127,9 @@ export class NoteHeader {
     @Expose({ name: 'doc_type' })
     acnh_doc_type: string | null;
 
-    @Column({ name: 'acnh_area', type: 'varchar', length: 50, nullable: true })
-    @Expose({ name: 'area' })
-    acnh_area: string | null;
+    @Column({ name: 'acnh_cost_center', type: 'varchar', length: 50, nullable: true })
+    @Expose({ name: 'cost_center' })
+    acnh_cost_center: string | null;
 
     @Column({ name: 'acnh_priority', type: 'char', length: 1, default: 'N' })
     @Expose({ name: 'priority' })
@@ -141,9 +137,13 @@ export class NoteHeader {
 
     @Column({ name: 'acnh_auto_accounting', type: 'boolean', default: false })
     @Expose({ name: 'auto_accounting' })
-    acnh_auto_accounting: boolean; 
+    acnh_auto_accounting: boolean;
 
     @Column({ name: 'acnh_accounting_date', type: 'date', nullable: true })
     @Expose({ name: 'accounting_date' })
     acnh_accounting_date: Date | null;
+
+    @Column({ name: 'acnh_code', type: 'varchar', length: 90, nullable: true })
+    @Expose({ name: 'code' })
+    acnh_code: string | null;
 }

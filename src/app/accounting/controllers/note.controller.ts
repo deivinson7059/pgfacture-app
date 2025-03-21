@@ -21,7 +21,6 @@ export class NoteController {
     ])
     @HttpCode(HttpStatus.OK)
     async create(@Body() createNoteDto: CreateNoteDto): Promise<apiResponse<NoteWithLines>> {
-        // console.log(createNoteDto);
         const note = await this.accountingNoteService.create(createNoteDto);
 
         let message = 'Nota contable creada exitosamente';
@@ -66,7 +65,7 @@ export class NoteController {
         const note = await this.accountingNoteService.updateStatus(updateStatusDto);
 
         let message = '';
-        switch (note.acnh_status) {
+        switch (note.status) {
             case 'P': message = 'Nota contable en estado pendiente'; break;
             case 'A': message = 'Nota contable aprobada'; break;
             case 'R': message = 'Nota contable rechazada'; break;

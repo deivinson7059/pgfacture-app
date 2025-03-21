@@ -1,59 +1,69 @@
-// src/app/accounting/dto/accounting-note-line.dto.ts
+// src/app/accounting/dto/create-note-line.dto.ts
 import { IsNotEmpty, IsString, Min, IsNumber, IsOptional, Length, ValidateIf, Validate, ValidatorConstraint, ValidatorConstraintInterface, ValidationArguments } from 'class-validator';
 
 @ValidatorConstraint({ name: 'debitOrCreditValidator', async: false })
 export class DebitOrCreditValidator implements ValidatorConstraintInterface {
-  validate(value: any, args: ValidationArguments) {
-    const obj = args.object as NoteLineDto;
-    const hasDebit = obj.debit !== undefined && obj.debit > 0;
-    const hasCredit = obj.credit !== undefined && obj.credit > 0;
-    
-    return (hasDebit && !hasCredit) || (!hasDebit && hasCredit);
-  }
+    validate(value: any, args: ValidationArguments) {
+        const obj = args.object as NoteLineDto;
+        const hasDebit = obj.debit !== undefined && obj.debit > 0;
+        const hasCredit = obj.credit !== undefined && obj.credit > 0;
 
-  defaultMessage() {
-    return 'Cada línea debe tener un solo valor de débito o crédito, no ambos ni ninguno.';
-  }
+        return (hasDebit && !hasCredit) || (!hasDebit && hasCredit);
+    }
+
+    defaultMessage() {
+        return 'Cada línea debe tener un solo valor de débito o crédito, no ambos ni ninguno.';
+    }
 }
 
 export class NoteLineDto {
-  @IsOptional()
-  id?: string;
+    @IsOptional()
+    id?: string;
 
-  @IsNotEmpty()
-  @IsString()
-  @Length(6, 10)
-  account: string;
+    @IsNotEmpty()
+    @IsString()
+    @Length(6, 10)
+    account: string;
 
-  @IsOptional()
-  @IsString()
-  account_name?: string;
+    @IsOptional()
+    @IsString()
+    account_name?: string;
 
-  @IsOptional()
-  @IsString()
-  @Length(0, 500)
-  description?: string;
+    @IsOptional()
+    @IsString()
+    @Length(0, 500)
+    description?: string;
 
-  @IsNumber()
-  @Min(0)
-  @ValidateIf(o => !o.credit || o.credit === 0)
-  debit: number;
+    @IsNumber()
+    @Min(0)
+    @ValidateIf(o => !o.credit || o.credit === 0)
+    debit: number;
 
-  @IsNumber()
-  @Min(0)
-  @ValidateIf(o => !o.debit || o.debit === 0)
-  credit: number;
+    @IsNumber()
+    @Min(0)
+    @ValidateIf(o => !o.debit || o.debit === 0)
+    credit: number;
 
-  @IsOptional()
-  @IsString()
-  @Length(0, 190)
-  reference?: string;
+    @IsOptional()
+    @IsNumber()
+    @Min(0)
+    taxable_base?: number;
 
-  @IsOptional()
-  @IsString()
-  @Length(0, 190)
-  tercero?: string;
+    @IsOptional()
+    @IsNumber()
+    @Min(0)
+    exempt_base?: number;
 
-  @Validate(DebitOrCreditValidator)
-  validateDebitOrCredit: any;
+    @IsOptional()
+    @IsString()
+    @Length(0, 190)
+    reference?: string;
+
+    @IsOptional()
+    @IsString()
+    @Length(0, 190)
+    tercero?: string;
+
+    @Validate(DebitOrCreditValidator)
+    validateDebitOrCredit: any;
 }

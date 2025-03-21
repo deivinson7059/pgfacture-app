@@ -1,4 +1,4 @@
-import { IsNotEmpty,IsOptional, IsString, Min, ValidateIf, ValidationArguments, ValidatorConstraint, ValidatorConstraintInterface, Validate, IsNumber } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, Min, ValidateIf, ValidationArguments, ValidatorConstraint, ValidatorConstraintInterface, Validate, IsNumber } from 'class-validator';
 import { Length } from 'class-validator';
 
 @ValidatorConstraint({ name: 'debitOrCreditValidator', async: false })
