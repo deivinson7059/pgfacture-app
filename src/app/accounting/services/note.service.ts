@@ -2,7 +2,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, QueryRunner } from 'typeorm';
 import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 
-import { NoteHeader, NoteLine } from '@accounting/entities';
+import { NoteHeader, NoteLine, Puc } from '@accounting/entities';
 
 import { SeatService } from '@accounting/services/seat.service';
 import { PeriodService } from '@accounting/services/period.service';
@@ -32,6 +32,38 @@ export class NoteService {
         private noteLineRepository: Repository<NoteLine>,
     ) { }
 
+    /**
+  * Valida que todas las cuentas en las líneas de la nota existan en el plan contable
+  * @param queryRunner QueryRunner para ejecutar consultas en transacción
+  * @param cmpy Código de la compañía
+  * @param lines Líneas de la nota contable con las cuentas a validar
+  * @returns void - Lanza excepción si alguna cuenta no existe
+  */
+    private async validateAccounts(
+        queryRunner: QueryRunner,
+        cmpy: string,
+        lines: { account: string }[]
+    ): Promise<void> {
+        // Extraer todas las cuentas únicas para validar
+        const accountsToValidate = [...new Set(lines.map(line => line.account))];
+
+        // Verificar cada cuenta en el plan contable
+        for (const accountCode of accountsToValidate) {
+            const account = await queryRunner.manager
+                .createQueryBuilder(Puc, 'puc')
+                .where('(puc.plcu_cmpy = :cmpy OR puc.plcu_cmpy = :all)', {
+                    cmpy: cmpy,
+                    all: 'ALL'
+                })
+                .andWhere('puc.plcu_id = :account', { account: accountCode })
+                .getOne();
+
+            if (!account) {
+                throw new BadRequestException(`Cuenta ${accountCode} no encontrada en el plan de cuentas`);
+            }
+        }
+    }
+
     async create(createNoteDto: CreateNoteDto): Promise<NoteWithLines> {
         const queryRunner = this.dataSource.createQueryRunner();
         await queryRunner.connect();
@@ -40,6 +72,9 @@ export class NoteService {
         try {
             // Verificar que el período exista y esté abierto
             const openPeriod = await this.periodService.findOpenPeriod(createNoteDto.cmpy);
+
+            // Validar que todas las cuentas existan en el plan contable
+            await this.validateAccounts(queryRunner, createNoteDto.cmpy, createNoteDto.lines);
 
             // Valores predeterminados
             const customer = createNoteDto.customer || '-';
@@ -101,6 +136,8 @@ export class NoteService {
             for (let i = 0; i < createNoteDto.lines.length; i++) {
                 const acnl_id = await this.getNextNoteLineId(queryRunner, createNoteDto.cmpy);
                 const lineDto = createNoteDto.lines[i];
+
+
                 const line = this.noteLineRepository.create({
                     acnl_id: acnl_id,
                     acnl_acnh_id: savedHeader.acnh_id,
@@ -119,6 +156,7 @@ export class NoteService {
                 });
 
                 const savedLine = await queryRunner.manager.save(line);
+
                 noteLines.push(savedLine);
             }
 
@@ -215,8 +253,8 @@ export class NoteService {
             noteWithLines.acnh_accounting_date = editNoteDto.date ? new Date(editNoteDto.date) : new Date();
 
             // Guardar cambios en el encabezado
-            const { lines, ...header } = noteWithLines;
-            await queryRunner.manager.save(header);
+            // Guardar explícitamente como instancia de NoteHeader
+            await queryRunner.manager.save(NoteHeader, noteWithLines);
 
             // Eliminar líneas existentes
             await queryRunner.manager.delete(NoteLine, {
@@ -298,15 +336,15 @@ export class NoteService {
             noteWithLines.acnh_updated_date = new Date();
 
             // Guardar cambios en el encabezado
-            const { lines, ...header } = noteWithLines;
-            await queryRunner.manager.save(header);
+            // Guardar explícitamente como instancia de NoteHeader
+            await queryRunner.manager.save(NoteHeader, noteWithLines);
 
             // Registrar comentario de anulación
             const commentDto: CreateCommentDto = {
                 cmpy: cmpy,
-                ware: header.acnh_ware,
+                ware: noteWithLines.acnh_ware,
                 ref: id.toString(),
-                ref2: header.acnh_reference || null,
+                ref2: noteWithLines.acnh_reference || null,
                 module: SEAT_MODULE.NOTA,
                 comment: `ANULADO: ${anulateNoteDto.justification}`,
                 user_enter: anulateNoteDto.updated_by,
@@ -351,8 +389,8 @@ export class NoteService {
             noteWithLines.acnh_updated_date = new Date();
 
             // Guardar cambios en el encabezado
-            const { lines, ...header } = noteWithLines;
-            await queryRunner.manager.save(header);
+            // Guardar explícitamente como instancia de NoteHeader
+            await queryRunner.manager.save(NoteHeader, noteWithLines);
 
             // Registrar comentario de aprobación
             const commentText = approveNoteDto.comments
@@ -361,9 +399,9 @@ export class NoteService {
 
             const commentDto: CreateCommentDto = {
                 cmpy: cmpy,
-                ware: header.acnh_ware,
+                ware: noteWithLines.acnh_ware,
                 ref: id.toString(),
-                ref2: header.acnh_reference || null,
+                ref2: noteWithLines.acnh_reference || null,
                 module: SEAT_MODULE.NOTA,
                 comment: commentText,
                 user_enter: approveNoteDto.approved_by,
@@ -373,22 +411,22 @@ export class NoteService {
             await this.commentService.createComment(queryRunner, commentDto);
 
             // Contabilizar la nota (crear asientos)
-            await this.contabilizarNota(queryRunner, header, lines);
+            await this.contabilizarNota(queryRunner, noteWithLines, noteWithLines.lines);
 
             // Generar código único para este asiento
             const codigo = await this.generateCode(cmpy, 6);
 
             // Actualizar estado a 'C' (Contabilizado)
-            header.acnh_status = 'C';
-            header.acnh_code = codigo;
-            await queryRunner.manager.save(header);
+            noteWithLines.acnh_status = 'C';
+            noteWithLines.acnh_code = codigo;
+            await queryRunner.manager.save(NoteHeader, noteWithLines);
 
             // Registrar comentario de contabilización
             const contabilizacionDto: CreateCommentDto = {
                 cmpy: cmpy,
-                ware: header.acnh_ware,
+                ware: noteWithLines.acnh_ware,
                 ref: id.toString(),
-                ref2: header.acnh_reference || null,
+                ref2: noteWithLines.acnh_reference || null,
                 module: SEAT_MODULE.NOTA,
                 comment: `CONTABILIZADO: Se generaron los asientos contables correspondientes`,
                 user_enter: approveNoteDto.approved_by,
@@ -486,7 +524,7 @@ export class NoteService {
             approved_date: noteWithLines.acnh_approved_date,
             cost_center: noteWithLines.acnh_cost_center!,
             lines: noteWithLines.lines,
-            comments: await this.commentService.getComments(noteWithLines.acnh_cmpy, SEAT_MODULE.NOTA, noteWithLines.acnh_id)
+            comments: await this.commentService.getComments(noteWithLines.acnh_cmpy, SEAT_MODULE.NOTA, noteWithLines.acnh_id.toString())
         };
 
         return data as NoteWithLines;
@@ -544,18 +582,17 @@ export class NoteService {
                 noteWithLines.acnh_approved_date = new Date();
             }
 
-            // Quitamos las líneas para guardar solo el encabezado
-            const { lines, ...noteHeader } = noteWithLines;
-            await queryRunner.manager.save(NoteHeader, noteHeader);
+            // Guardar explícitamente como instancia de NoteHeader
+            await queryRunner.manager.save(NoteHeader, noteWithLines);
 
             // Si está aprobado, contabilizar (crear asientos)
             if (updateStatusDto.status === 'A') {
-                await this.contabilizarNota(queryRunner, noteHeader, lines);
+                await this.contabilizarNota(queryRunner, noteWithLines, noteWithLines.lines);
 
                 // Actualizar estado a Contabilizado
-                noteHeader.acnh_status = 'C';
-                noteHeader.acnh_accounting_date = new Date();
-                await queryRunner.manager.save(noteHeader);
+                noteWithLines.acnh_status = 'C';
+                noteWithLines.acnh_accounting_date = new Date();
+                await queryRunner.manager.save(NoteHeader, noteWithLines);
             }
 
             // Registrar comentario sobre cambio de estado
@@ -575,9 +612,9 @@ export class NoteService {
 
             const commentDto: CreateCommentDto = {
                 cmpy: cmpy,
-                ware: noteHeader.acnh_ware,
+                ware: noteWithLines.acnh_ware,
                 ref: id.toString(),
-                ref2: noteHeader.acnh_reference || null,
+                ref2: noteWithLines.acnh_reference || null,
                 module: SEAT_MODULE.NOTA,
                 comment: commentText,
                 user_enter: updateStatusDto.updated_by,

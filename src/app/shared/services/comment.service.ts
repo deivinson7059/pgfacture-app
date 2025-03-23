@@ -175,10 +175,10 @@ export class CommentService {
     }
 
 
-    async getComments(cmpy: string, module: string, id: number,): Promise<Comment[]> {
+    async getComments(cmpy: string, module: string, co_ref: string,): Promise<Comment[]> {
         const comment = await this.commentRepository.find({
             where: {
-                co_id: id,
+                co_ref: co_ref,
                 co_cmpy: cmpy,
                 co_module: module
             }
