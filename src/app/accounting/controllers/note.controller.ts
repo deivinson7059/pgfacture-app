@@ -4,7 +4,7 @@ import { NoteService } from '@accounting/services';
 
 import { ApplyDecorators, CheckCmpy, CheckWare } from '@common/decorators';
 
-import { CreateNoteDto, UpdateNoteStatusDto } from '@accounting/dto';
+import { CreateNoteDto, UpdateNoteStatusDto, EditNoteDto, AnulateNoteDto, ApproveNoteDto } from '@accounting/dto';
 import { ParamSource } from '@common/enums';
 import { NoteWithLines } from '@accounting/interfaces';
 import { apiResponse } from '@common/interfaces';
@@ -22,15 +22,69 @@ export class NoteController {
     ])
     @HttpCode(HttpStatus.OK)
     async create(@Body() createNoteDto: CreateNoteDto): Promise<apiResponse<NoteWithLines>> {
+        // Aseguramos que se guarde en estado abierto/pendiente sin asientos
         const note = await this.accountingNoteService.create(createNoteDto);
 
-        let message = 'Nota contable creada exitosamente';
-        if (note.auto_accounting) {
-            message += ' y contabilizada automáticamente';
-        }
+        return {
+            message: 'Nota contable creada exitosamente en estado Pendiente',
+            data: note
+        };
+    }
+
+    @Put('edit/:cmpy/:id')
+    @ApplyDecorators([
+        CheckCmpy(ParamSource.PARAMS),
+        CheckWare(ParamSource.BODY),
+        UsePipes(new ValidationPipe({ transform: true }))
+    ])
+    @HttpCode(HttpStatus.OK)
+    async edit(
+        @Param('cmpy') cmpy: string,
+        @Param('id') id: number,
+        @Body() editNoteDto: EditNoteDto
+    ): Promise<apiResponse<NoteWithLines>> {
+        const note = await this.accountingNoteService.editNote(cmpy, id, editNoteDto);
 
         return {
-            message,
+            message: `Nota contable ${id} editada exitosamente`,
+            data: note
+        };
+    }
+
+    @Put('anulate/:cmpy/:id')
+    @ApplyDecorators([
+        CheckCmpy(ParamSource.PARAMS),
+        UsePipes(new ValidationPipe({ transform: true }))
+    ])
+    @HttpCode(HttpStatus.OK)
+    async anulate(
+        @Param('cmpy') cmpy: string,
+        @Param('id') id: number,
+        @Body() anulateNoteDto: AnulateNoteDto
+    ): Promise<apiResponse<NoteWithLines>> {
+        const note = await this.accountingNoteService.anulateNote(cmpy, id, anulateNoteDto);
+
+        return {
+            message: `Nota contable ${id} anulada: ${anulateNoteDto.justification}`,
+            data: note
+        };
+    }
+
+    @Put('approve/:cmpy/:id')
+    @ApplyDecorators([
+        CheckCmpy(ParamSource.PARAMS),
+        UsePipes(new ValidationPipe({ transform: true }))
+    ])
+    @HttpCode(HttpStatus.OK)
+    async approve(
+        @Param('cmpy') cmpy: string,
+        @Param('id') id: number,
+        @Body() approveNoteDto: ApproveNoteDto
+    ): Promise<apiResponse<NoteWithLines>> {
+        const note = await this.accountingNoteService.approveNote(cmpy, id, approveNoteDto);
+
+        return {
+            message: `Nota contable ${id} aprobada y contabilizada`,
             data: note
         };
     }
@@ -71,6 +125,7 @@ export class NoteController {
             case 'A': message = 'Nota contable aprobada'; break;
             case 'R': message = 'Nota contable rechazada'; break;
             case 'C': message = 'Nota contable contabilizada'; break;
+            case 'X': message = 'Nota contable anulada'; break;
         }
 
         return {

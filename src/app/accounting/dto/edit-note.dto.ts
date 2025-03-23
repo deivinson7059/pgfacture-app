@@ -1,7 +1,8 @@
-import { IsNotEmpty, IsString, IsInt, Min, Max, IsOptional, Length, ValidateNested, ArrayMinSize, IsArray, IsIn, IsDateString, IsNumber } from 'class-validator';
+import { IsNotEmpty, IsString, IsInt, Min, Max, IsOptional, Length, ValidateNested, ArrayMinSize, IsArray, IsIn, IsBoolean, IsDateString, IsNumber } from 'class-validator';
 import { Type } from 'class-transformer';
-import { NoteLineDto } from '.';
-export class CreateNoteDto {
+import { NoteLineDto } from './create-note-line.dto';
+
+export class EditNoteDto {
     @IsNotEmpty()
     @IsString()
     @Length(1, 10)
@@ -49,12 +50,12 @@ export class CreateNoteDto {
     @IsNotEmpty()
     @IsString()
     @Length(1, 30)
-    creation_by: string;
+    updated_by: string;
 
     @IsNotEmpty()
     @IsString()
     @Length(0, 1000)
-    comments: string;
+    edit_comments: string; // Comentario que explica los cambios realizados
 
     @IsArray()
     @ValidateNested({ each: true })

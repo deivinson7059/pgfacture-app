@@ -25,7 +25,6 @@ export interface NoteWithLines {
     updated_date?: Date;
     approved_by?: string;
     approved_date?: Date;
-    auto_accounting: boolean;
     accounting_date?: Date;
     code?: string;
     lines: any[];

@@ -61,7 +61,7 @@ export class NoteHeader {
 
     @Column({ name: 'acnh_status', type: 'char', length: 1, default: 'P' })
     @Expose({ name: 'status' })
-    acnh_status: string; // P: Pendiente, A: Aprobado, R: Rechazado, C: Contabilizado
+    acnh_status: string; // P: Pendiente, A: Aprobado, R: Rechazado, C: Contabilizado, X: Anulado
 
     @Column({ name: 'acnh_total_debit', type: 'decimal', precision: 30, scale: 5, default: 0 })
     @Expose({ name: 'total_debit' })
@@ -84,10 +84,6 @@ export class NoteHeader {
     @Column({ name: 'acnh_cost_center', type: 'varchar', length: 50, nullable: true })
     @Expose({ name: 'cost_center' })
     acnh_cost_center: string | null;
-
-    @Column({ name: 'acnh_auto_accounting', type: 'boolean', default: false })
-    @Expose({ name: 'auto_accounting' })
-    acnh_auto_accounting: boolean;
 
     @Column({ name: 'acnh_creation_by', type: 'varchar', length: 30 })
     @Expose({ name: 'creation_by' })
@@ -129,7 +125,4 @@ export class NoteHeader {
     })
     @Expose({ name: 'approved_date' })
     acnh_approved_date: Date;
-
-
-
 }
