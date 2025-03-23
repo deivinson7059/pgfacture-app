@@ -1,7 +1,8 @@
 import { Repository } from "typeorm";
-import { Journal } from "../entities";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Injectable, NotFoundException } from "@nestjs/common";
+
+import { Journal } from "@accounting/entities";
 
 @Injectable()
 export class JournalService {

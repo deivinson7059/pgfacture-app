@@ -13,24 +13,24 @@ export class CreateNoteDto {
     @Length(1, 190)
     ware: string;
 
-    @IsNotEmpty()
+    @IsOptional()
     @IsInt()
-    year: number;
+    year?: number;
 
-    @IsNotEmpty()
+    @IsOptional()
     @IsInt()
     @Min(1)
     @Max(13)
-    per: number;
+    per?: number;
 
-    @IsOptional()
+    @IsNotEmpty()
     @IsDateString()
     date: string;
 
-    @IsOptional()
+    @IsNotEmpty()
     @IsString()
     @Length(0, 60)
-    customer?: string;
+    customer: string;
 
     @IsOptional()
     @IsString()
@@ -39,53 +39,31 @@ export class CreateNoteDto {
 
     @IsOptional()
     @IsString()
-    @Length(0, 500)
-    description?: string;
-
-    @IsOptional()
-    @IsString()
     @Length(0, 190)
     reference?: string;
-
-    @IsNotEmpty()
-    @IsString()
-    @Length(1, 30)
-    creation_by: string;
-
-    @IsArray()
-    @ValidateNested({ each: true })
-    @ArrayMinSize(1)
-    @Type(() => NoteLineDto)
-    lines: NoteLineDto[];
-
-    // Campos adicionales
-    @IsOptional()
-    @IsString()
-    @Length(0, 1000)
-    observations?: string;
-
-    @IsOptional()
-    @IsString()
-    @Length(0, 190)
-    external_reference?: string;
-
-    @IsOptional()
-    @IsString()
-    @Length(0, 50)
-    doc_type?: string;
 
     @IsOptional()
     @IsString()
     @Length(0, 50)
     cost_center?: string;
 
-    @IsOptional()
+    @IsNotEmpty()
     @IsString()
-    @Length(1, 1)
-    @IsIn(['A', 'M', 'N', 'B'])
-    priority?: string;
+    @Length(1, 30)
+    creation_by: string;
 
     @IsOptional()
     @IsBoolean()
     auto_accounting?: boolean;
+
+    @IsNotEmpty()
+    @IsString()
+    @Length(0, 1000)
+    comments: string;
+
+    @IsArray()
+    @ValidateNested({ each: true })
+    @ArrayMinSize(1)
+    @Type(() => NoteLineDto)
+    lines: NoteLineDto[];
 }

@@ -1,14 +1,17 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { Balance, BalanceDetail, Journal, Ledger, NoteHeader, NoteLine, Period, Puc, Seat } from './entities';
-import { BalanceController, JournalController, LedgerController, NoteController, PeriodController, PucController, SeatController } from './controllers';
-import { AccountingSeedService, BalanceService, JournalService, LedgerService, NiifReportsService, NoteService, PeriodService, PucService, SeatService } from './service';
-import { CheckCompanyGuard, CheckPeriodGuard, CheckSucursalGuard } from '../common/guards';
-import { NiifReportsController } from './controllers/niif-reports.controller';
-import { AccountingSeedController } from './controllers/seed.controller';
-import { CompanyService } from '../settings/services/company.service';
-import { Company, Sucursal } from '../settings/entities';
+import { Balance, BalanceDetail, Journal, Ledger, NoteHeader, NoteLine, Period, Puc, Seat } from '@accounting/entities';
+import { Company, Sucursal } from '@settings/entities';
+
+import { BalanceController, JournalController, LedgerController, NoteController, PeriodController, PucController, SeatController, NiifReportsController, AccountingSeedController } from '@accounting/controllers';
+
+import { AccountingSeedService, BalanceService, JournalService, LedgerService, NiifReportsService, NoteService, PeriodService, PucService, SeatService } from '@accounting/services';
+import { CompanyService } from '@settings/services';
+import { CommentService } from '@shared/services';
+
+import { CheckCompanyGuard, CheckPeriodGuard, CheckSucursalGuard } from '@common/guards';
+import { Comment } from '@shared/entities';
 
 @Module({
     controllers: [
@@ -36,10 +39,12 @@ import { Company, Sucursal } from '../settings/entities';
         CheckCompanyGuard,
         CheckPeriodGuard,
         CompanyService,
+        CommentService
     ],
     imports: [
         TypeOrmModule.forFeature(
             [
+                Comment,
                 Puc,
                 Seat,
                 Journal,

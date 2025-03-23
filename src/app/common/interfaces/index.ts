@@ -1,0 +1,1 @@
+export { apiResponse } from './common.interface';

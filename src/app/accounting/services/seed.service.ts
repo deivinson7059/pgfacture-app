@@ -1,14 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import {
-    Seat,
-    Journal,
-    Ledger,
-    Puc,
-    Period
-} from 'src/app/accounting/entities';
-import { SEAT_MODULE } from 'src/app/common/enums';
+
+import { Seat, Journal, Ledger, Puc, Period } from '@accounting/entities';
+
+import { SEAT_MODULE } from '@common/enums';
 
 @Injectable()
 export class AccountingSeedService {
@@ -68,9 +64,9 @@ export class AccountingSeedService {
                         "FACTURA",
                         null,
                         null,
-                        new Date,  
+                        new Date,
                         accounts,
-                                             
+
                     );
                     totalAsientos++;
                 }
@@ -120,10 +116,10 @@ export class AccountingSeedService {
         warehouseId: string,
         year: number,
         period: number,
-        document_type:string,
-        document_number:string | null,
-        cost_center:string | null,
-        elaboration_date:Date | null,
+        document_type: string,
+        document_number: string | null,
+        cost_center: string | null,
+        elaboration_date: Date | null,
         accountsByClass: Record<number, Puc[]>
     ): Promise<void> {
         // Generamos un código único para el asiento

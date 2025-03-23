@@ -2,11 +2,15 @@ import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestj
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, QueryRunner, Repository } from 'typeorm';
 
-import { Balance, BalanceDetail, Journal, Ledger, Period, Puc, Seat } from '../entities';
-import { CrearSeatDto } from '../dto';
-import { SEAT_MODULE } from 'src/app/common/enums';
-import { toNumber } from 'src/app/common/utils/utils';
-import { PeriodService } from './period.service';
+import { Balance, BalanceDetail, Journal, Ledger, Period, Puc, Seat } from '@accounting/entities';
+
+import { PeriodService } from '@accounting/services/period.service';
+
+import { CrearSeatDto } from '@accounting/dto';
+
+import { SEAT_MODULE } from '@common/enums';
+import { toNumber } from '@common/utils/utils';
+
 
 @Injectable()
 export class SeatService {

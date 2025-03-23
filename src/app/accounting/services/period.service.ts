@@ -1,9 +1,12 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, LessThan } from 'typeorm';
-import { CreatePeriodDto, CreateYearPeriodsDto } from '../dto';
-import { Period, Ledger } from '../entities';
-import { formatDate, primerUltimoDia } from 'src/app/common/utils/utils';
+
+import { Period, Ledger } from '@accounting/entities';
+
+import { CreatePeriodDto, CreateYearPeriodsDto } from '@accounting/dto';
+
+import { formatDate, primerUltimoDia } from '@common/utils/utils';
 
 @Injectable()
 export class PeriodService {

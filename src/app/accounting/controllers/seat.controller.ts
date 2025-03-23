@@ -1,9 +1,13 @@
 import { Controller, Get, Post, Body, Query, Param, ClassSerializerInterceptor, UseInterceptors, UsePipes, ValidationPipe } from '@nestjs/common';
-import { SeatService } from '../service/seat.service';
-import { AccountValidationPipe } from '../pipes/account-validation.pipe';
-import { CrearSeatDto } from '../dto/crear-seat.dto';
-import { ApplyDecorators, CheckCmpy, CheckPeriodOpen, CheckWare, } from 'src/app/common/decorators';
-import { ParamSource } from 'src/app/common/enums';
+
+import { SeatService } from '@accounting/services';
+
+import { ApplyDecorators, CheckCmpy, CheckPeriodOpen, CheckWare, } from '@common/decorators';
+
+import { AccountValidationPipe } from '@accounting/pipes';
+
+import { CrearSeatDto } from '@accounting/dto';
+import { ParamSource } from '@common/enums';
 
 @Controller('accounting/seat')
 @UseInterceptors(ClassSerializerInterceptor)

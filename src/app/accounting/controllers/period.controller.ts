@@ -1,8 +1,12 @@
 import { Controller, Get, Post, Body, Param, Query, Put, ParseIntPipe, UseGuards, ClassSerializerInterceptor, UseInterceptors } from '@nestjs/common';
-import { CreatePeriodDto, CreateYearPeriodsDto } from '../dto/create-period.dto';
-import { apiResponse } from 'src/app/common/interfaces/common.interface';
-import { Period } from '../entities/period.entity';
-import { PeriodService } from '../service';
+
+import { Period } from '@accounting/entities';
+
+import { PeriodService } from '@accounting/services';
+
+import { CreatePeriodDto, CreateYearPeriodsDto } from '@accounting/dto';
+import { apiResponse } from '@common/interfaces';
+
 
 @Controller('accounting/period')
 @UseInterceptors(ClassSerializerInterceptor)

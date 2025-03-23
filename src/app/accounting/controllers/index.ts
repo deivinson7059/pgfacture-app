@@ -1,3 +1,5 @@
+export { NiifReportsController } from "./niif-reports.controller"
+export { AccountingSeedController } from "./seed.controller"
 export { JournalController } from "./journal.controller"
 export { LedgerController } from "./ledger.controller"
 export { NoteController } from "./note.controller"

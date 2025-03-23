@@ -1,24 +1,32 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, QueryRunner } from 'typeorm';
-import { SeatService } from './seat.service';
-import { PeriodService } from './period.service';
-import { NoteHeader, NoteLine } from '../entities';
-import { CrearSeatDto, CreateNoteDto, MovimientoDto, UpdateNoteStatusDto } from '../dto';
-import { toNumber } from 'src/app/common/utils/utils';
-import { SEAT_MODULE } from 'src/app/common/enums';
-import { NoteHeaderWithLines, NoteWithLines } from '../interfaces/note.interface';
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+
+import { NoteHeader, NoteLine } from '@accounting/entities';
+
+import { SeatService } from '@accounting/services/seat.service';
+import { PeriodService } from '@accounting/services/period.service';
+import { CommentService } from '@shared/services';
+
+import { CreateCommentDto } from '@shared/dto';
+import { CrearSeatDto, CreateNoteDto, MovimientoDto, UpdateNoteStatusDto } from '@accounting/dto';
+
+import { toNumber } from '@common/utils/utils';
+import { SEAT_MODULE } from '@common/enums';
+
+import { NoteHeaderWithLines, NoteWithLines } from '@accounting/interfaces';
 
 @Injectable()
 export class NoteService {
     constructor(
+        private seatService: SeatService,
+        private dataSource: DataSource,
+        private periodService: PeriodService,
+        private commentService: CommentService,
         @InjectRepository(NoteHeader)
         private noteHeaderRepository: Repository<NoteHeader>,
         @InjectRepository(NoteLine)
         private noteLineRepository: Repository<NoteLine>,
-        private dataSource: DataSource,
-        private seatService: SeatService,
-        private periodService: PeriodService
     ) { }
 
     async create(createNoteDto: CreateNoteDto): Promise<NoteWithLines> {
@@ -71,12 +79,25 @@ export class NoteService {
                 acnh_creation_by: createNoteDto.creation_by,
                 acnh_code: codigo,
                 acnh_cost_center: createNoteDto.cost_center || null,
-                acnh_observations: createNoteDto.observations || null,
                 acnh_auto_accounting: createNoteDto.auto_accounting || false,
                 acnh_accounting_date: createNoteDto.date ? new Date(createNoteDto.date) : new Date()
             });
 
             const savedHeader = await queryRunner.manager.save(header);
+
+            // Registrar comentario de aprobación automática
+
+            const createDto: CreateCommentDto = {
+                cmpy: savedHeader.acnh_cmpy,
+                ware: savedHeader.acnh_ware,
+                ref: savedHeader.acnh_id.toString(),
+                ref2: createNoteDto.reference || null,
+                module: SEAT_MODULE.NOTA,
+                comment: createNoteDto.comments,
+                user_enter: createNoteDto.creation_by,
+                system_generated: false,
+            }
+            const comment = await this.commentService.createComment(queryRunner, createDto);
 
             // Crear líneas
             const noteLines: NoteLine[] = [];
@@ -146,12 +167,13 @@ export class NoteService {
                 updated_date: savedHeader.acnh_updated_date,
                 approved_by: savedHeader.acnh_approved_by,
                 approved_date: savedHeader.acnh_approved_date,
-                observations: savedHeader.acnh_observations!,
                 cost_center: savedHeader.acnh_cost_center!,
                 auto_accounting: savedHeader.acnh_auto_accounting,
-                lines: noteLines
+                lines: noteLines,
+                comments: [
+                    comment
+                ]
             };
-
             return noteWithLines;
 
         } catch (error) {
@@ -211,6 +233,40 @@ export class NoteService {
             .getMany();
     }
 
+    async getNoteInfo(cmpy: string, id: number): Promise<NoteWithLines> {
+        const noteWithLines = await this.findOne(cmpy, id);
+
+        const data: NoteWithLines = {
+            id: noteWithLines.acnh_id,
+            cmpy: noteWithLines.acnh_cmpy,
+            ware: noteWithLines.acnh_ware,
+            year: noteWithLines.acnh_year,
+            per: noteWithLines.acnh_per,
+            code: noteWithLines.acnh_code!,
+            accounting_date: noteWithLines.acnh_accounting_date!,
+            date: noteWithLines.acnh_date,
+            time: noteWithLines.acnh_time,
+            customer: noteWithLines.acnh_customer,
+            customer_name: noteWithLines.acnh_customer_name,
+            status: noteWithLines.acnh_status,
+            total_debit: noteWithLines.acnh_total_debit,
+            total_credit: noteWithLines.acnh_total_credit,
+            reference: noteWithLines.acnh_reference,
+            creation_by: noteWithLines.acnh_creation_by,
+            creation_date: noteWithLines.acnh_creation_date,
+            updated_by: noteWithLines.acnh_updated_by,
+            updated_date: noteWithLines.acnh_updated_date,
+            approved_by: noteWithLines.acnh_approved_by,
+            approved_date: noteWithLines.acnh_approved_date,
+            cost_center: noteWithLines.acnh_cost_center!,
+            auto_accounting: noteWithLines.acnh_auto_accounting,
+            lines: noteWithLines.lines,
+            comments: await this.commentService.getComments(noteWithLines.acnh_cmpy, SEAT_MODULE.NOTA, noteWithLines.acnh_id)
+        };
+        //console.log(data);
+        return data as NoteWithLines;
+    }
+
     async findOne(cmpy: string, id: number): Promise<NoteHeaderWithLines> {
         const noteHeader = await this.noteHeaderRepository.findOne({
             where: {
@@ -232,6 +288,8 @@ export class NoteService {
                 acnl_line_number: 'ASC'
             }
         });
+
+
 
         return {
             ...noteHeader,
@@ -304,9 +362,7 @@ export class NoteService {
 
         // Agregar información de observaciones a la descripción si existe
         let description = `Nota Contable ${note.acnh_id}`;
-        if (note.acnh_observations) {
-            description += ` - Obs: ${note.acnh_observations}`;
-        }
+
 
         const asientoData: CrearSeatDto = {
             cmpy: note.acnh_cmpy,

@@ -1,9 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, LessThanOrEqual, MoreThanOrEqual, In } from 'typeorm';
-import { Ledger } from '../entities/ledger.entity';
-import { apiResponse } from 'src/app/common/interfaces/common.interface';
-import { toNumber } from 'src/app/common/utils/utils';
+
+import { Ledger } from '@accounting/entities';
+
+import { toNumber } from '@common/utils/utils';
 
 @Injectable()
 export class LedgerService {
@@ -33,9 +34,9 @@ export class LedgerService {
 
         // Filtrar por rango de fechas si se proporcionan
         if (startDate && endDate) {
-            queryBuilder.andWhere('ledger.accl_date BETWEEN :startDate AND :endDate', { 
-                startDate, 
-                endDate 
+            queryBuilder.andWhere('ledger.accl_date BETWEEN :startDate AND :endDate', {
+                startDate,
+                endDate
             });
         } else if (startDate) {
             queryBuilder.andWhere('ledger.accl_date >= :startDate', { startDate });
@@ -91,9 +92,9 @@ export class LedgerService {
         const queryBuilder = this.ledgerRepository
             .createQueryBuilder('ledger')
             .where('ledger.accl_cmpy = :cmpy', { cmpy })
-            .andWhere('ledger.accl_date BETWEEN :startDate AND :endDate', { 
-                startDate, 
-                endDate 
+            .andWhere('ledger.accl_date BETWEEN :startDate AND :endDate', {
+                startDate,
+                endDate
             });
 
         if (account) {
@@ -177,13 +178,13 @@ export class LedgerService {
             // Usamos el saldo final del registro anterior
             const finalDebit = toNumber(previousEntry.accl_final_debit);
             const finalCredit = toNumber(previousEntry.accl_final_credit);
-            
+
             // Determinar naturaleza de la cuenta
             const accountFirstDigit = account.charAt(0);
             const isDebitNature = ['1', '5', '6', '7'].includes(accountFirstDigit);
-            
-            const balance = isDebitNature 
-                ? finalDebit - finalCredit 
+
+            const balance = isDebitNature
+                ? finalDebit - finalCredit
                 : finalCredit - finalDebit;
 
             return {
@@ -196,13 +197,13 @@ export class LedgerService {
         // Si hay un registro para la fecha exacta, usamos sus valores
         const finalDebit = toNumber(ledgerEntry.accl_final_debit);
         const finalCredit = toNumber(ledgerEntry.accl_final_credit);
-        
+
         // Determinar naturaleza de la cuenta
         const accountFirstDigit = account.charAt(0);
         const isDebitNature = ['1', '5', '6', '7'].includes(accountFirstDigit);
-        
-        const balance = isDebitNature 
-            ? finalDebit - finalCredit 
+
+        const balance = isDebitNature
+            ? finalDebit - finalCredit
             : finalCredit - finalDebit;
 
         return {
@@ -230,7 +231,7 @@ export class LedgerService {
         });
 
         const balancesMap = new Map<string, { balance: number, debit: number, credit: number }>();
-        
+
         // Inicializar todas las cuentas solicitadas con saldo cero
         accounts.forEach(account => {
             balancesMap.set(account, { balance: 0, debit: 0, credit: 0 });
@@ -257,14 +258,14 @@ export class LedgerService {
                 if (previousEntry) {
                     const finalDebit = toNumber(previousEntry.accl_final_debit);
                     const finalCredit = toNumber(previousEntry.accl_final_credit);
-                    
+
                     const accountFirstDigit = account.charAt(0);
                     const isDebitNature = ['1', '5', '6', '7'].includes(accountFirstDigit);
-                    
-                    const balance = isDebitNature 
-                        ? finalDebit - finalCredit 
+
+                    const balance = isDebitNature
+                        ? finalDebit - finalCredit
                         : finalCredit - finalDebit;
-                    
+
                     balancesMap.set(account, {
                         balance: balance,
                         debit: finalDebit,
@@ -279,14 +280,14 @@ export class LedgerService {
             const account = entry.accl_account;
             const finalDebit = toNumber(entry.accl_final_debit);
             const finalCredit = toNumber(entry.accl_final_credit);
-            
+
             const accountFirstDigit = account.charAt(0);
             const isDebitNature = ['1', '5', '6', '7'].includes(accountFirstDigit);
-            
-            const balance = isDebitNature 
-                ? finalDebit - finalCredit 
+
+            const balance = isDebitNature
+                ? finalDebit - finalCredit
                 : finalCredit - finalDebit;
-            
+
             balancesMap.set(account, {
                 balance: balance,
                 debit: finalDebit,
@@ -335,23 +336,23 @@ export class LedgerService {
             const periodCredit = toNumber(entry.accl_period_credit);
             const finalDebit = toNumber(entry.accl_final_debit);
             const finalCredit = toNumber(entry.accl_final_credit);
-            
-            const initialBalance = isDebitNature 
-                ? initialDebit - initialCredit 
+
+            const initialBalance = isDebitNature
+                ? initialDebit - initialCredit
                 : initialCredit - initialDebit;
-                
-            const dayMovement = isDebitNature 
-                ? dayDebit - dayCredit 
+
+            const dayMovement = isDebitNature
+                ? dayDebit - dayCredit
                 : dayCredit - dayDebit;
-                
-            const periodMovement = isDebitNature 
-                ? periodDebit - periodCredit 
+
+            const periodMovement = isDebitNature
+                ? periodDebit - periodCredit
                 : periodCredit - periodDebit;
-                
-            const finalBalance = isDebitNature 
-                ? finalDebit - finalCredit 
+
+            const finalBalance = isDebitNature
+                ? finalDebit - finalCredit
                 : finalCredit - finalDebit;
-            
+
             return {
                 date: entry.accl_date,
                 initialBalance,
@@ -394,7 +395,7 @@ export class LedgerService {
         }
 
         // Este método requeriría acceso al repositorio de journal para obtener los movimientos detallados
-        
+
         return {
             ledger: ledgerEntry,
             // Aquí irían los movimientos detallados

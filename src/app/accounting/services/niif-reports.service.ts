@@ -1,8 +1,10 @@
 import { Injectable, HttpException, HttpStatus, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Balance, BalanceDetail, Period } from 'src/app/accounting/entities';
-import { toNumber } from 'src/app/common/utils/utils';
+
+import { Balance, BalanceDetail, Period } from '@accounting/entities';
+
+import { toNumber } from '@common/utils/utils';
 
 @Injectable()
 export class NiifReportsService {

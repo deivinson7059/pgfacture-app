@@ -1,12 +1,16 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { CommentController } from './controllers';
-import { CommentService } from './services';
-import { Comment } from './entities';
-import { CheckCompanyGuard, CheckPeriodGuard, CheckSucursalGuard } from '../common/guards';
-import { CompanyService } from '../settings/services/company.service';
-import { Period } from '../accounting/entities';
-import { Company, Sucursal } from '../settings/entities';
+
+import { Comment } from '@shared/entities';
+import { Period } from '@accounting/entities';
+import { Company, Sucursal } from '@settings/entities';
+
+import { CommentController } from '@shared/controllers';
+
+import { CommentService } from '@shared/services';
+import { CompanyService } from '@settings/services';
+
+import { CheckCompanyGuard, CheckPeriodGuard, CheckSucursalGuard } from '@common/guards';
 
 @Module({
     imports: [
@@ -28,6 +32,7 @@ import { Company, Sucursal } from '../settings/entities';
         CompanyService,
     ],
     exports: [
+        CommentService,
         TypeOrmModule
     ]
 })

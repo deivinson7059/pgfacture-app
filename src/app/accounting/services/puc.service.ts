@@ -2,9 +2,10 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 
-import { PUC } from '../interfaces/puc.interface';
-import { CreatePucDto, UpdatePucDto } from '../dto';
-import { Puc } from '../entities';
+import { Puc } from '@accounting/entities';
+
+import { CreatePucDto, UpdatePucDto } from '@accounting/dto';
+import { PUC } from '@accounting/interfaces';
 
 @Injectable()
 export class PucService {
@@ -231,7 +232,7 @@ export class PucService {
                 classifications: ['SUBCUENTA', 'AUXILIAR', 'AUXILIAR2']
             })
             .andWhere('puc.plcu_active = :active', { active: 'Y' });
-    
+
         // Aplicar filtro por compañía
         if (cmpy !== 'ALL') {
             queryBuilder.andWhere('(puc.plcu_cmpy = :cmpy OR puc.plcu_cmpy = :all)', {
@@ -239,12 +240,12 @@ export class PucService {
                 all: 'ALL'
             });
         }
-    
+
         // Buscar cuentas que empiecen con el número proporcionado
         queryBuilder.andWhere('puc.plcu_id LIKE :account', {
             account: `${accountNumber}%` // Busca cuentas que EMPIECEN con el número
         });
-    
+
         // Obtener y retornar resultados limitados
         return queryBuilder
             .orderBy('puc.plcu_id', 'ASC')
@@ -262,11 +263,11 @@ export class PucService {
     private async searchAccountsByDescription(cmpy: string, description: string, limit: number = 100): Promise<Puc[]> {
         // Crear consulta base para buscar cuentas auxiliares (8 y 10 dígitos)
         const queryBuilder = this.accountPlanRepository
-        .createQueryBuilder('puc')
-        .where('puc.plcu_classification IN (:...classifications)', {
-            classifications: ['SUBCUENTA', 'AUXILIAR', 'AUXILIAR2']
-        })
-        .andWhere('puc.plcu_active = :active', { active: 'Y' });
+            .createQueryBuilder('puc')
+            .where('puc.plcu_classification IN (:...classifications)', {
+                classifications: ['SUBCUENTA', 'AUXILIAR', 'AUXILIAR2']
+            })
+            .andWhere('puc.plcu_active = :active', { active: 'Y' });
 
         // Aplicar filtro por compañía
         if (cmpy !== 'ALL') {
@@ -301,11 +302,11 @@ export class PucService {
     async auxiliaryAccounts(cmpy: string, limit: number = 100): Promise<Puc[]> {
         // Crear consulta base para buscar cuentas auxiliares (8 y 10 dígitos)
         const queryBuilder = this.accountPlanRepository
-        .createQueryBuilder('puc')
-        .where('puc.plcu_classification IN (:...classifications)', {
-            classifications: ['SUBCUENTA', 'AUXILIAR', 'AUXILIAR2']
-        })
-        .andWhere('puc.plcu_active = :active', { active: 'Y' });
+            .createQueryBuilder('puc')
+            .where('puc.plcu_classification IN (:...classifications)', {
+                classifications: ['SUBCUENTA', 'AUXILIAR', 'AUXILIAR2']
+            })
+            .andWhere('puc.plcu_active = :active', { active: 'Y' });
 
         // Aplicar filtro por compañía
         if (cmpy !== 'ALL') {

@@ -16,6 +16,34 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false
-  }
+    "noFallthroughCasesInSwitch": false,
+    "paths": {
+      "@accounting": ["src/app/accounting"],
+      "@accounting/*": ["src/app/accounting/*"],
+      "@auth": ["src/app/auth"],
+      "@auth/*": ["src/app/auth/*"],
+      "@common": ["src/app/common"],
+      "@common/*": ["src/app/common/*"],
+      "@expenses": ["src/app/expenses"],
+      "@expenses/*": ["src/app/expenses/*"],
+      "@income": ["src/app/income"],
+      "@income/*": ["src/app/income/*"],
+      "@inventory": ["src/app/inventory"],
+      "@inventory/*": ["src/app/inventory/*"],
+      "@payroll": ["src/app/payroll"],
+      "@payroll/*": ["src/app/payroll/*"],
+      "@reports": ["src/app/reports"],
+      "@reports/*": ["src/app/reports/*"],
+      "@seed": ["src/app/seed"],
+      "@seed/*": ["src/app/seed/*"],
+      "@settings": ["src/app/settings"],
+      "@settings/*": ["src/app/settings/*"],
+      "@shared": ["src/app/shared"],
+      "@shared/*": ["src/app/shared/*"],
+      "@task-settings": ["src/app/task-settings"],
+      "@task-settings/*": ["src/app/task-settings/*"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

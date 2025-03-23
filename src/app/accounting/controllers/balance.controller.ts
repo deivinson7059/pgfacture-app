@@ -1,8 +1,9 @@
 import { Controller, Get, Post, Query, Body, ClassSerializerInterceptor, UseInterceptors } from '@nestjs/common';
-import { apiResponse } from 'src/app/common/interfaces/common.interface';
-import { Balance } from '../entities';
-import { BalanceService } from '../service';
 
+import { Balance } from '@accounting/entities';
+import { BalanceService } from '@accounting/services';
+
+import { apiResponse } from '@common/interfaces';
 @Controller('accounting/balance')
 @UseInterceptors(ClassSerializerInterceptor)
 export class BalanceController {

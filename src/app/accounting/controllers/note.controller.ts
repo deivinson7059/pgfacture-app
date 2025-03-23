@@ -1,11 +1,13 @@
 import { Controller, Get, Post, Body, Param, Query, Put, UseInterceptors, ClassSerializerInterceptor, UsePipes, ValidationPipe, HttpCode, HttpStatus } from '@nestjs/common';
-import { apiResponse } from 'src/app/common/interfaces/common.interface';
-import { NoteService } from '../service';
-import { CreateNoteDto, UpdateNoteStatusDto } from '../dto';
-import { ApplyDecorators, CheckCmpy, CheckPeriodOpen, CheckWare } from 'src/app/common/decorators';
-import { ParamSource } from 'src/app/common/enums';
-import { NoteWithLines } from '../interfaces/note.interface';
 
+import { NoteService } from '@accounting/services';
+
+import { ApplyDecorators, CheckCmpy, CheckWare } from '@common/decorators';
+
+import { CreateNoteDto, UpdateNoteStatusDto } from '@accounting/dto';
+import { ParamSource } from '@common/enums';
+import { NoteWithLines } from '@accounting/interfaces';
+import { apiResponse } from '@common/interfaces';
 
 @Controller('accounting/notes')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -49,8 +51,8 @@ export class NoteController {
     }
 
     @Get(':cmpy/:id')
-    async findOne(@Param('cmpy') cmpy: string, @Param('id') id: number): Promise<apiResponse<any>> {
-        const note = await this.accountingNoteService.findOne(cmpy, id);
+    async findOne(@Param('cmpy') cmpy: string, @Param('id') id: number): Promise<apiResponse<NoteWithLines>> {
+        const note = await this.accountingNoteService.getNoteInfo(cmpy, id);
         return {
             message: 'Detalle de nota contable',
             data: note

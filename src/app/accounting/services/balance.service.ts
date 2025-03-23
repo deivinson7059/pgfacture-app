@@ -1,8 +1,10 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { Balance, BalanceDetail, Ledger, Period, Puc } from "../entities";
 import { DataSource, Repository, Between } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
-import { toNumber } from "src/app/common/utils/utils";
+
+import { Balance, BalanceDetail, Ledger, Period, Puc } from "@accounting/entities";
+
+import { toNumber } from "@common/utils/utils";
 
 @Injectable()
 export class BalanceService {
@@ -19,7 +21,7 @@ export class BalanceService {
         @InjectRepository(BalanceDetail)
         private balanceDetailRepository: Repository<BalanceDetail>,
     ) { }
-   
+
     // Generar balance para un período y fecha específica
     async generarBalance(
         cmpy: string,
@@ -114,8 +116,8 @@ export class BalanceService {
             });
 
             // 3. Obtener todas las cuentas de clase (un dígito)
-           // const classAccounts = allAccounts.filter(account => account.plcu_classification === 'CLASE');
-          
+            // const classAccounts = allAccounts.filter(account => account.plcu_classification === 'CLASE');
+
             // 4. Obtener movimientos del libro mayor para la fecha específica o rango de fechas
             const ledgerEntries = await this.ledgerRepository.find({
                 where: {

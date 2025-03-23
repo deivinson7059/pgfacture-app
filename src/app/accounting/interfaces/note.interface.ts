@@ -1,5 +1,7 @@
 import { NoteHeader, NoteLine } from "../entities";
 
+import { Comment } from "../../shared/entities";
+
 export type NoteHeaderWithLines = NoteHeader & { lines: NoteLine[] };
 
 export interface NoteWithLines {
@@ -23,9 +25,9 @@ export interface NoteWithLines {
     updated_date?: Date;
     approved_by?: string;
     approved_date?: Date;
-    observations?: string;
     auto_accounting: boolean;
     accounting_date?: Date;
     code?: string;
     lines: any[];
+    comments: Comment[];
 }
