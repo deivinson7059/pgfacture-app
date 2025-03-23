@@ -59,7 +59,10 @@ export class SeatService {
             const asientosCreados: Seat[] = [];
 
             // Generar código único para este asiento
-            const codigo = await this.generateCode(asientoData.cmpy, 6);
+            //const codigo = await this.generateCode(asientoData.cmpy, 6);
+
+            // Usar el código proporcionado o generar uno nuevo si no existe
+            const codigo = asientoData.code || await this.generateCode(asientoData.cmpy, 6);
 
             // Crear las entradas del journal (libro diario)
             const journalEntries: Journal[] = [];
@@ -479,6 +482,17 @@ export class SeatService {
         if (asiento.length == 0) throw new NotFoundException('El Asiento no existe');
         return asiento;
     }
+
+    async listAsientos(cmpy: string, code: string | null): Promise<Seat[]> {
+        if (code === null) {
+            return [];
+        } else {
+            const asiento = await this.asientoRepository.find({ where: { acch_code: code, acch_cmpy: cmpy } });
+            return asiento;
+        }
+
+    }
+
 
 
 }

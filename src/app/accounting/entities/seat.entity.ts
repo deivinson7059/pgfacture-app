@@ -1,4 +1,4 @@
-import { Expose, Transform } from 'class-transformer';
+import { Exclude, Expose, Transform } from 'class-transformer';
 import { dateTransformer } from 'src/app/common/utils/fechaColombia';
 import { formatDecimal } from 'src/app/common/utils/transform';
 import { Entity, Column, CreateDateColumn, Index, PrimaryColumn, BeforeInsert, UpdateDateColumn } from 'typeorm';
@@ -13,7 +13,7 @@ export class Seat {
     acch_id: number;
 
     @PrimaryColumn({ name: 'acch_cmpy', type: 'varchar', length: 10 })
-    @Expose({ name: 'cmpy' }) // Mapear a "cmpy"
+    @Expose({ name: 'cmpy' }) // Mapear a "cmpy"    
     acch_cmpy: string; // Código de la empresa (varchar(10))
 
     @Column({ type: 'varchar', length: 190 })
@@ -26,10 +26,12 @@ export class Seat {
 
     @Column()
     @Expose({ name: 'per' }) // Mapear a "per"
+    @Exclude()
     acch_per: number; // Período (1-13)
 
     @Column()
     @Expose({ name: 'year' }) // Mapear a "year"
+    @Exclude()
     acch_year: number; // Año contable    
 
     @Expose({ name: 'date' })
@@ -54,14 +56,17 @@ export class Seat {
 
     @Column({ name: 'acch_document_type', type: 'varchar', length: 20 })
     @Expose({ name: 'document_type' })
+    @Exclude()
     acch_document_type: string;
 
     @Column({ name: 'acch_document_number', type: 'varchar', length: 30, nullable: true })
     @Expose({ name: 'document_number' })
+    @Exclude()
     acch_document_number: string | null;
 
     @Column({ name: 'acch_description', type: 'text', nullable: true })
     @Expose({ name: 'description' }) // Mapear a "detbin"
+    @Exclude()
     acch_description: string; // Detalle o comentario del movimiento
 
     @Column({ name: 'acch_account', type: 'varchar', length: 20 })
@@ -99,26 +104,31 @@ export class Seat {
 
     @Column({ name: 'acch_cost_center', type: 'varchar', length: 20, nullable: true })
     @Expose({ name: 'cost_center' })
+    @Exclude()
     acch_cost_center: string | null;
 
     // Nueva columna para la referencia
     @Column({ name: 'acch_ref', type: 'varchar', length: 190, nullable: true })
     @Index('idx_accounting_seat_ref') // Índice para filtros por referencia
     @Expose({ name: 'ref' })
+    @Exclude()
     acch_ref: string | null; // Referencia al registro original en el módulo
 
     // Nueva columna para el módulo
     @Column({ name: 'acch_module', type: 'varchar', length: 50, nullable: true })
     @Index('idx_accounting_seat_module') // Índice para filtros por módulo
     @Expose({ name: 'module' })
+    @Exclude()
     acch_module: string | null; // Identificador del módulo (ej: INVOICE, NOTE, etc.)
 
     @Column({ name: 'acch_customers', type: 'varchar', length: 60 })
     @Expose({ name: 'customers' }) // Mapear a "customers"
+    @Exclude()
     acch_customers: string; // Código del cliente/proveedor
 
     @Column({ name: 'acch_customers_name', type: 'varchar', length: 500, nullable: true })
     @Expose({ name: 'customers_name' }) // Mapear a "customers_name"
+    @Exclude()
     acch_customers_name: string | null; // Nombre del cliente/proveedor    
 
     @Column({ name: 'acch_elaboration_date', type: 'date', nullable: true })
@@ -128,6 +138,7 @@ export class Seat {
 
     @Column({ name: 'acch_creation_by', type: 'varchar', length: 30 })
     @Expose({ name: 'creation_by' }) // Mapear a "creation_by"
+    @Exclude()
     acch_creation_by: string | null; // Usuario que registró   
 
     @CreateDateColumn({
@@ -137,10 +148,12 @@ export class Seat {
         transformer: dateTransformer(),
     })
     @Expose({ name: 'creation_date' }) // Mapear a "creation_date"
+    @Exclude()
     acch_creation_date: Date; // Fecha de creación
 
     @Column({ name: 'acch_updated_by', type: 'varchar', length: 30, nullable: true })
     @Expose({ name: 'updated_by' }) // Mapear a "updated_by"
+    @Exclude()
     acch_updated_by: string | null; // Usuario que actualizó
 
     @UpdateDateColumn({
@@ -150,6 +163,7 @@ export class Seat {
         transformer: dateTransformer(),
     })
     @Expose({ name: 'updated_date' }) // Mapear a "updated_date"
+    @Exclude()
     acch_updated_date: Date; // Fecha de última modificación
 
     @BeforeInsert()

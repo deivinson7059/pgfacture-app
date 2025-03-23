@@ -1,6 +1,6 @@
-import { NoteHeader, NoteLine } from "../entities";
+import { NoteHeader, NoteLine, Seat } from "@accounting/entities";
 
-import { Comment } from "../../shared/entities";
+import { Comment } from '@shared/entities'
 
 export type NoteHeaderWithLines = NoteHeader & { lines: NoteLine[] };
 
@@ -29,4 +29,5 @@ export interface NoteWithLines {
     code?: string;
     lines: any[];
     comments: Comment[];
+    seats: Seat[];
 }

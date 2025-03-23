@@ -189,7 +189,8 @@ export class NoteService {
                 lines: noteLines,
                 comments: [
                     comment
-                ]
+                ],
+                seats: []
             };
             return noteWithLines;
 
@@ -410,15 +411,18 @@ export class NoteService {
 
             await this.commentService.createComment(queryRunner, commentDto);
 
-            // Contabilizar la nota (crear asientos)
-            await this.contabilizarNota(queryRunner, noteWithLines, noteWithLines.lines);
-
-            // Generar código único para este asiento
+            // Generar código único para este asiento y la nota
             const codigo = await this.generateCode(cmpy, 6);
+
+            // Asignar el código a la nota antes de contabilizar
+            noteWithLines.acnh_code = codigo;
+            await queryRunner.manager.save(NoteHeader, noteWithLines);
+
+            // Contabilizar la nota (crear asientos) usando el mismo código
+            await this.contabilizarNota(queryRunner, noteWithLines, noteWithLines.lines);
 
             // Actualizar estado a 'C' (Contabilizado)
             noteWithLines.acnh_status = 'C';
-            noteWithLines.acnh_code = codigo;
             await queryRunner.manager.save(NoteHeader, noteWithLines);
 
             // Registrar comentario de contabilización
@@ -428,7 +432,7 @@ export class NoteService {
                 ref: id.toString(),
                 ref2: noteWithLines.acnh_reference || null,
                 module: SEAT_MODULE.NOTA,
-                comment: `CONTABILIZADO: Se generaron los asientos contables correspondientes`,
+                comment: `CONTABILIZADO: Se generaron los asientos contables correspondientes con código ${codigo}`,
                 user_enter: approveNoteDto.approved_by,
                 system_generated: true,
             };
@@ -470,23 +474,20 @@ export class NoteService {
         return Number(result.max) + 1;
     }
 
-    async findAll(
+    async findAll__(
         cmpy: string,
-        year?: number,
-        per?: number,
+        date_ini: Date,
+        date_end: Date,
         status?: string
     ): Promise<NoteHeader[]> {
+        console.log('datos', cmpy, date_ini, date_end, status);
         const queryBuilder = this.noteHeaderRepository
             .createQueryBuilder('header')
-            .where('header.acnh_cmpy = :cmpy', { cmpy });
-
-        if (year !== undefined) {
-            queryBuilder.andWhere('header.acnh_year = :year', { year });
-        }
-
-        if (per !== undefined) {
-            queryBuilder.andWhere('header.acnh_per = :per', { per });
-        }
+            .where('header.acnh_cmpy = :cmpy', { cmpy })
+            .andWhere('header.acnh_date BETWEEN :date_ini AND :date_end', {
+                date_ini,
+                date_end
+            });
 
         if (status) {
             queryBuilder.andWhere('header.acnh_status = :status', { status });
@@ -495,6 +496,78 @@ export class NoteService {
         return queryBuilder
             .orderBy('header.acnh_date', 'DESC')
             .getMany();
+    }
+
+    async findAll(
+        cmpy: string,
+        date_ini: Date,
+        date_end: Date,
+        status?: string
+    ): Promise<NoteWithLines[]> {
+        // Obtener cabeceras y líneas en una sola consulta con JOIN
+        const queryBuilder = this.noteHeaderRepository
+            .createQueryBuilder('header')
+            .where('header.acnh_cmpy = :cmpy', { cmpy })
+            .andWhere('header.acnh_accounting_date BETWEEN :date_ini AND :date_end', {
+                date_ini,
+                date_end
+            });
+
+        if (status) {
+            queryBuilder.andWhere('header.acnh_status = :status', { status });
+        }
+
+        // Obtener resultados con relaciones incluidas
+        const notesWithLines = await queryBuilder
+            .orderBy('header.acnh_accounting_date', 'DESC')
+            .getMany();
+
+        // Transformar a formato de respuesta
+        const result: NoteWithLines[] = [];
+
+        for (const note of notesWithLines) {
+
+            const noteLines = await this.noteLineRepository.find({
+                where: {
+                    acnl_acnh_id: note.acnh_id,
+                    acnl_cmpy: note.acnh_cmpy
+                },
+                order: {
+                    acnl_line_number: 'ASC'
+                }
+            });
+
+
+            result.push({
+                id: note.acnh_id,
+                cmpy: note.acnh_cmpy,
+                ware: note.acnh_ware,
+                year: note.acnh_year,
+                per: note.acnh_per,
+                code: note.acnh_code || '',
+                accounting_date: note.acnh_accounting_date,
+                date: note.acnh_date,
+                time: note.acnh_time,
+                customer: note.acnh_customer,
+                customer_name: note.acnh_customer_name,
+                status: note.acnh_status,
+                total_debit: note.acnh_total_debit,
+                total_credit: note.acnh_total_credit,
+                reference: note.acnh_reference,
+                creation_by: note.acnh_creation_by,
+                creation_date: note.acnh_creation_date,
+                updated_by: note.acnh_updated_by,
+                updated_date: note.acnh_updated_date,
+                approved_by: note.acnh_approved_by,
+                approved_date: note.acnh_approved_date,
+                cost_center: note.acnh_cost_center || undefined,
+                lines: noteLines,
+                comments: await this.commentService.getComments(note.acnh_cmpy, SEAT_MODULE.NOTA, note.acnh_id.toString()),
+                seats: await this.seatService.listAsientos(cmpy, note.acnh_code)
+            });
+        }
+
+        return result;
     }
 
     async getNoteInfo(cmpy: string, id: number): Promise<NoteWithLines> {
@@ -524,7 +597,8 @@ export class NoteService {
             approved_date: noteWithLines.acnh_approved_date,
             cost_center: noteWithLines.acnh_cost_center!,
             lines: noteWithLines.lines,
-            comments: await this.commentService.getComments(noteWithLines.acnh_cmpy, SEAT_MODULE.NOTA, noteWithLines.acnh_id.toString())
+            comments: await this.commentService.getComments(noteWithLines.acnh_cmpy, SEAT_MODULE.NOTA, noteWithLines.acnh_id.toString()),
+            seats: await this.seatService.listAsientos(cmpy, noteWithLines.acnh_code)
         };
 
         return data as NoteWithLines;
@@ -664,7 +738,7 @@ export class NoteService {
             document_number: note.acnh_id.toString(),
             cost_center: note.acnh_cost_center || null,
             elaboration_date: note.acnh_date || new Date(),
-            code: note.acnh_code || undefined,
+            code: note.acnh_code!,
             module: SEAT_MODULE.NOTA,
             ref: note.acnh_reference || note.acnh_id.toString(),
             movimientos: sientoMov

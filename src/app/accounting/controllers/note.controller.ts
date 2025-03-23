@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Query, Put, UseInterceptors, ClassSerializerInterceptor, UsePipes, ValidationPipe, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, Put, UseInterceptors, ClassSerializerInterceptor, UsePipes, ValidationPipe, HttpCode, HttpStatus, BadRequestException } from '@nestjs/common';
 
 import { NoteService } from '@accounting/services';
 
@@ -89,15 +89,27 @@ export class NoteController {
         };
     }
 
-    @Get()
+    @Get(':cmpy')
     @HttpCode(HttpStatus.OK)
     async findAll(
-        @Query('cmpy') cmpy: string,
-        @Query('year') year?: number,
-        @Query('per') per?: number,
+        @Param('cmpy') cmpy: string,
+        @Query('date_ini') date_ini: Date,
+        @Query('date_end') date_end: Date,
         @Query('status') status?: string
     ): Promise<apiResponse<any>> {
-        const notes = await this.accountingNoteService.findAll(cmpy, year, per, status);
+
+        //validamos que las fechas sean correctas
+        if (!date_ini || !date_end) {
+            throw new BadRequestException('Las fechas de inicio y fin son requeridas');
+        }
+        if (date_ini > date_end) {
+            throw new BadRequestException('La fecha de inicio no puede ser mayor a la fecha final');
+        }
+
+        if (status && !['P', 'A', 'R', 'C', 'X'].includes(status)) {
+            throw new BadRequestException('El estado de la nota contable no es válido');
+        }
+        const notes = await this.accountingNoteService.findAll(cmpy, date_ini, date_end, status);
         return {
             message: 'Notas contables',
             data: notes
