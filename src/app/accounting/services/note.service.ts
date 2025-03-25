@@ -570,6 +570,89 @@ export class NoteService {
         return result;
     }
 
+    async findAllPaginated(
+        cmpy: string,
+        date_ini?: Date,
+        date_end?: Date,
+        page: number = 1,
+        limit: number = 10,
+        skip: number = 0,
+        status?: string,
+    ): Promise<[NoteWithLines[], number]> {
+        // Obtener cabeceras y líneas en una sola consulta con JOIN con paginación
+        const queryBuilder = this.noteHeaderRepository
+            .createQueryBuilder('header')
+            .where('header.acnh_cmpy = :cmpy', { cmpy });
+
+        //si existe date_ini y date_end
+        if (date_ini && date_end) {
+            queryBuilder.andWhere('header.acnh_accounting_date BETWEEN :date_ini AND :date_end', {
+                date_ini,
+                date_end
+            });
+
+        }
+
+        if (status) {
+            queryBuilder.andWhere('header.acnh_status = :status', { status });
+        }
+
+        // Obtener el total de registros para calcular las páginas
+        const total = await queryBuilder.getCount();
+
+        // Obtener los registros de la página solicitada
+        const notesWithLines = await queryBuilder
+            .orderBy('header.acnh_accounting_date', 'DESC')
+            .skip(skip)
+            .take(limit)
+            .getMany();
+
+        // Transformar a formato de respuesta
+        const result: NoteWithLines[] = [];
+
+        for (const note of notesWithLines) {
+            const noteLines = await this.noteLineRepository.find({
+                where: {
+                    acnl_acnh_id: note.acnh_id,
+                    acnl_cmpy: note.acnh_cmpy
+                },
+                order: {
+                    acnl_line_number: 'ASC'
+                }
+            });
+
+            result.push({
+                id: note.acnh_id,
+                cmpy: note.acnh_cmpy,
+                ware: note.acnh_ware,
+                year: note.acnh_year,
+                per: note.acnh_per,
+                code: note.acnh_code || '',
+                accounting_date: note.acnh_accounting_date,
+                date: note.acnh_date,
+                time: note.acnh_time,
+                customer: note.acnh_customer,
+                customer_name: note.acnh_customer_name,
+                status: note.acnh_status,
+                total_debit: note.acnh_total_debit,
+                total_credit: note.acnh_total_credit,
+                reference: note.acnh_reference,
+                creation_by: note.acnh_creation_by,
+                creation_date: note.acnh_creation_date,
+                updated_by: note.acnh_updated_by,
+                updated_date: note.acnh_updated_date,
+                approved_by: note.acnh_approved_by,
+                approved_date: note.acnh_approved_date,
+                cost_center: note.acnh_cost_center || undefined,
+                lines: noteLines,
+                comments: await this.commentService.getComments(note.acnh_cmpy, SEAT_MODULE.NOTA, note.acnh_id.toString()),
+                seats: await this.seatService.listAsientos(cmpy, note.acnh_code)
+            });
+        }
+
+        return [result, total];
+    }
+
     async getNoteInfo(cmpy: string, id: number): Promise<NoteWithLines> {
         const noteWithLines = await this.findOne(cmpy, id);
 

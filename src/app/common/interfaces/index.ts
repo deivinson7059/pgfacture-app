@@ -1,1 +1,1 @@
-export { apiResponse } from './common.interface';
+export { apiResponse, PaginatedApiResponse } from './common.interface';
