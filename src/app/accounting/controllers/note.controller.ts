@@ -112,6 +112,41 @@ export class NoteController {
             throw new BadRequestException('El estado de la nota contable no es válido');
         }
 
+        const notes = await this.accountingNoteService.findAll(cmpy, date_ini, date_end, status);
+        return {
+            message: 'Notas contables',
+            data: {
+                total: notes.length,
+                page: 1,
+                totalPages: 1,
+                items: notes,
+            }
+        };
+    }
+
+    @Get(':cmpy/paginated')
+    @HttpCode(HttpStatus.OK)
+    async findAllPaginated(
+        @Param('cmpy') cmpy: string,
+        @Query('date_ini') date_ini?: Date,
+        @Query('date_end') date_end?: Date,
+        @Query('status') status?: string,
+        @Query('page') page: number = 1,
+        @Query('limit') limit: number = 10
+    ): Promise<PaginatedApiResponse<NoteWithLines>> {
+
+        //validamos que si se envía la fecha de inicio, también se envíe la fecha final
+        if (date_ini && date_end) {
+            //validamos que las fechas sean correctas           
+            if (date_ini > date_end) {
+                throw new BadRequestException('La fecha de inicio no puede ser mayor a la fecha final');
+            }
+        }
+
+        if (status && !['P', 'A', 'R', 'C', 'X'].includes(status)) {
+            throw new BadRequestException('El estado de la nota contable no es válido');
+        }
+
         // Convertir la página y el límite a números y establecer valores predeterminados si son inválidos
         const pageNumber = page > 0 ? page : 1;
         const limitNumber = limit > 0 && limit <= 100 ? limit : 10; // Limitamos a máximo 100 registros por página
@@ -127,8 +162,6 @@ export class NoteController {
         // Calculamos el total de páginas
         const totalPages = Math.ceil(total / limitNumber);
         //console.log('totalPages', totalPages);
-
-        //const notes = await this.accountingNoteService.findAll(cmpy, date_ini, date_end, status);
         return {
             message: 'Notas contables',
             data: {

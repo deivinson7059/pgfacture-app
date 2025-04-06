@@ -500,8 +500,8 @@ export class NoteService {
 
     async findAll(
         cmpy: string,
-        date_ini: Date,
-        date_end: Date,
+        date_ini?: Date,
+        date_end?: Date,
         status?: string
     ): Promise<NoteWithLines[]> {
         // Obtener cabeceras y líneas en una sola consulta con JOIN
