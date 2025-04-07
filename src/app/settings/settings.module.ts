@@ -3,24 +3,29 @@ import { CompanyController } from './controllers/company.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SucursalController } from './controllers/sucursal.controller';
 import { CompanyService } from './services/company.service';
-import { Company } from './entities';
+import { Company, Customer } from './entities';
 import { SucursalService } from './services/sucursal.service';
 import { Sucursal } from './entities/sucursal.entity';
+import { CustomerController } from './controllers';
+import { CustomerService } from './services';
 
 @Module({
     controllers: [
         CompanyController,
-        SucursalController
+        SucursalController,
+        CustomerController
     ],
     providers: [
         CompanyService,
         SucursalService,
+        CustomerService
     ],
     imports: [
         TypeOrmModule.forFeature(
             [
                 Company,
-                Sucursal
+                Sucursal,
+                Customer
             ]
         )
     ],
