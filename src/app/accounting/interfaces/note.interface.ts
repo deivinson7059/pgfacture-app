@@ -26,6 +26,7 @@ export interface NoteWithLines {
     approved_by?: string;
     approved_date?: Date;
     accounting_date?: Date;
+    posting_date?: Date;
     code?: string;
     lines: any[];
     comments: Comment[];

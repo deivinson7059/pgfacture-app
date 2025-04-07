@@ -6,7 +6,7 @@ export class UpdateNoteStatusDto {
     id: string;
 
     @IsNotEmpty()
-    @IsEnum(['P', 'A', 'R', 'C'], { message: 'Estado debe ser P: Pendiente, A: Aprobado, R: Rechazado, C: Contabilizado' })
+    @IsEnum(['P', 'C', 'R', 'X'], { message: 'Estado debe ser P: Pendiente, C: Aprobado, R: Rechazado, X: Anulado' })
     status: string;
 
     @IsNotEmpty()
@@ -19,4 +19,3 @@ export class UpdateNoteStatusDto {
     @Length(0, 500)
     comments?: string;
 }
-

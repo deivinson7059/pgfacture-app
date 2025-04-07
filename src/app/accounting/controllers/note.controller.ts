@@ -22,11 +22,11 @@ export class NoteController {
     ])
     @HttpCode(HttpStatus.OK)
     async create(@Body() createNoteDto: CreateNoteDto): Promise<apiResponse<NoteWithLines>> {
-        // Aseguramos que se guarde en estado abierto/pendiente sin asientos
+        // Aseguramos que se guarde en estado Abierta/pendiente sin asientos
         const note = await this.accountingNoteService.create(createNoteDto);
 
         return {
-            message: 'Nota contable creada exitosamente en estado Pendiente',
+            message: 'Nota contable creada exitosamente en estado Abierta',
             data: note
         };
     }
@@ -108,7 +108,7 @@ export class NoteController {
             }
         }
 
-        if (status && !['P', 'A', 'R', 'C', 'X'].includes(status)) {
+        if (status && !['P', 'C', 'R', 'X'].includes(status)) {
             throw new BadRequestException('El estado de la nota contable no es válido');
         }
 
@@ -143,7 +143,7 @@ export class NoteController {
             }
         }
 
-        if (status && !['P', 'A', 'R', 'C', 'X'].includes(status)) {
+        if (status && !['P', 'C', 'R', 'X'].includes(status)) {
             throw new BadRequestException('El estado de la nota contable no es válido');
         }
 
@@ -161,7 +161,7 @@ export class NoteController {
 
         // Calculamos el total de páginas
         const totalPages = Math.ceil(total / limitNumber);
-        //console.log('totalPages', totalPages);
+
         return {
             message: 'Notas contables',
             data: {
@@ -189,11 +189,10 @@ export class NoteController {
         const note = await this.accountingNoteService.updateStatus(updateStatusDto);
 
         let message = '';
-        switch (note.status) {
-            case 'P': message = 'Nota contable en estado pendiente'; break;
-            case 'A': message = 'Nota contable aprobada'; break;
+        switch (note.acnh_status) {
+            case 'P': message = 'Nota contable en estado Abierta'; break;
+            case 'C': message = 'Nota contable aprobada'; break;
             case 'R': message = 'Nota contable rechazada'; break;
-            case 'C': message = 'Nota contable contabilizada'; break;
             case 'X': message = 'Nota contable anulada'; break;
         }
 

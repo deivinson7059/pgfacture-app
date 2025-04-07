@@ -19,6 +19,7 @@ import { SEAT_MODULE } from '@common/enums';
 
 import { NoteHeaderWithLines, NoteWithLines } from '@accounting/interfaces';
 
+
 @Injectable()
 export class NoteService {
     constructor(
@@ -33,12 +34,12 @@ export class NoteService {
     ) { }
 
     /**
-  * Valida que todas las cuentas en las líneas de la nota existan en el plan contable
-  * @param queryRunner QueryRunner para ejecutar consultas en transacción
-  * @param cmpy Código de la compañía
-  * @param lines Líneas de la nota contable con las cuentas a validar
-  * @returns void - Lanza excepción si alguna cuenta no existe
-  */
+ * Valida que todas las cuentas en las líneas de la nota existan en el plan contable
+ * @param queryRunner QueryRunner para ejecutar consultas en transacción
+ * @param cmpy Código de la compañía
+ * @param lines Líneas de la nota contable con las cuentas a validar
+ * @returns void - Lanza excepción si alguna cuenta no existe
+ */
     private async validateAccounts(
         queryRunner: QueryRunner,
         cmpy: string,
@@ -95,8 +96,6 @@ export class NoteService {
 
             const acnh_id = await this.getNextNoteHeadId(queryRunner, createNoteDto.cmpy);
 
-
-
             // Crear cabecera con los nuevos campos
             const header = this.noteHeaderRepository.create({
                 acnh_id: acnh_id,
@@ -107,7 +106,7 @@ export class NoteService {
                 acnh_date: new Date(),
                 acnh_customer: customer,
                 acnh_customer_name: customerName,
-                acnh_status: 'P', // Pendiente por defecto
+                acnh_status: 'P', // Abierto por defecto
                 acnh_total_debit: totalDebit,
                 acnh_total_credit: totalCredit,
                 acnh_reference: createNoteDto.reference,
@@ -136,7 +135,6 @@ export class NoteService {
             for (let i = 0; i < createNoteDto.lines.length; i++) {
                 const acnl_id = await this.getNextNoteLineId(queryRunner, createNoteDto.cmpy);
                 const lineDto = createNoteDto.lines[i];
-
 
                 const line = this.noteLineRepository.create({
                     acnl_id: acnl_id,
@@ -185,6 +183,7 @@ export class NoteService {
                 updated_date: savedHeader.acnh_updated_date,
                 approved_by: savedHeader.acnh_approved_by,
                 approved_date: savedHeader.acnh_approved_date,
+                posting_date: savedHeader.acnh_posting_date,
                 cost_center: savedHeader.acnh_cost_center!,
                 lines: noteLines,
                 comments: [
@@ -202,6 +201,88 @@ export class NoteService {
         }
     }
 
+    private async contabilizarNota(queryRunner: any, note: NoteHeader, lines: NoteLine[]): Promise<void> {
+        // Preparar DTO para crear asiento
+        const sientoMov: MovimientoDto[] = [];
+
+        lines.forEach(line => {
+            sientoMov.push({
+                account: line.acnl_account,
+                debit: line.acnl_debit,
+                credit: line.acnl_credit,
+                taxable_base: line.acnl_taxable_base,
+                exempt_base: line.acnl_exempt_base,
+                debitOrCredit: undefined
+            });
+        });
+
+        // Agregar información de observaciones a la descripción si existe
+        let description = `Nota Contable ${note.acnh_id}`;
+
+        const asientoData: CrearSeatDto = {
+            cmpy: note.acnh_cmpy,
+            ware: note.acnh_ware,
+            year: note.acnh_year,
+            per: note.acnh_per,
+            customers: note.acnh_customer,
+            customers_name: note.acnh_customer_name,
+            description: description,
+            creation_by: note.acnh_updated_by || note.acnh_creation_by,
+            document_type: "NOTA",
+            document_number: note.acnh_id.toString(),
+            cost_center: note.acnh_cost_center || null,
+            elaboration_date: note.acnh_date || new Date(),
+            code: note.acnh_code!,
+            module: SEAT_MODULE.NOTA,
+            ref: note.acnh_reference || note.acnh_id.toString(),
+            movimientos: sientoMov
+        };
+
+        // Llamar al servicio de asientos para contabilizar
+        await this.seatService.crearAsiento(asientoData);
+    }
+
+    private validateStatusTransition(currentStatus: string, newStatus: string): void {
+        // Solo permitir ciertas transiciones de estado
+        const allowedTransitions = {
+            'P': ['C', 'R', 'X'], // Abierta puede pasar a Aprobado, Rechazado o Anulado
+            'R': ['P', 'X'], // Rechazado puede volver a Abierta o ser Anulado
+            'C': ['X'], // Aprobado solo puede ser Anulado
+            'X': [] // Anulado es un estado final
+        };
+
+        if (!allowedTransitions[currentStatus]?.includes(newStatus)) {
+            throw new BadRequestException(`No se permite cambiar de estado ${currentStatus} a ${newStatus}`);
+        }
+    }
+
+    private async generateCode(cmpy: string, length: number = 6): Promise<string> {
+        // Generar código único
+        let code: string = '';
+        let exists = true;
+        const characters = 'abcdefgABCDEFGHIstuvwJK345LMNOP1267QRSTnopqUVWXYZ089hijklmrxyz';
+
+        while (exists) {
+            code = '';
+            for (let i = 0; i < length; i++) {
+                code += characters.charAt(Math.floor(Math.random() * characters.length));
+            }
+
+            const existingNote = await this.noteHeaderRepository.findOne({
+                where: {
+                    acnh_code: code,
+                    acnh_cmpy: cmpy
+                }
+            });
+
+            exists = !!existingNote;
+        }
+        return code;
+    }
+
+
+
+
     // Método para editar una nota (reemplazar completamente y registrar cambios)
     async editNote(cmpy: string, id: number, editNoteDto: EditNoteDto): Promise<NoteWithLines> {
         const queryRunner = this.dataSource.createQueryRunner();
@@ -212,11 +293,9 @@ export class NoteService {
             // Verificar que la nota exista
             const noteWithLines = await this.findOne(cmpy, id);
 
-            console.log('noteWithLines', noteWithLines);
-
-            // Validar que la nota esté en estado 'P' (Pendiente)
+            // Validar que la nota esté en estado 'P' (Abierta)
             if (noteWithLines.acnh_status !== 'P') {
-                throw new BadRequestException(`Solo se pueden editar notas en estado Pendiente. Estado actual: ${noteWithLines.acnh_status}`);
+                throw new BadRequestException(`Solo se pueden editar notas en estado Abierta. Estado actual: ${noteWithLines.acnh_status}`);
             }
 
             // Verificar que el período exista y esté abierto
@@ -377,20 +456,19 @@ export class NoteService {
             // Verificar que la nota exista
             const noteWithLines = await this.findOne(cmpy, id);
 
-            // Validar que la nota esté en estado 'P' (Pendiente)
+            // Validar que la nota esté en estado 'P' (Abierta)
             if (noteWithLines.acnh_status !== 'P') {
-                throw new BadRequestException(`Solo se pueden aprobar notas en estado Pendiente. Estado actual: ${noteWithLines.acnh_status}`);
+                throw new BadRequestException(`Solo se pueden aprobar notas en estado Abierta. Estado actual: ${noteWithLines.acnh_status}`);
             }
 
-            // Actualizar estado a 'A' (Aprobado)
-            noteWithLines.acnh_status = 'A';
+            // Actualizar estado a 'C' (Aprobado)
+            noteWithLines.acnh_status = 'C';
             noteWithLines.acnh_approved_by = approveNoteDto.approved_by;
             noteWithLines.acnh_approved_date = new Date();
             noteWithLines.acnh_updated_by = approveNoteDto.approved_by;
             noteWithLines.acnh_updated_date = new Date();
 
             // Guardar cambios en el encabezado
-            // Guardar explícitamente como instancia de NoteHeader
             await queryRunner.manager.save(NoteHeader, noteWithLines);
 
             // Registrar comentario de aprobación
@@ -421,8 +499,8 @@ export class NoteService {
             // Contabilizar la nota (crear asientos) usando el mismo código
             await this.contabilizarNota(queryRunner, noteWithLines, noteWithLines.lines);
 
-            // Actualizar estado a 'C' (Contabilizado)
-            noteWithLines.acnh_status = 'C';
+            // Registrar fecha de contabilización
+            noteWithLines.acnh_posting_date = new Date();
             await queryRunner.manager.save(NoteHeader, noteWithLines);
 
             // Registrar comentario de contabilización
@@ -519,7 +597,7 @@ export class NoteService {
 
         // Obtener resultados con relaciones incluidas
         const notesWithLines = await queryBuilder
-            .orderBy('header.acnh_accounting_date', 'DESC')
+            .orderBy('header.acnh_id', 'DESC')
             .getMany();
 
         // Transformar a formato de respuesta
@@ -560,6 +638,7 @@ export class NoteService {
                 updated_date: note.acnh_updated_date,
                 approved_by: note.acnh_approved_by,
                 approved_date: note.acnh_approved_date,
+                posting_date: note.acnh_posting_date,
                 cost_center: note.acnh_cost_center || undefined,
                 lines: noteLines,
                 comments: await this.commentService.getComments(note.acnh_cmpy, SEAT_MODULE.NOTA, note.acnh_id.toString()),
@@ -643,6 +722,7 @@ export class NoteService {
                 updated_date: note.acnh_updated_date,
                 approved_by: note.acnh_approved_by,
                 approved_date: note.acnh_approved_date,
+                posting_date: note.acnh_posting_date,
                 cost_center: note.acnh_cost_center || undefined,
                 lines: noteLines,
                 comments: await this.commentService.getComments(note.acnh_cmpy, SEAT_MODULE.NOTA, note.acnh_id.toString()),
@@ -678,6 +758,7 @@ export class NoteService {
             updated_date: noteWithLines.acnh_updated_date,
             approved_by: noteWithLines.acnh_approved_by,
             approved_date: noteWithLines.acnh_approved_date,
+            posting_date: noteWithLines.acnh_posting_date,
             cost_center: noteWithLines.acnh_cost_center!,
             lines: noteWithLines.lines,
             comments: await this.commentService.getComments(noteWithLines.acnh_cmpy, SEAT_MODULE.NOTA, noteWithLines.acnh_id.toString()),
@@ -734,7 +815,7 @@ export class NoteService {
             noteWithLines.acnh_status = updateStatusDto.status;
             noteWithLines.acnh_updated_by = updateStatusDto.updated_by;
 
-            if (updateStatusDto.status === 'A') { // Aprobado
+            if (updateStatusDto.status === 'C') { // Aprobado
                 noteWithLines.acnh_approved_by = updateStatusDto.updated_by;
                 noteWithLines.acnh_approved_date = new Date();
             }
@@ -743,23 +824,27 @@ export class NoteService {
             await queryRunner.manager.save(NoteHeader, noteWithLines);
 
             // Si está aprobado, contabilizar (crear asientos)
-            if (updateStatusDto.status === 'A') {
+            if (updateStatusDto.status === 'C') {
+                // Generar código único para este asiento y la nota si no tiene uno
+                if (!noteWithLines.acnh_code) {
+                    noteWithLines.acnh_code = await this.generateCode(cmpy, 6);
+                    await queryRunner.manager.save(NoteHeader, noteWithLines);
+                }
+
                 await this.contabilizarNota(queryRunner, noteWithLines, noteWithLines.lines);
 
-                // Actualizar estado a Contabilizado
-                noteWithLines.acnh_status = 'C';
-                noteWithLines.acnh_accounting_date = new Date();
+                // Registrar timestamp de contabilización
+                noteWithLines.acnh_posting_date = new Date();
                 await queryRunner.manager.save(NoteHeader, noteWithLines);
             }
 
             // Registrar comentario sobre cambio de estado
             let commentText = '';
             switch (updateStatusDto.status) {
-                case 'P': commentText = 'ESTADO: Pendiente'; break;
-                case 'A': commentText = 'ESTADO: Aprobado'; break;
+                case 'P': commentText = 'ESTADO: Abierta'; break;
+                case 'C': commentText = 'ESTADO: Aprobada'; break;
                 case 'R': commentText = 'ESTADO: Rechazado'; break;
-                case 'C': commentText = 'ESTADO: Contabilizado'; break;
-                case 'X': commentText = 'ESTADO: Anulado'; break;
+                case 'X': commentText = 'ESTADO: Anulada'; break;
                 default: commentText = `ESTADO: ${updateStatusDto.status}`;
             }
 
@@ -788,85 +873,5 @@ export class NoteService {
         } finally {
             await queryRunner.release();
         }
-    }
-
-    private async contabilizarNota(queryRunner: any, note: NoteHeader, lines: NoteLine[]): Promise<void> {
-        // Preparar DTO para crear asiento
-        const sientoMov: MovimientoDto[] = [];
-
-        lines.forEach(line => {
-            sientoMov.push({
-                account: line.acnl_account,
-                debit: line.acnl_debit,
-                credit: line.acnl_credit,
-                taxable_base: line.acnl_taxable_base,
-                exempt_base: line.acnl_exempt_base,
-                debitOrCredit: undefined
-            });
-        });
-
-        // Agregar información de observaciones a la descripción si existe
-        let description = `Nota Contable ${note.acnh_id}`;
-
-        const asientoData: CrearSeatDto = {
-            cmpy: note.acnh_cmpy,
-            ware: note.acnh_ware,
-            year: note.acnh_year,
-            per: note.acnh_per,
-            customers: note.acnh_customer,
-            customers_name: note.acnh_customer_name,
-            description: description,
-            creation_by: note.acnh_updated_by || note.acnh_creation_by,
-            document_type: "NOTA",
-            document_number: note.acnh_id.toString(),
-            cost_center: note.acnh_cost_center || null,
-            elaboration_date: note.acnh_date || new Date(),
-            code: note.acnh_code!,
-            module: SEAT_MODULE.NOTA,
-            ref: note.acnh_reference || note.acnh_id.toString(),
-            movimientos: sientoMov
-        };
-
-        // Llamar al servicio de asientos para contabilizar
-        await this.seatService.crearAsiento(asientoData);
-    }
-
-    private validateStatusTransition(currentStatus: string, newStatus: string): void {
-        // Solo permitir ciertas transiciones de estado
-        const allowedTransitions = {
-            'P': ['A', 'R', 'X'], // Pendiente puede pasar a Aprobado, Rechazado o Anulado
-            'R': ['P', 'X'], // Rechazado puede volver a Pendiente o ser Anulado
-            'A': ['C', 'X'], // Aprobado puede pasar a Contabilizado o ser Anulado
-            'C': ['X'], // Contabilizado solo puede ser Anulado
-            'X': [] // Anulado es un estado final
-        };
-
-        if (!allowedTransitions[currentStatus]?.includes(newStatus)) {
-            throw new BadRequestException(`No se permite cambiar de estado ${currentStatus} a ${newStatus}`);
-        }
-    }
-
-    private async generateCode(cmpy: string, length: number = 6): Promise<string> {
-        // Generar código único
-        let code: string = '';
-        let exists = true;
-        const characters = 'abcdefgABCDEFGHIstuvwJK345LMNOP1267QRSTnopqUVWXYZ089hijklmrxyz';
-
-        while (exists) {
-            code = '';
-            for (let i = 0; i < length; i++) {
-                code += characters.charAt(Math.floor(Math.random() * characters.length));
-            }
-
-            const existingNote = await this.noteHeaderRepository.findOne({
-                where: {
-                    acnh_code: code,
-                    acnh_cmpy: cmpy
-                }
-            });
-
-            exists = !!existingNote;
-        }
-        return code;
     }
 }

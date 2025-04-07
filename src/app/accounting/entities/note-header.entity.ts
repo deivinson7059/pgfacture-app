@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany, CreateDateColumn, UpdateDateColumn, JoinColumn, Index, PrimaryColumn } from 'typeorm';
+import { Entity, Column, CreateDateColumn, UpdateDateColumn, Index, PrimaryColumn } from 'typeorm';
 import { Expose, Transform } from 'class-transformer';
 import { formatDecimal } from 'src/app/common/utils/transform';
 import { dateTransformer } from 'src/app/common/utils/fechaColombia';
@@ -61,7 +61,7 @@ export class NoteHeader {
 
     @Column({ name: 'acnh_status', type: 'char', length: 1, default: 'P' })
     @Expose({ name: 'status' })
-    acnh_status: string; // P: Pendiente, A: Aprobado, R: Rechazado, C: Contabilizado, X: Anulado
+    acnh_status: string; // P: Abierta, C: Aprobado, R: Rechazado, X: Anulado
 
     @Column({ name: 'acnh_total_debit', type: 'decimal', precision: 30, scale: 5, default: 0 })
     @Expose({ name: 'total_debit' })
@@ -95,7 +95,6 @@ export class NoteHeader {
         precision: 6,
         transformer: dateTransformer()
     })
-
     @Expose({ name: 'creation_date' })
     acnh_creation_date: Date;
 
@@ -125,4 +124,14 @@ export class NoteHeader {
     })
     @Expose({ name: 'approved_date' })
     acnh_approved_date: Date;
+
+    @Column({
+        name: 'acnh_posting_date',
+        type: 'timestamp',
+        precision: 6,
+        nullable: true,
+        transformer: dateTransformer()
+    })
+    @Expose({ name: 'posting_date' })
+    acnh_posting_date: Date;
 }
