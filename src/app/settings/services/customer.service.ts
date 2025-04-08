@@ -32,6 +32,10 @@ export class CustomerService {
 
             let savedCustomer: Customer;
 
+            // Genera un hash seguro para la contraseña
+            const password = customerData.password || customerData.identification_number;
+            const hashedPassword = await this.passwordCryptoService.hashPassword(password);
+
             if (existingCustomer) {
                 // Si existe, actualizar
                 const updatedCustomer = this.CustomerRepository.create({
@@ -58,7 +62,7 @@ export class CustomerService {
                     cust_country_id: customerData.country_id,
                     cust_country: customerData.country,
                     cust_phone: customerData.phone,
-                    cust_pass: customerData.password || this.generatePassword(customerData.identification_number, customerData.dv),
+                    cust_pass: hashedPassword,
                     // No actualizamos cust_auth si ya existe
                     updated_at: new Date()
                 });
@@ -68,9 +72,10 @@ export class CustomerService {
                 // Si no existe, crear uno nuevo
                 // Obtener el ID máximo para esta compañía
                 const maxResult = await queryRunner.manager
-                    .createQueryBuilder(Customer, 'customer')
-                    .where('customer.cust_cmpy = :cmpy', { cmpy: customerData.cmpy })
+                    .createQueryBuilder()
                     .select('COALESCE(MAX(customer.cust_id), 0)', 'max')
+                    .from(Customer, 'customer')
+                    .where('customer.cust_cmpy = :cmpy', { cmpy: customerData.cmpy })
                     .getRawOne();
 
                 const nextId = Number(maxResult.max) + 1;
@@ -108,7 +113,7 @@ export class CustomerService {
                     cust_country: customerData.country,
                     cust_phone: customerData.phone,
                     cust_mobile: customerData.mobile,
-                    cust_pass: customerData.password || this.generatePassword(customerData.identification_number, customerData.dv),
+                    cust_pass: hashedPassword,
                     cust_auth: authCode, // Asignar el código generado
                     created_at: new Date(),
                     updated_at: new Date()
@@ -132,47 +137,25 @@ export class CustomerService {
         }
     }
 
-    // Función auxiliar para generar un código alfanumérico aleatorio
+    // Función auxiliar para generar un código alfanumérico aleatorio usando crypto
     private generateAuthCode(): string {
-        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        // Generar longitud aleatoria entre 15 y 45
-        const length = Math.floor(Math.random() * (45 - 15 + 1)) + 15;
-
-        let result = '';
-        for (let i = 0; i < length; i++) {
-            result += characters.charAt(Math.floor(Math.random() * characters.length));
-        }
-
-        return result;
-    }
-
-    // Función auxiliar para generar el password igual que en PHP
-    private generatePassword(identification: string, dv: string): string {
-        // En PHP: MD5(CONCAT('$identification_number', $dv))
-        const md5 = require('crypto').createHash('md5');
-        return md5.update(identification + dv).digest('hex');
+        const crypto = require('crypto');
+        // Generar un token aleatorio de 32 bytes (256 bits) y convertirlo a base64
+        return crypto.randomBytes(32).toString('base64');
     }
 
     async findCustomers(cmpy: string, datoBusq: string): Promise<apiResponse<any[]>> {
         try {
-            // Sanear los parámetros de entrada para prevenir inyección SQL
-            // cmpy debe ser un formato numérico de dos dígitos (01, 02, etc.)
-            const sanitizedCmpy = cmpy.replace(/[^\d]/g, ''); // Solo permitir dígitos numéricos
-            const sanitizedSearch = datoBusq.replace(/[^\w\d\s]/g, ''); // Solo permitir letras, números y espacios
-
-            // Convertir término de búsqueda a minúsculas
-            const searchLowerCase = sanitizedSearch.toLowerCase();
-
-            // Usar LOWER() en SQL para hacer la comparación insensible a mayúsculas/minúsculas
+            // Usamos parámetros en la consulta en lugar de concatenación de strings
             const customers = await this.CustomerRepository
                 .createQueryBuilder('customer')
-                .where('customer.cust_cmpy = :cmpy', { cmpy: sanitizedCmpy })
+                .where('customer.cust_cmpy = :cmpy', { cmpy })
                 .andWhere('customer.cust_active = :active', { active: 'Y' })
                 .andWhere(
                     '(LOWER(customer.cust_name) LIKE :search OR ' +
                     'customer.cust_identification_number LIKE :search OR ' +
                     'LOWER(customer.cust_contact_name) LIKE :search)',
-                    { search: `%${searchLowerCase}%` }
+                    { search: `%${datoBusq.toLowerCase()}%` }
                 )
                 .getMany();
 
@@ -244,7 +227,6 @@ export class CustomerService {
         }
 
         // Actualizar directamente en la base de datos sin cargar el objeto completo
-        // Esto simula mejor el comportamiento del SQL original
         await this.CustomerRepository.update(
             {
                 cust_cmpy: cmpy,
@@ -277,8 +259,8 @@ export class CustomerService {
                 throw new NotFoundException(`Tercero con identificación ${identification} no existe o está inactivo`);
             }
 
-            // Cifrar la contraseña
-            const encryptedPassword = this.passwordCryptoService.encrypt(passwordData.password);
+            // Generar hash seguro de la contraseña
+            const hashedPassword = await this.passwordCryptoService.hashPassword(passwordData.password);
 
             // Actualizar la contraseña
             await this.CustomerRepository.update(
@@ -288,7 +270,7 @@ export class CustomerService {
                     cust_active: 'Y'
                 },
                 {
-                    cust_pass: encryptedPassword,
+                    cust_pass: hashedPassword,
                     updated_at: new Date()
                 }
             );

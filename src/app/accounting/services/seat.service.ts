@@ -416,20 +416,36 @@ export class SeatService {
         return saldoAcumulado;
     }
     private async generateCode(cmpy: string, longitud: number = 6): Promise<string> {
-        // Generar código único
-        let codigo: string = '';
-        let existe = true;
-        const caracteres = 'abcdefgABCDEFGHIstuvwJK345LMNOP1267QRSTnopqUVWXYZ089hijklmrxyz';
+        // Generar código único usando crypto para mayor seguridad
+        const crypto = require('crypto');
 
-        while (existe) {
-            codigo = '';
-            for (let i = 0; i < longitud; i++) {
-                codigo += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
-            }
+        // Generamos bytes aleatorios seguros
+        const randomBytes = crypto.randomBytes(longitud);
 
-            const asientoExistente = await this.asientoRepository.findOne({ where: { acch_code: codigo, acch_cmpy: cmpy } });
-            existe = !!asientoExistente;
+        // Convertimos a una cadena alfanumérica
+        const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let codigo = '';
+
+        for (let i = 0; i < longitud; i++) {
+            // Usamos cada byte generado para seleccionar un carácter
+            // Módulo para asegurar que esté dentro del rango del array de caracteres
+            const index = randomBytes[i] % caracteres.length;
+            codigo += caracteres[index];
         }
+
+        // Verificar que no exista otro asiento con el mismo código
+        const asientoExistente = await this.asientoRepository.findOne({
+            where: {
+                acch_code: codigo,
+                acch_cmpy: cmpy
+            }
+        });
+
+        if (asientoExistente) {
+            // Si existe, generar otro código recursivamente
+            return this.generateCode(cmpy, longitud);
+        }
+
         return codigo;
     }
 
