@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Query, Param, ClassSerializerInterceptor, UseInterceptors, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, Param, ClassSerializerInterceptor, UseInterceptors, UsePipes, ValidationPipe, HttpCode, HttpStatus } from '@nestjs/common';
 
 import { SeatService } from '@accounting/services';
 
@@ -15,6 +15,7 @@ export class SeatController {
     constructor(private seatService: SeatService) { }
 
     @Post()
+    @HttpCode(HttpStatus.OK)
     @ApplyDecorators([
         CheckCmpy(ParamSource.BODY),
         CheckWare(ParamSource.BODY),
@@ -27,10 +28,12 @@ export class SeatController {
     }
 
     @Get('resumen')
+    @HttpCode(HttpStatus.OK)
     @ApplyDecorators([
         CheckCmpy(ParamSource.QUERY),
         CheckWare(ParamSource.QUERY),
         CheckPeriodOpen(ParamSource.QUERY),
+        UsePipes(new ValidationPipe({ transform: true }))
     ])
     async obtenerResumen(
         @Query('cmpy') cmpy: string,
@@ -42,8 +45,10 @@ export class SeatController {
     }
 
     @Get(':cmpy/codigo/:code')
+    @HttpCode(HttpStatus.OK)
     @ApplyDecorators([
         CheckCmpy(ParamSource.PARAMS),
+        UsePipes(new ValidationPipe({ transform: true }))
     ])
     async obtenerPorCodigo(@Param('cmpy') cmpy: string, @Param('code') code: string) {
         return this.seatService.buscarPorCodigo(cmpy, code);

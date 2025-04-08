@@ -15,12 +15,12 @@ export class NoteController {
     constructor(private readonly accountingNoteService: NoteService) { }
 
     @Post()
+    @HttpCode(HttpStatus.OK)
     @ApplyDecorators([
         CheckCmpy(ParamSource.BODY),
         CheckWare(ParamSource.BODY),
         UsePipes(new ValidationPipe({ transform: true }))
     ])
-    @HttpCode(HttpStatus.OK)
     async create(@Body() createNoteDto: CreateNoteDto): Promise<apiResponse<NoteWithLines>> {
         // Aseguramos que se guarde en estado Abierta/pendiente sin asientos
         const note = await this.accountingNoteService.create(createNoteDto);
@@ -32,12 +32,12 @@ export class NoteController {
     }
 
     @Put('edit/:cmpy/:id')
+    @HttpCode(HttpStatus.OK)
     @ApplyDecorators([
         CheckCmpy(ParamSource.PARAMS),
         CheckWare(ParamSource.BODY),
         UsePipes(new ValidationPipe({ transform: true }))
     ])
-    @HttpCode(HttpStatus.OK)
     async edit(
         @Param('cmpy') cmpy: string,
         @Param('id') id: number,
@@ -52,11 +52,11 @@ export class NoteController {
     }
 
     @Put('anulate/:cmpy/:id')
+    @HttpCode(HttpStatus.OK)
     @ApplyDecorators([
         CheckCmpy(ParamSource.PARAMS),
         UsePipes(new ValidationPipe({ transform: true }))
     ])
-    @HttpCode(HttpStatus.OK)
     async anulate(
         @Param('cmpy') cmpy: string,
         @Param('id') id: number,
@@ -71,11 +71,11 @@ export class NoteController {
     }
 
     @Put('approve/:cmpy/:id')
+    @HttpCode(HttpStatus.OK)
     @ApplyDecorators([
         CheckCmpy(ParamSource.PARAMS),
         UsePipes(new ValidationPipe({ transform: true }))
     ])
-    @HttpCode(HttpStatus.OK)
     async approve(
         @Param('cmpy') cmpy: string,
         @Param('id') id: number,
@@ -91,6 +91,10 @@ export class NoteController {
 
     @Get(':cmpy')
     @HttpCode(HttpStatus.OK)
+    @ApplyDecorators([
+        CheckCmpy(ParamSource.PARAMS),
+        UsePipes(new ValidationPipe({ transform: true }))
+    ])
     async findAll(
         @Param('cmpy') cmpy: string,
         @Query('date_ini') date_ini?: Date,
@@ -126,6 +130,10 @@ export class NoteController {
 
     @Get(':cmpy/paginated')
     @HttpCode(HttpStatus.OK)
+    @ApplyDecorators([
+        CheckCmpy(ParamSource.PARAMS),
+        UsePipes(new ValidationPipe({ transform: true }))
+    ])
     async findAllPaginated(
         @Param('cmpy') cmpy: string,
         @Query('date_ini') date_ini?: Date,
@@ -174,6 +182,10 @@ export class NoteController {
     }
 
     @Get(':cmpy/:id')
+    @ApplyDecorators([
+        CheckCmpy(ParamSource.PARAMS),
+        UsePipes(new ValidationPipe({ transform: true }))
+    ])
     async findOne(@Param('cmpy') cmpy: string, @Param('id') id: number): Promise<apiResponse<NoteWithLines>> {
         const note = await this.accountingNoteService.getNoteInfo(cmpy, id);
         return {

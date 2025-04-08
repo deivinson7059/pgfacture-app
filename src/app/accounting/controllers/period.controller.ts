@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Query, Put, ParseIntPipe, UseGuards, ClassSerializerInterceptor, UseInterceptors } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, Put, ParseIntPipe, ClassSerializerInterceptor, UseInterceptors, HttpCode, HttpStatus, UsePipes, ValidationPipe } from '@nestjs/common';
 
 import { Period } from '@accounting/entities';
 
@@ -6,6 +6,8 @@ import { PeriodService } from '@accounting/services';
 
 import { CreatePeriodDto, CreateYearPeriodsDto } from '@accounting/dto';
 import { apiResponse } from '@common/interfaces';
+import { ApplyDecorators, CheckCmpy } from '@common/decorators';
+import { ParamSource } from '@common/enums';
 
 
 @Controller('accounting/period')
@@ -14,6 +16,11 @@ export class PeriodController {
     constructor(private readonly periodService: PeriodService) { }
 
     @Get()
+    @HttpCode(HttpStatus.OK)
+    @ApplyDecorators([
+        CheckCmpy(ParamSource.QUERY),
+        UsePipes(new ValidationPipe({ transform: true }))
+    ])
     async findAll(
         @Query('cmpy') cmpy: string,
         @Query('year') year?: number,
@@ -26,6 +33,11 @@ export class PeriodController {
     }
 
     @Get(':cmpy/:year/:per')
+    @HttpCode(HttpStatus.OK)
+    @ApplyDecorators([
+        CheckCmpy(ParamSource.PARAMS),
+        UsePipes(new ValidationPipe({ transform: true }))
+    ])
     async findOne(
         @Param('cmpy') cmpy: string,
         @Param('year', ParseIntPipe) year: number,
@@ -39,6 +51,11 @@ export class PeriodController {
     }
 
     @Post()
+    @HttpCode(HttpStatus.OK)
+    @ApplyDecorators([
+        CheckCmpy(ParamSource.BODY),
+        UsePipes(new ValidationPipe({ transform: true }))
+    ])
     async create(
         @Body() createPeriodDto: CreatePeriodDto,
     ): Promise<apiResponse<Period>> {
@@ -50,6 +67,11 @@ export class PeriodController {
     }
 
     @Post('year')
+    @HttpCode(HttpStatus.OK)
+    @ApplyDecorators([
+        CheckCmpy(ParamSource.BODY),
+        UsePipes(new ValidationPipe({ transform: true }))
+    ])
     async createYearPeriods(
         @Body() createYearPeriodsDto: CreateYearPeriodsDto,
     ): Promise<apiResponse<Period[]>> {
@@ -61,6 +83,11 @@ export class PeriodController {
     }
 
     @Put('close/:cmpy/:year/:per')
+    @HttpCode(HttpStatus.OK)
+    @ApplyDecorators([
+        CheckCmpy(ParamSource.PARAMS),
+        UsePipes(new ValidationPipe({ transform: true }))
+    ])
     async closePeriod(
         @Param('cmpy') cmpy: string,
         @Param('year', ParseIntPipe) year: number,

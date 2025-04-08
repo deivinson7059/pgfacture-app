@@ -1,15 +1,23 @@
-import { Controller, Get, Post, Query, Body, ClassSerializerInterceptor, UseInterceptors } from '@nestjs/common';
+import { Controller, Get, Post, Query, Body, ClassSerializerInterceptor, UseInterceptors, HttpStatus, HttpCode, UsePipes, ValidationPipe } from '@nestjs/common';
 
 import { Balance } from '@accounting/entities';
 import { BalanceService } from '@accounting/services';
 
 import { apiResponse } from '@common/interfaces';
+import { ApplyDecorators, CheckCmpy, CheckWare } from '@common/decorators';
+import { ParamSource } from '@common/enums';
 @Controller('accounting/balance')
 @UseInterceptors(ClassSerializerInterceptor)
 export class BalanceController {
     constructor(private readonly accountingService: BalanceService) { }
 
     @Post('generate')
+    @HttpCode(HttpStatus.OK)
+    @ApplyDecorators([
+        CheckCmpy(ParamSource.BODY),
+        CheckWare(ParamSource.BODY),
+        UsePipes(new ValidationPipe({ transform: true }))
+    ])
     async generateBalance(
         @Body('cmpy') cmpy: string,
         @Body('ware') ware: string,
@@ -52,6 +60,12 @@ export class BalanceController {
     }
 
     @Post('generate-range')
+    @HttpCode(HttpStatus.OK)
+    @ApplyDecorators([
+        CheckCmpy(ParamSource.BODY),
+        CheckWare(ParamSource.BODY),
+        UsePipes(new ValidationPipe({ transform: true }))
+    ])
     async generateBalanceByDateRange(
         @Body('cmpy') cmpy: string,
         @Body('ware') ware: string,
@@ -94,6 +108,11 @@ export class BalanceController {
     }
 
     @Get()
+    @HttpCode(HttpStatus.OK)
+    @ApplyDecorators([
+        CheckCmpy(ParamSource.QUERY),
+        UsePipes(new ValidationPipe({ transform: true }))
+    ])
     async getBalance(
         @Query('cmpy') cmpy: string,
         @Query('year') year: number,
@@ -132,6 +151,11 @@ export class BalanceController {
     }
 
     @Get('range')
+    @HttpCode(HttpStatus.OK)
+    @ApplyDecorators([
+        CheckCmpy(ParamSource.QUERY),
+        UsePipes(new ValidationPipe({ transform: true }))
+    ])
     async getBalancePorRangoFechas(
         @Query('cmpy') cmpy: string,
         @Query('startDate') startDate: Date,
@@ -170,6 +194,10 @@ export class BalanceController {
     }
 
     @Get('types')
+    @HttpCode(HttpStatus.OK)
+    @ApplyDecorators([
+        UsePipes(new ValidationPipe({ transform: true }))
+    ])
     getBalanceTypes(): apiResponse<any[]> {
         const balanceTypes = [
             { code: 'G', name: 'Balance General' },
@@ -183,4 +211,5 @@ export class BalanceController {
             data: balanceTypes,
         };
     }
-} 
+}
+

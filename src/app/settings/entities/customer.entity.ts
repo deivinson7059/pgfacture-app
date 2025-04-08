@@ -6,6 +6,7 @@ import { dateTransformer } from '@common/utils/fechaColombia';
 export class Customer {
     @Column('bigint', { name: 'cust_id', primary: true })
     @Index('pg_customers_fk5')
+    @Exclude()
     @Expose({ name: 'id' })
     cust_id: number;
 
@@ -16,15 +17,16 @@ export class Customer {
 
     @Column('varchar', { name: 'cust_active', length: 2, default: 'Y' })
     @Index('pg_customers_fk8')
+    @Exclude()
     @Expose({ name: 'active' })
-    cust_active: string;
+    cust_active?: string;
 
     @PrimaryColumn('varchar', { name: 'cust_identification_number', length: 30 })
     @Index('pg_customers_fk2')
     @Expose({ name: 'identification_number' })
     cust_identification_number: string;
 
-    @Column('char', { name: 'cust_dv', length: 1, nullable: true })
+    @Column('varchar', { name: 'cust_dv', length: 1, nullable: true })
     @Expose({ name: 'dv' })
     cust_dv: string;
 
@@ -133,7 +135,6 @@ export class Customer {
 
     @Column('varchar', { name: 'cust_auth', length: 300 })
     @Expose({ name: 'auth' })
-    @Exclude()
     cust_auth: string;
 
     @Column({

@@ -26,16 +26,27 @@ export class PucController {
     ) { }
 
     @Post()
+    @HttpCode(HttpStatus.OK)
+    @ApplyDecorators([
+        CheckCmpy(ParamSource.BODY),
+        UsePipes(new ValidationPipe({ transform: true }))
+    ])
     async create(@Body() accountPlanDto: CreatePucDto): Promise<Puc> {
         return this.PucService.create(accountPlanDto);
     }
 
     @Put()
+    @HttpCode(HttpStatus.OK)
+    @ApplyDecorators([
+        CheckCmpy(ParamSource.BODY),
+        UsePipes(new ValidationPipe({ transform: true }))
+    ])
     async update(@Body() accountPucDto: UpdatePucDto): Promise<Puc> {
         return this.PucService.update(accountPucDto);
     }
 
     @Get(':cmpy')
+    @HttpCode(HttpStatus.OK)
     @ApplyDecorators([
         CheckCmpy(ParamSource.PARAMS),
         UsePipes(new ValidationPipe({ transform: true }))
@@ -52,6 +63,7 @@ export class PucController {
     }
 
     @Get(':cmpy/account/:accountId')
+    @HttpCode(HttpStatus.OK)
     @ApplyDecorators([
         CheckCmpy(ParamSource.PARAMS),
         UsePipes(new ValidationPipe({ transform: true }))
@@ -79,6 +91,7 @@ export class PucController {
     * Determina automáticamente si buscar por número o descripción
     */
     @Post('/search')
+    @HttpCode(HttpStatus.OK)
     @ApplyDecorators([
         CheckCmpy(ParamSource.BODY),
         UsePipes(new ValidationPipe({ transform: true }))
@@ -113,11 +126,11 @@ export class PucController {
    * Cargar todas las cuentas auxiliares según compañía, limitado a 300 resultados
    */
     @Post('/all')
+    @HttpCode(HttpStatus.OK)
     @ApplyDecorators([
         CheckCmpy(ParamSource.BODY),
         UsePipes(new ValidationPipe({ transform: true }))
     ])
-    @HttpCode(HttpStatus.OK)
     async searchAccountsAll(
         @Body() searchDto: allPucDto
     ): Promise<apiResponse<Puc[]>> {

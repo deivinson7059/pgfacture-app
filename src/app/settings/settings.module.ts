@@ -7,7 +7,7 @@ import { Company, Customer } from './entities';
 import { SucursalService } from './services/sucursal.service';
 import { Sucursal } from './entities/sucursal.entity';
 import { CustomerController } from './controllers';
-import { CustomerService } from './services';
+import { CustomerService, PasswordCryptoService } from './services';
 
 @Module({
     controllers: [
@@ -18,7 +18,8 @@ import { CustomerService } from './services';
     providers: [
         CompanyService,
         SucursalService,
-        CustomerService
+        CustomerService,
+        PasswordCryptoService
     ],
     imports: [
         TypeOrmModule.forFeature(

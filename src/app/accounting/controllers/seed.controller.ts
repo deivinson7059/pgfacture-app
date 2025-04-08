@@ -1,8 +1,10 @@
-import { Controller, Post, Body, HttpException, HttpStatus, ClassSerializerInterceptor, UseInterceptors } from '@nestjs/common';
+import { Controller, Post, Body, HttpException, HttpStatus, ClassSerializerInterceptor, UseInterceptors, HttpCode, UsePipes, ValidationPipe } from '@nestjs/common';
 
 import { AccountingSeedService } from '@accounting/services';
 
 import { apiResponse } from '@common/interfaces';
+import { ApplyDecorators, CheckCmpy, CheckPeriodOpen, CheckWare } from '@common/decorators';
+import { ParamSource } from '@common/enums';
 
 @Controller('seed/accounting')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -10,6 +12,12 @@ export class AccountingSeedController {
     constructor(private readonly accountingSeedService: AccountingSeedService) { }
 
     @Post()
+    @HttpCode(HttpStatus.OK)
+    @ApplyDecorators([
+        CheckCmpy(ParamSource.BODY),
+        CheckWare(ParamSource.BODY),
+        UsePipes(new ValidationPipe({ transform: true }))
+    ])
     async seedAccounting(
         @Body() body: { cmpy: string; ware: string }
     ): Promise<apiResponse<any>> {

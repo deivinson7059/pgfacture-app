@@ -104,5 +104,6 @@ export class CreateCustomerDto {
     new_password: string;
 
     @IsString()
+    @IsOptional()
     auth: string;
 }

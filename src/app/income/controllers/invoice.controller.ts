@@ -1,7 +1,7 @@
 import { Controller, Post, Body, HttpException, HttpStatus, ClassSerializerInterceptor, UseInterceptors } from "@nestjs/common";
-import { CreateInvoiceDto } from "./dto";
-import { ICreateInvoiceResponse } from "./interfaces/invoice.interface";
-import { InvoiceService } from "./invoice.service";
+import { CreateInvoiceDto } from "../dto";
+import { ICreateInvoiceResponse } from "../interfaces/invoice.interface";
+import { InvoiceService } from "../services/invoice.service";
 
 @Controller('income/invoice')
 @UseInterceptors(ClassSerializerInterceptor)

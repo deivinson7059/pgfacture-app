@@ -1,10 +1,10 @@
 import { Injectable, HttpException, HttpStatus } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, QueryRunner, Repository } from "typeorm";
-import { CreateInvoiceDto } from "./dto";
-import { ICreateInvoiceResponse } from "./interfaces/invoice.interface";
-import { InvoiceHead } from "./entities/invoice-head.entity";
-import { InvoiceLine } from "./entities/invoice-line.entity";
+import { CreateInvoiceDto } from "../dto";
+import { ICreateInvoiceResponse } from "../interfaces/invoice.interface";
+import { InvoiceHead } from "../entities/invoice-head.entity";
+import { InvoiceLine } from "../entities/invoice-line.entity";
 import { Company, Sucursal } from "src/app/settings/entities";
 
 @Injectable()

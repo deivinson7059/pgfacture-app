@@ -3,98 +3,200 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, Repository } from "typeorm";
 
 import { apiResponse } from "src/app/common/interfaces/common.interface";
-import { CreateCustomerDto, UpdateCustomerDto } from "../dto";
+import { CreateCustomerDto, UpdatePasswordDto } from "../dto";
 import { Customer } from "../entities/customer.entity";
+import { PasswordCryptoService } from ".";
 
 @Injectable()
 export class CustomerService {
     constructor(
         @InjectRepository(Customer)
         private readonly CustomerRepository: Repository<Customer>,
-        private dataSource: DataSource
+        private dataSource: DataSource,
+        private readonly passwordCryptoService: PasswordCryptoService
     ) { }
 
-    async create(createCustomerDto: CreateCustomerDto): Promise<apiResponse<Customer>> {
+    async saveCustomer(customerData: CreateCustomerDto): Promise<apiResponse<Customer>> {
         const queryRunner = this.dataSource.createQueryRunner();
         await queryRunner.connect();
         await queryRunner.startTransaction();
 
         try {
-            // Verificar si el Tercero ya existe por compañía e identificación
+            // Verificar si el tercero ya existe
             const existingCustomer = await this.CustomerRepository.findOne({
                 where: {
-                    cust_cmpy: createCustomerDto.cmpy,
-                    cust_identification_number: createCustomerDto.identification_number
+                    cust_cmpy: customerData.cmpy,
+                    cust_identification_number: customerData.identification_number
                 }
             });
 
+            let savedCustomer: Customer;
+
             if (existingCustomer) {
-                throw new ConflictException(`El Tercero con identificación ${createCustomerDto.identification_number} ya existe para esta compañía`);
+                // Si existe, actualizar
+                const updatedCustomer = this.CustomerRepository.create({
+                    ...existingCustomer,
+                    cust_active: 'Y', // Siempre activar el tercero al actualizar
+                    cust_dv: customerData.dv,
+                    cust_type_document_identification_id: customerData.type_document_identification_id,
+                    cust_type_document_identification: customerData.type_document_identification,
+                    cust_type_organization_id: customerData.type_organization_id,
+                    cust_type_organization: customerData.type_organization,
+                    cust_type_regime_id: customerData.type_regime_id,
+                    cust_type_regime: customerData.type_regime,
+                    cust_type_liability_id: customerData.type_liability_id,
+                    cust_type_liability: customerData.type_liability,
+                    cust_name: customerData.name,
+                    cust_contact_name: customerData.contact_name,
+                    cust_adinfo: customerData.additional_info,
+                    cust_email: customerData.email,
+                    cust_address: customerData.address,
+                    cust_municipality_id: customerData.municipality_id,
+                    cust_municipality: customerData.municipality,
+                    cust_dep_id: customerData.dep_id,
+                    cust_dep: customerData.dep,
+                    cust_country_id: customerData.country_id,
+                    cust_country: customerData.country,
+                    cust_phone: customerData.phone,
+                    cust_pass: customerData.password || this.generatePassword(customerData.identification_number, customerData.dv),
+                    // No actualizamos cust_auth si ya existe
+                    updated_at: new Date()
+                });
+
+                savedCustomer = await queryRunner.manager.save(updatedCustomer);
+            } else {
+                // Si no existe, crear uno nuevo
+                // Obtener el ID máximo para esta compañía
+                const maxResult = await queryRunner.manager
+                    .createQueryBuilder(Customer, 'customer')
+                    .where('customer.cust_cmpy = :cmpy', { cmpy: customerData.cmpy })
+                    .select('COALESCE(MAX(customer.cust_id), 0)', 'max')
+                    .getRawOne();
+
+                const nextId = Number(maxResult.max) + 1;
+
+                // Generar código alfanumérico único para cust_auth
+                const authCode = this.generateAuthCode();
+
+                // Crear nuevo tercero
+                const newCustomer = this.CustomerRepository.create({
+                    cust_id: nextId,
+                    cust_cmpy: customerData.cmpy,
+                    cust_active: 'Y',
+                    cust_identification_number: customerData.identification_number,
+                    cust_dv: customerData.dv,
+                    cust_type_document_identification_id: customerData.type_document_identification_id,
+                    cust_type_document_identification: customerData.type_document_identification,
+                    cust_type_organization_id: customerData.type_organization_id,
+                    cust_type_organization: customerData.type_organization,
+                    cust_type_regime_id: customerData.type_regime_id,
+                    cust_type_regime: customerData.type_regime,
+                    cust_type_liability_id: customerData.type_liability_id,
+                    cust_type_liability: customerData.type_liability,
+                    cust_name: customerData.name,
+                    cust_given_names: customerData.given_names,
+                    cust_family_names: customerData.family_names,
+                    cust_contact_name: customerData.contact_name,
+                    cust_adinfo: customerData.additional_info,
+                    cust_email: customerData.email,
+                    cust_address: customerData.address,
+                    cust_municipality_id: customerData.municipality_id,
+                    cust_municipality: customerData.municipality,
+                    cust_dep_id: customerData.dep_id,
+                    cust_dep: customerData.dep,
+                    cust_country_id: customerData.country_id,
+                    cust_country: customerData.country,
+                    cust_phone: customerData.phone,
+                    cust_mobile: customerData.mobile,
+                    cust_pass: customerData.password || this.generatePassword(customerData.identification_number, customerData.dv),
+                    cust_auth: authCode, // Asignar el código generado
+                    created_at: new Date(),
+                    updated_at: new Date()
+                });
+
+                savedCustomer = await queryRunner.manager.save(newCustomer);
             }
 
-            // Obtener el máximo ID actual para esta compañía
-            const maxResult = await queryRunner.manager
-                .createQueryBuilder(Customer, 'customer')
-                .where('customer.cust_cmpy = :cmpy', { cmpy: createCustomerDto.cmpy })
-                .select('COALESCE(MAX(customer.cust_id), 0)', 'max')
-                .getRawOne();
-
-            const nextId = Number(maxResult.max) + 1;
-
-            // Crear el nuevo Tercero
-            const newCustomer = this.CustomerRepository.create({
-                cust_id: nextId,
-                cust_cmpy: createCustomerDto.cmpy,
-                cust_active: createCustomerDto.active || 'Y',
-                cust_identification_number: createCustomerDto.identification_number,
-                cust_dv: createCustomerDto.dv,
-                cust_type_document_identification_id: createCustomerDto.type_document_identification_id,
-                cust_type_document_identification: createCustomerDto.type_document_identification,
-                cust_type_organization_id: createCustomerDto.type_organization_id,
-                cust_type_organization: createCustomerDto.type_organization,
-                cust_type_regime_id: createCustomerDto.type_regime_id,
-                cust_type_regime: createCustomerDto.type_regime,
-                cust_type_liability_id: createCustomerDto.type_liability_id,
-                cust_type_liability: createCustomerDto.type_liability,
-                cust_name: createCustomerDto.name,
-                cust_given_names: createCustomerDto.given_names,
-                cust_family_names: createCustomerDto.family_names,
-                cust_contact_name: createCustomerDto.contact_name,
-                cust_adinfo: createCustomerDto.additional_info,
-                cust_email: createCustomerDto.email,
-                cust_address: createCustomerDto.address,
-                cust_municipality_id: createCustomerDto.municipality_id,
-                cust_municipality: createCustomerDto.municipality,
-                cust_dep_id: createCustomerDto.dep_id,
-                cust_dep: createCustomerDto.dep,
-                cust_country_id: createCustomerDto.country_id,
-                cust_country: createCustomerDto.country,
-                cust_phone: createCustomerDto.phone,
-                cust_mobile: createCustomerDto.mobile,
-                cust_pass: createCustomerDto.password,
-                cust_newpass: createCustomerDto.new_password,
-                cust_auth: createCustomerDto.auth,
-                created_at: new Date(),
-                updated_at: new Date()
-            });
-
-            // Guardar el nuevo Tercero
-            const savedCustomer = await queryRunner.manager.save(newCustomer);
             await queryRunner.commitTransaction();
 
             return {
-                message: "Tercero creado correctamente!",
+                message: "Tercero creado/actualizado con éxito",
                 data: savedCustomer
             };
 
         } catch (err) {
             await queryRunner.rollbackTransaction();
-            if (err instanceof ConflictException) {
-                throw err;
-            }
-            throw new ConflictException('Error al crear el Tercero: ' + err.message);
+            throw new ConflictException('Error al crear / actualizar el tercero: ' + err.message);
         } finally {
             await queryRunner.release();
+        }
+    }
+
+    // Función auxiliar para generar un código alfanumérico aleatorio
+    private generateAuthCode(): string {
+        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        // Generar longitud aleatoria entre 15 y 45
+        const length = Math.floor(Math.random() * (45 - 15 + 1)) + 15;
+
+        let result = '';
+        for (let i = 0; i < length; i++) {
+            result += characters.charAt(Math.floor(Math.random() * characters.length));
+        }
+
+        return result;
+    }
+
+    // Función auxiliar para generar el password igual que en PHP
+    private generatePassword(identification: string, dv: string): string {
+        // En PHP: MD5(CONCAT('$identification_number', $dv))
+        const md5 = require('crypto').createHash('md5');
+        return md5.update(identification + dv).digest('hex');
+    }
+
+    async findCustomers(cmpy: string, datoBusq: string): Promise<apiResponse<any[]>> {
+        try {
+            // Sanear los parámetros de entrada para prevenir inyección SQL
+            // cmpy debe ser un formato numérico de dos dígitos (01, 02, etc.)
+            const sanitizedCmpy = cmpy.replace(/[^\d]/g, ''); // Solo permitir dígitos numéricos
+            const sanitizedSearch = datoBusq.replace(/[^\w\d\s]/g, ''); // Solo permitir letras, números y espacios
+
+            // Convertir término de búsqueda a minúsculas
+            const searchLowerCase = sanitizedSearch.toLowerCase();
+
+            // Usar LOWER() en SQL para hacer la comparación insensible a mayúsculas/minúsculas
+            const customers = await this.CustomerRepository
+                .createQueryBuilder('customer')
+                .where('customer.cust_cmpy = :cmpy', { cmpy: sanitizedCmpy })
+                .andWhere('customer.cust_active = :active', { active: 'Y' })
+                .andWhere(
+                    '(LOWER(customer.cust_name) LIKE :search OR ' +
+                    'customer.cust_identification_number LIKE :search OR ' +
+                    'LOWER(customer.cust_contact_name) LIKE :search)',
+                    { search: `%${searchLowerCase}%` }
+                )
+                .getMany();
+
+            // Procesar los datos y excluir cust_id
+            const processedCustomers = customers.map(customer => {
+                // Crear una copia del objeto customer sin cust_id
+                const { cust_id, cust_active, ...customerData }: any = customer;
+
+                // Añadir el campo name_
+                if (!customer.cust_contact_name || customer.cust_contact_name === '-') {
+                    customerData.name_ = customer.cust_name;
+                } else {
+                    customerData.name_ = `${customer.cust_name} (${customer.cust_contact_name})`;
+                }
+
+                return customerData;
+            });
+
+            return {
+                message: "Búsqueda de Terceros",
+                data: processedCustomers
+            };
+        } catch (error) {
+            throw new ConflictException('Error al buscar terceros: ' + error.message);
         }
     }
 
@@ -127,54 +229,79 @@ export class CustomerService {
         };
     }
 
-    async update(cmpy: string, identification: string, updateCustomerDto: UpdateCustomerDto): Promise<apiResponse<Customer>> {
-        const customer = await this.CustomerRepository.findOne({
-            where: {
-                cust_cmpy: cmpy,
-                cust_identification_number: identification
-            }
-        });
-
-        if (!customer) {
-            throw new NotFoundException(`Tercero con identificación ${identification} no existe`);
-        }
-
-        // Actualizar solo los campos proporcionados
-        const updatedCustomer = this.CustomerRepository.create({
-            ...customer,
-            ...Object.entries(updateCustomerDto).reduce((acc, [key, value]) => {
-                // Convertir las claves del DTO a las claves de la entidad
-                const entityKey = `cust_${key}`;
-                acc[entityKey] = value;
-                return acc;
-            }, {}),
-            updated_at: new Date()
-        });
-
-        const savedCustomer = await this.CustomerRepository.save(updatedCustomer);
-
-        return {
-            message: "Tercero actualizado correctamente!",
-            data: savedCustomer
-        };
-    }
-
     async remove(cmpy: string, identification: string): Promise<apiResponse> {
+        // Verificar que el customer existe y está activo antes de intentar actualizarlo
         const customer = await this.CustomerRepository.findOne({
             where: {
                 cust_cmpy: cmpy,
-                cust_identification_number: identification
+                cust_identification_number: identification,
+                cust_active: 'Y' // Solo podemos eliminar terceros activos
             }
         });
 
         if (!customer) {
-            throw new NotFoundException(`Tercero con identificación ${identification} no existe`);
+            throw new NotFoundException(`Tercero con identificación ${identification} no existe..!`);
         }
 
-        await this.CustomerRepository.remove(customer);
+        // Actualizar directamente en la base de datos sin cargar el objeto completo
+        // Esto simula mejor el comportamiento del SQL original
+        await this.CustomerRepository.update(
+            {
+                cust_cmpy: cmpy,
+                cust_identification_number: identification,
+                cust_active: 'Y' // Asegurar que solo actualizamos terceros activos
+            },
+            {
+                cust_active: 'N',
+                updated_at: new Date()
+            }
+        );
 
         return {
             message: "Tercero eliminado correctamente!"
         };
+    }
+
+    async updatePassword(cmpy: string, identification: string, passwordData: UpdatePasswordDto): Promise<apiResponse<{ success: boolean }>> {
+        try {
+            // Verificar que el tercero existe
+            const customer = await this.CustomerRepository.findOne({
+                where: {
+                    cust_cmpy: cmpy,
+                    cust_identification_number: identification,
+                    cust_active: 'Y'
+                }
+            });
+
+            if (!customer) {
+                throw new NotFoundException(`Tercero con identificación ${identification} no existe o está inactivo`);
+            }
+
+            // Cifrar la contraseña
+            const encryptedPassword = this.passwordCryptoService.encrypt(passwordData.password);
+
+            // Actualizar la contraseña
+            await this.CustomerRepository.update(
+                {
+                    cust_cmpy: cmpy,
+                    cust_identification_number: identification,
+                    cust_active: 'Y'
+                },
+                {
+                    cust_pass: encryptedPassword,
+                    updated_at: new Date()
+                }
+            );
+
+            return {
+                message: "Contraseña actualizada correctamente",
+                data: { success: true }
+            };
+        } catch (err) {
+            if (err instanceof NotFoundException) {
+                throw err;
+            }
+            throw new ConflictException('Error al actualizar la contraseña: ' + err.message);
+        }
     }
 }

@@ -1,3 +1,4 @@
+export { UpdatePasswordDto } from "./update-password.dto";
 export { ListCustomerDto } from "./list-customer.dto";
 export { UpdateCustomerDto } from "./update-customer.dto";
 export { CreateCustomerDto } from "./create-customer.dto";

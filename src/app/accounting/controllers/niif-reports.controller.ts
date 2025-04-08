@@ -1,9 +1,11 @@
-import { Controller, Post, Body, HttpException, HttpStatus, ClassSerializerInterceptor, UseInterceptors } from '@nestjs/common';
+import { Controller, Post, Body, HttpException, HttpStatus, ClassSerializerInterceptor, UseInterceptors, HttpCode, UsePipes, ValidationPipe } from '@nestjs/common';
 
 import { NiifReportsService } from '@accounting/services';
 
 import { apiResponse } from '@common/interfaces';
 import { GenerarNiifReporteDto } from '@accounting/dto';
+import { ApplyDecorators, CheckCmpy, CheckWare } from '@common/decorators';
+import { ParamSource } from '@common/enums';
 
 @Controller('accounting/niif-reports')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -13,6 +15,12 @@ export class NiifReportsController {
     ) { }
 
     @Post('estado-resultados')
+    @HttpCode(HttpStatus.OK)
+    @ApplyDecorators([
+        CheckCmpy(ParamSource.BODY),
+        CheckWare(ParamSource.BODY),
+        UsePipes(new ValidationPipe({ transform: true }))
+    ])
     async generateEstadoResultados(
         @Body() reporteDto: GenerarNiifReporteDto
     ): Promise<apiResponse<any>> {
