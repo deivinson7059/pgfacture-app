@@ -1,7 +1,7 @@
 import { Entity, Column, PrimaryColumn, Index } from 'typeorm';
 import { Exclude, Expose } from 'class-transformer';
 
-@Entity({ schema: 'pgfacture', name: 'pg_cmpy' })
+@Entity({ schema: 'pgfacture', name: 'pgx_cmpy' })
 export class Company {
     @PrimaryColumn('bigint', { name: 'cmpy_n_id' })
     @Expose({ name: 'id' })
@@ -9,7 +9,7 @@ export class Company {
     cmpy_n_id: number;
 
     @Column('varchar', { name: 'cmpy_id', length: 10 })
-    @Index('pg_cmpy_fk1')
+    @Index('pgx_cmpy_fk1')
     @Expose({ name: 'cmpy' })
     cmpy_id: string;
 
@@ -22,22 +22,22 @@ export class Company {
     cmpy_type_document_identification: string;
 
     @Column('varchar', { name: 'cmpy_document_identification', length: 80 })
-    @Index('pg_cmpy_fk2')
+    @Index('pgx_cmpy_fk2')
     @Expose({ name: 'document_identification' })
     cmpy_document_identification: string;
 
     @Column('char', { name: 'cmpy_dv', length: 1 })
-    @Index('pg_cmpy_fk3')
+    @Index('pgx_cmpy_fk3')
     @Expose({ name: 'dv' })
     cmpy_dv: string;
 
     @Column('varchar', { name: 'cmpy_business_name', length: 300 })
-    @Index('pg_cmpy_fk4')
+    @Index('pgx_cmpy_fk4')
     @Expose({ name: 'business_name' })
     cmpy_business_name: string;
 
     @Column('varchar', { name: 'cmpy_trading_name', length: 300 })
-    @Index('pg_cmpy_fk5')
+    @Index('pgx_cmpy_fk5')
     @Expose({ name: 'trading_name' })
     cmpy_trading_name: string;
 
@@ -138,13 +138,13 @@ export class Company {
     cmpy_restobar: string;
 
     @Column('varchar', { name: 'cmpy_letter', length: 5 })
-    @Index('pg_cmpy_fk8')
+    @Index('pgx_cmpy_fk8')
     @Expose({ name: 'letter' })
     @Exclude()
     cmpy_letter: string;
 
     @Column('bigint', { name: 'cmpy_next', default: 0 })
-    @Index('pg_cmpy_fk9')
+    @Index('pgx_cmpy_fk9')
     @Expose({ name: 'next' })
     @Exclude()
     cmpy_next: number;
@@ -155,30 +155,30 @@ export class Company {
     cmpy_print_id: number;
 
     @Column('char', { name: 'cmpy_enabled', length: 2, default: 'Y' })
-    @Index('pg_cmpy_fk7')
+    @Index('pgx_cmpy_fk7')
     @Expose({ name: 'enabled' })
     cmpy_enabled: string;
 
     @Column('varchar', { name: 'cmpy_api_dian', length: 191, default: 'https://dian.pgfacture.com' })
-    @Index('pg_cmpy_fk16')
+    @Index('pgx_cmpy_fk16')
     @Expose({ name: 'api_dian' })
     @Exclude()
     cmpy_api_dian: string;
 
     @Column('varchar', { name: 'cmpy_api_token', length: 120, default: null })
-    @Index('pg_cmpy_fk6')
+    @Index('pgx_cmpy_fk6')
     @Expose({ name: 'api_token' })
     @Exclude()
     cmpy_api_token: string;
 
     @Column('bigint', { name: 'cmpy_api_id', nullable: true, default: null })
-    @Index('pg_cmpy_fk18')
+    @Index('pgx_cmpy_fk18')
     @Expose({ name: 'api_id' })
     @Exclude()
     cmpy_api_id: number;
 
     @Column('varchar', { name: 'cmpy_invoice_template', length: 10, default: '2' })
-    @Index('pg_cmpy_fk19')
+    @Index('pgx_cmpy_fk19')
     @Expose({ name: 'invoice_template' })
     @Exclude()
     cmpy_invoice_template: string;
@@ -189,19 +189,19 @@ export class Company {
     cmpy_pos_template: string;
 
     @Column('varchar', { name: 'cmpy_template_token', length: 191, default: '' })
-    @Index('pg_cmpy_fk17')
+    @Index('pgx_cmpy_fk17')
     @Expose({ name: 'template_token' })
     @Exclude()
     cmpy_template_token: string;
 
     @Column('char', { name: 'cmpy_fe_enabled', length: 1, default: 'N' })
-    @Index('pg_cmpy_fk10')
+    @Index('pgx_cmpy_fk10')
     @Expose({ name: 'fe_enabled' })
     @Exclude()
     cmpy_fe_enabled: string;
 
     @Column('varchar', { name: 'cmpy_ne_enabled', length: 2, default: 'N' })
-    @Index('pg_cmpy_fk11')
+    @Index('pgx_cmpy_fk11')
     @Expose({ name: 'ne_enabled' })
     @Exclude()
     cmpy_ne_enabled: string;
@@ -212,7 +212,7 @@ export class Company {
     cmpy_ne_liqu: string;
 
     @Column('varchar', { name: 'cmpy_fe_send_aut', length: 2, default: 'N' })
-    @Index('pg_cmpy_fk12')
+    @Index('pgx_cmpy_fk12')
     @Expose({ name: 'fe_send_aut' })
     @Exclude()
     cmpy_fe_send_aut: string;
@@ -243,19 +243,19 @@ export class Company {
     cmpy_account: number;
 
     @Column('varchar', { name: 'cmpy_tax', length: 190, default: 'IVA' })
-    @Index('pg_cmpy_fk13')
+    @Index('pgx_cmpy_fk13')
     @Expose({ name: 'tax' })
     @Exclude()
     cmpy_tax: string;
 
     @Column('decimal', { name: 'cmpy_uvt', precision: 30, scale: 2, default: 0.00 })
-    @Index('pg_cmpy_fk14')
+    @Index('pgx_cmpy_fk14')
     @Expose({ name: 'uvt' })
     @Exclude()
     cmpy_uvt: number;
 
     @Column('varchar', { name: 'cmpy_inv', length: 80, default: "00" })
-    @Index('pg_cmpy_fk15')
+    @Index('pgx_cmpy_fk15')
     @Expose({ name: 'inv' })
     @Exclude()
     cmpy_inv: string;

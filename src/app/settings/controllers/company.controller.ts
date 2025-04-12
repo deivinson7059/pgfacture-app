@@ -5,6 +5,7 @@ import { Company } from '../entities';
 import { CompanyService } from '../services/company.service';
 import { ApplyDecorators, CheckCmpy } from '@common/decorators';
 import { ParamSource } from '@common/enums';
+import { Public } from '@auth/decorators';
 
 @Controller('settings/company')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -14,6 +15,7 @@ export class CompanyController {
     ) { }
 
 
+    @Public()
     @Post()
     @HttpCode(HttpStatus.OK)
     @ApplyDecorators([

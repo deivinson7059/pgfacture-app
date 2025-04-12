@@ -1,8 +1,8 @@
 import { Entity, Column, PrimaryColumn, Index } from 'typeorm';
 import { Expose } from 'class-transformer';
 
-@Entity({ schema: 'pgfacture', name: 'pg_scopes' })
-@Index('pg_scopes_pk', ['s_id'], { unique: true })
+@Entity({ schema: 'pgfacture', name: 'pgx_scopes' })
+@Index('pgx_scopes_pk', ['s_id'], { unique: true })
 export class Scope {
     @PrimaryColumn({ name: 's_id', type: 'varchar', length: 50 })
     @Expose({ name: 'id' })

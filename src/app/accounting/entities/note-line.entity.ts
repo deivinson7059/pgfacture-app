@@ -3,7 +3,7 @@ import { Expose, Transform } from 'class-transformer';
 import { dateTransformer } from 'src/app/common/utils/fechaColombia';
 import { formatDecimal } from 'src/app/common/utils/transform';
 
-@Entity({ schema: 'pgfacture', name: 'pg_accounting_note_line' })
+@Entity({ schema: 'pgfacture', name: 'pgx_accounting_note_line' })
 //notas contables lineas
 export class NoteLine {
 

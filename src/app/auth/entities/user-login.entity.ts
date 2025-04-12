@@ -2,14 +2,14 @@ import { Entity, Column, PrimaryColumn, Index } from 'typeorm';
 import { Exclude, Expose } from 'class-transformer';
 import { dateTransformer } from '@common/utils/fechaColombia';
 
-@Entity({ schema: 'pgfacture', name: 'pg_users' })
-@Index('pg_users_fk0', ['u_person_identification_number'])
-@Index('pg_users_fk1', ['u_person_email'])
-@Index('pg_users_fk2', ['u_token'])
-@Index('pg_users_fk3', ['u_pass'])
-@Index('pg_users_fk4', ['u_active'])
-@Index('pg_users_fk5', ['u_person_name'])
-@Index('pg_users_fk6', ['u_person_identification_number', 'u_token', 'u_pass', 'u_active', 'u_person_name'])
+@Entity({ schema: 'pgfacture', name: 'pgx_users' })
+@Index('pgx_users_fk0', ['u_person_identification_number'])
+@Index('pgx_users_fk1', ['u_person_email'])
+@Index('pgx_users_fk2', ['u_token'])
+@Index('pgx_users_fk3', ['u_pass'])
+@Index('pgx_users_fk4', ['u_active'])
+@Index('pgx_users_fk5', ['u_person_name'])
+@Index('pgx_users_fk6', ['u_person_identification_number', 'u_token', 'u_pass', 'u_active', 'u_person_name'])
 export class UserLogin {
     @PrimaryColumn({ name: 'u_id', type: 'bigint' })
     @Expose({ name: 'id' })

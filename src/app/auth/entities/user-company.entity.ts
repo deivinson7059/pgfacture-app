@@ -2,14 +2,14 @@ import { Entity, Column, PrimaryColumn, Index, CreateDateColumn } from 'typeorm'
 import { Expose } from 'class-transformer';
 import { dateTransformer } from '@common/utils/fechaColombia';
 
-@Entity({ schema: 'pgfacture', name: 'pg_users_cmpy' })
-@Index('pg_users_cmpy_fk1', ['uc_person_identification_number'])
-@Index('pg_users_cmpy_fk2', ['uc_person_name'])
-@Index('pg_users_cmpy_fk3', ['uc_ware'])
-@Index('pg_users_cmpy_fk4', ['uc_cmpy'])
-@Index('pg_users_cmpy_fk5', ['uc_enabled'])
-@Index('pg_users_cmpy_fk6', ['uc_person_identification_number', 'uc_person_name', 'uc_ware', 'uc_cmpy', 'uc_enabled'])
-@Index('pg_users_cmpy_fk7', ['uc_role_id', 'uc_cmpy'])
+@Entity({ schema: 'pgfacture', name: 'pgx_users_cmpy' })
+@Index('pgx_users_cmpy_fk1', ['uc_person_identification_number'])
+@Index('pgx_users_cmpy_fk2', ['uc_person_name'])
+@Index('pgx_users_cmpy_fk3', ['uc_ware'])
+@Index('pgx_users_cmpy_fk4', ['uc_cmpy'])
+@Index('pgx_users_cmpy_fk5', ['uc_enabled'])
+@Index('pgx_users_cmpy_fk6', ['uc_person_identification_number', 'uc_person_name', 'uc_ware', 'uc_cmpy', 'uc_enabled'])
+@Index('pgx_users_cmpy_fk7', ['uc_role_id'])
 export class UserCompany {
     @Column({ name: 'uc_id', type: 'bigint' })
     @Expose({ name: 'id' })
@@ -39,9 +39,9 @@ export class UserCompany {
     @Expose({ name: 'enabled' })
     uc_enabled: number;
 
-    @Column({ name: 'uc_role_id', type: 'varchar', length: 50 })
+    @Column({ name: 'uc_role_id', type: 'bigint' })
     @Expose({ name: 'role_id' })
-    uc_role_id: string;
+    uc_role_id: number;
 
     @Column({ name: 'uc_ware_rol', type: 'varchar', length: 200 })
     @Expose({ name: 'role_name' })

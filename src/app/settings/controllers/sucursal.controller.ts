@@ -3,6 +3,7 @@ import { SucursalService } from "../services/sucursal.service";
 import { CreateSucursalDto, UpdateSucursalDto } from "../dto";
 import { ApplyDecorators, CheckCmpy, CheckWare } from "@common/decorators";
 import { ParamSource } from "@common/enums";
+import { Public } from "@auth/decorators";
 
 @Controller('settings/sucursal')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -11,6 +12,7 @@ export class SucursalController {
         private readonly sucursalService: SucursalService,
     ) { }
 
+    @Public()
     @Post()
     @HttpCode(HttpStatus.OK)
     @ApplyDecorators([

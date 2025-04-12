@@ -4,17 +4,19 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
-import { CompanyRole, RoleScope, Scope, UserCompany, UserLogin } from './entities';
-import { AuthController, ScopesController } from './controllers';
-import { ScopesService } from './services';
+import { Role, RoleScope, Scope, UserCompany, UserLogin } from './entities';
+import { AuthController, ScopesController, RolesController } from './controllers';
+import { ScopesService, RolesService } from './services';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtAuthGuard, ScopesGuard } from './guards';
 import { APP_GUARD } from '@nestjs/core';
 
 @Module({
-    controllers: [AuthController, ScopesController],
-    providers: [AuthService,
+    controllers: [AuthController, ScopesController, RolesController],
+    providers: [
+        AuthService,
         ScopesService,
+        RolesService,
         JwtStrategy,
         {
             provide: APP_GUARD,
@@ -23,9 +25,10 @@ import { APP_GUARD } from '@nestjs/core';
         {
             provide: APP_GUARD,
             useClass: ScopesGuard,
-        }],
+        }
+    ],
     imports: [
-        TypeOrmModule.forFeature([UserLogin, UserCompany, Scope, CompanyRole, RoleScope]),
+        TypeOrmModule.forFeature([UserLogin, UserCompany, Scope, Role, RoleScope]),
         ConfigModule,
         PassportModule.register({ defaultStrategy: 'jwt' }),
         JwtModule.registerAsync({

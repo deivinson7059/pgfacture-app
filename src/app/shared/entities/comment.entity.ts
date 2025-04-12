@@ -2,15 +2,15 @@ import { Entity, Column, PrimaryColumn, CreateDateColumn, Index } from 'typeorm'
 import { Exclude, Expose } from 'class-transformer';
 import { dateTransformer } from 'src/app/common/utils/fechaColombia';
 
-@Entity({ schema: 'pgfacture', name: 'pg_comments' })
-@Index('pg_comments_fk1', ['co_cmpy'])
-@Index('pg_comments_fk2', ['co_ware'])
-@Index('pg_comments_fk3', ['co_ref'])
-@Index('pg_comments_fk4', ['co_module'])
-@Index('pg_comments_fk5', ['co_cmpy', 'co_ware', 'co_module'])
-@Index('pg_comments_fk6', ['co_cmpy', 'co_ref', 'co_module'])
-@Index('pg_comments_fk7', ['co_ref2'])
-@Index('pg_comments_fk8', ['co_cmpy', 'co_ref2', 'co_module'])
+@Entity({ schema: 'pgfacture', name: 'pgx_comments' })
+@Index('pgx_comments_fk1', ['co_cmpy'])
+@Index('pgx_comments_fk2', ['co_ware'])
+@Index('pgx_comments_fk3', ['co_ref'])
+@Index('pgx_comments_fk4', ['co_module'])
+@Index('pgx_comments_fk5', ['co_cmpy', 'co_ware', 'co_module'])
+@Index('pgx_comments_fk6', ['co_cmpy', 'co_ref', 'co_module'])
+@Index('pgx_comments_fk7', ['co_ref2'])
+@Index('pgx_comments_fk8', ['co_cmpy', 'co_ref2', 'co_module'])
 export class Comment {
     @PrimaryColumn({ name: 'co_id', type: 'bigint' })
     @Expose({ name: 'id' })

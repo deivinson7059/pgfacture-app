@@ -3,7 +3,8 @@ export interface JwtPayload {
     ident: string;
     company: string;
     branch: string;
-    role_id: string;
+    role_id: number;
     role_name: string;
+    role_path: string;
     scopes: string[];
 }

@@ -3,7 +3,7 @@ import { Expose, Transform } from 'class-transformer';
 import { formatDecimal } from 'src/app/common/utils/transform';
 import { dateTransformer } from 'src/app/common/utils/fechaColombia';
 
-@Entity({ schema: 'pgfacture', name: 'pg_accounting_note_header' })
+@Entity({ schema: 'pgfacture', name: 'pgx_accounting_note_header' })
 //notas contables header
 export class NoteHeader {
     @Column({ name: 'acnh_id', type: 'bigint' })

@@ -6,7 +6,7 @@ import { Repository, DataSource } from 'typeorm';
 import { LoginStep1Dto, LoginStep2Dto, LoginTokenDto, CreateUserLoginDto } from '../dto';
 import * as crypto from 'crypto';
 import { apiResponse } from '@common/interfaces';
-import { UserCompany, UserLogin } from '../entities';
+import { UserCompany, UserLogin, Role, RoleScope } from '../entities';
 
 @Injectable()
 export class AuthService {
@@ -15,6 +15,10 @@ export class AuthService {
         private readonly userLoginRepository: Repository<UserLogin>,
         @InjectRepository(UserCompany)
         private readonly userCompanyRepository: Repository<UserCompany>,
+        @InjectRepository(Role)
+        private readonly roleRepository: Repository<Role>,
+        @InjectRepository(RoleScope)
+        private readonly roleScopeRepository: Repository<RoleScope>,
         private readonly jwtService: JwtService,
         private readonly dataSource: DataSource
     ) { }
@@ -76,7 +80,8 @@ export class AuthService {
                 const companyData = companiesMap.get(company.uc_cmpy);
                 companyData.branches.push({
                     branch_name: company.uc_ware,
-                    role: company.uc_ware_rol,
+                    role_id: company.uc_role_id,
+                    role_name: company.uc_ware_rol,
                     list: company.uc_ware_lista
                 });
             });
@@ -143,13 +148,32 @@ export class AuthService {
                 throw new UnauthorizedException('No tiene acceso a esta compañía o sucursal');
             }
 
+            // Obtener el rol del usuario
+            const role = await this.roleRepository.findOne({
+                where: { rol_id: userCompany.uc_role_id }
+            });
+
+            if (!role) {
+                throw new UnauthorizedException('Rol no encontrado');
+            }
+
+            // Obtener los scopes asignados al rol del usuario
+            const roleScopes = await this.roleScopeRepository.find({
+                where: { rs_role_id: userCompany.uc_role_id }
+            });
+
+            const scopes = roleScopes.map(rs => rs.rs_scope_id);
+
             // Generar token de sesión JWT
             const payload = {
                 sub: user.u_id,
                 ident: user.u_person_identification_number,
                 company: loginDto.company_id,
                 branch: loginDto.branch_name,
-                role: userCompany.uc_ware_rol
+                role_id: userCompany.uc_role_id,
+                role_name: role.rol_name,
+                role_path: role.rol_path,
+                scopes: scopes
             };
 
             const accessToken = this.jwtService.sign(payload);
@@ -173,11 +197,14 @@ export class AuthService {
                     company: {
                         id: loginDto.company_id,
                         branch: loginDto.branch_name,
-                        role: userCompany.uc_ware_rol,
+                        role_id: userCompany.uc_role_id,
+                        role_name: role.rol_name,
+                        role_path: role.rol_path,
                         list: userCompany.uc_ware_lista
                     },
                     token: persistentToken,
-                    access_token: accessToken
+                    access_token: accessToken,
+                    scopes: scopes
                 }
             };
         } catch (error) {
@@ -221,7 +248,7 @@ export class AuthService {
             // Organizar las compañías y sucursales
             const companiesMap = new Map();
 
-            userCompanies.forEach(company => {
+            for (const company of userCompanies) {
                 if (!companiesMap.has(company.uc_cmpy)) {
                     companiesMap.set(company.uc_cmpy, {
                         company_id: company.uc_cmpy,
@@ -229,13 +256,22 @@ export class AuthService {
                     });
                 }
 
+                // Obtener el rol
+                const role = await this.roleRepository.findOne({
+                    where: { rol_id: company.uc_role_id }
+                });
+
+                if (!role) continue;
+
                 const companyData = companiesMap.get(company.uc_cmpy);
                 companyData.branches.push({
                     branch_name: company.uc_ware,
-                    role: company.uc_ware_rol,
+                    role_id: company.uc_role_id,
+                    role_name: role.rol_name,
+                    role_path: role.rol_path,
                     list: company.uc_ware_lista
                 });
-            });
+            }
 
             const userCompaniesAndBranches = Array.from(companiesMap.values());
 

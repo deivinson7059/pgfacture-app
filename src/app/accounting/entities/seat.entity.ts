@@ -3,7 +3,7 @@ import { dateTransformer } from 'src/app/common/utils/fechaColombia';
 import { formatDecimal } from 'src/app/common/utils/transform';
 import { Entity, Column, CreateDateColumn, Index, PrimaryColumn, BeforeInsert, UpdateDateColumn } from 'typeorm';
 
-@Entity({ schema: 'pgfacture', name: 'pg_accounting_seat' }) // Nombre de la tabla en la base de datos
+@Entity({ schema: 'pgfacture', name: 'pgx_accounting_seat' }) // Nombre de la tabla en la base de datos
 @Index('idx_accounting_seat_cmpy', ['acch_cmpy', 'acch_ware']) // Índice compuesto para filtros
 @Index('idx_accounting_seat_acch_code', ['acch_code']) // Índice para filtros por código
 

@@ -1,7 +1,7 @@
 import { Entity, Column, PrimaryColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { Expose } from 'class-transformer';
 import { dateTransformer } from 'src/app/common/utils/fechaColombia';
-@Entity({ schema: 'pgfacture', name: 'pg_invhead' })
+@Entity({ schema: 'pgfacture', name: 'pgx_invhead' })
 export class InvoiceHead {
     @Expose({ name: 'id' })
     @PrimaryColumn({ type: 'bigint', name: 'ih_id' })

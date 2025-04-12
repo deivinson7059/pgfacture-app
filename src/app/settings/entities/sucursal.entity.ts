@@ -2,56 +2,56 @@
 import { Entity, Column, PrimaryColumn, Index } from 'typeorm';
 import { Expose } from 'class-transformer';
 
-@Entity({ schema: 'pgfacture', name: 'pg_sucursal' })
-@Index('pg_sucursal_fk3', ['suc_cmpy', 'suc_nombre'])
+@Entity({ schema: 'pgfacture', name: 'pgx_sucursal' })
+@Index('pgx_sucursal_fk3', ['suc_cmpy', 'suc_nombre'])
 export class Sucursal {
     @PrimaryColumn('varchar', { name: 'suc_cmpy', length: 10 })
-    @Index('pg_sucursal_fk1')
+    @Index('pgx_sucursal_fk1')
     @Expose({ name: 'cmpy' })
     suc_cmpy: string;
 
     @PrimaryColumn('int', { name: 'suc_id' })
-    @Index('pg_sucursal_fk4')
+    @Index('pgx_sucursal_fk4')
     @Expose({ name: 'id' })
     suc_id: number;
 
     @Column('varchar', { name: 'suc_nombre', length: 200 })
-    @Index('pg_sucursal_fk2')
+    @Index('pgx_sucursal_fk2')
     @Expose({ name: 'name' })
     suc_nombre: string;
 
     @Column('varchar', { name: 'suc_direccion', length: 300 })
-    @Index('pg_sucursal_fk5')
+    @Index('pgx_sucursal_fk5')
     @Expose({ name: 'address' })
     suc_direccion: string;
 
     @Column('varchar', { name: 'suc_email', length: 150 })
-    @Index('pg_sucursal_fk6')
+    @Index('pgx_sucursal_fk6')
     @Expose({ name: 'email' })
     suc_email: string;
 
     @Column('varchar', { name: 'suc_departamento', length: 250 })
-    @Index('pg_sucursal_fk7')
+    @Index('pgx_sucursal_fk7')
     @Expose({ name: 'department' })
     suc_departamento: string;
 
     @Column('varchar', { name: 'suc_ciudad', length: 250 })
-    @Index('pg_sucursal_fk8')
+    @Index('pgx_sucursal_fk8')
     @Expose({ name: 'city' })
     suc_ciudad: string;
 
     @Column('bigint', { name: 'suc_ciudad_id', nullable: true })
-    @Index('pg_sucursal_fk9')
+    @Index('pgx_sucursal_fk9')
     @Expose({ name: 'city_id' })
     suc_ciudad_id: number;
 
     @Column('varchar', { name: 'suc_telefono', length: 60 })
-    @Index('pg_sucursal_fk10')
+    @Index('pgx_sucursal_fk10')
     @Expose({ name: 'phone' })
     suc_telefono: string;
 
     @Column('varchar', { name: 'suc_celular', length: 60 })
-    @Index('pg_sucursal_fk11')
+    @Index('pgx_sucursal_fk11')
     @Expose({ name: 'mobile' })
     suc_celular: string;
 

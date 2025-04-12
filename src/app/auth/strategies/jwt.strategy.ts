@@ -6,13 +6,17 @@ import { UnauthorizedException } from '@nestjs/common/exceptions';
 import { ConfigService } from '@nestjs/config';
 import { Injectable } from '@nestjs/common';
 import { JwtPayload } from '../interfaces/jwt-payload.interface';
-import { UserLogin } from '@auth/entities';
+import { UserLogin, UserCompany, Role } from '@auth/entities';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
     constructor(
         @InjectRepository(UserLogin)
         private readonly userRepository: Repository<UserLogin>,
+        @InjectRepository(UserCompany)
+        private readonly userCompanyRepository: Repository<UserCompany>,
+        @InjectRepository(Role)
+        private readonly roleRepository: Repository<Role>,
         configService: ConfigService,
     ) {
         super({
@@ -22,7 +26,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     async validate(payload: JwtPayload): Promise<any> {
-        const { sub } = payload;
+        const { sub, ident, company, branch } = payload;
+
+        // Verificar que el usuario existe
         const user = await this.userRepository.findOneBy({ u_id: sub });
 
         if (!user) {
@@ -37,15 +43,40 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
             throw new UnauthorizedException(`Usuario bloqueado`);
         }
 
-        // Agregamos los scopes y otra información del payload al request
+        // Obtener la relación usuario-compañía
+        const userCompany = await this.userCompanyRepository.findOne({
+            where: {
+                uc_person_identification_number: ident,
+                uc_cmpy: company,
+                uc_ware: branch
+            }
+        });
+
+        if (!userCompany) {
+            throw new UnauthorizedException(`No tiene acceso a esta compañía o sucursal`);
+        }
+
+        // Obtener el rol del usuario
+        const role = await this.roleRepository.findOne({
+            where: { rol_id: userCompany.uc_role_id }
+        });
+
+        if (!role) {
+            throw new UnauthorizedException(`Rol no encontrado`);
+        }
+
+        // Aquí deberíamos obtener los scopes del rol, pero como estamos en el proceso de rediseño
+        // se implementará posteriormente
+
         return {
             id: sub,
-            identification_number: payload.ident,
-            company: payload.company,
-            branch: payload.branch,
-            role_id: payload.role_id,
-            role_name: payload.role_name,
-            scopes: payload.scopes
+            identification_number: ident,
+            company: company,
+            branch: branch,
+            role_id: userCompany.uc_role_id,
+            role_name: role.rol_name,
+            role_path: role.rol_path,
+            scopes: payload.scopes // Temporalmente mantenemos los scopes del payload
         };
     }
 }

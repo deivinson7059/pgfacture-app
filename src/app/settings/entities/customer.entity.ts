@@ -2,27 +2,27 @@ import { Entity, Column, PrimaryColumn, Index, UpdateDateColumn } from 'typeorm'
 import { Exclude, Expose } from 'class-transformer';
 import { dateTransformer } from '@common/utils/fechaColombia';
 
-@Entity({ schema: 'pgfacture', name: 'pg_customers' })
+@Entity({ schema: 'pgfacture', name: 'pgx_customers' })
 export class Customer {
     @Column('bigint', { name: 'cust_id', primary: true })
-    @Index('pg_customers_fk5')
+    @Index('pgx_customers_fk5')
     @Exclude()
     @Expose({ name: 'id' })
     cust_id: number;
 
     @PrimaryColumn('varchar', { name: 'cust_cmpy', length: 10 })
-    @Index('pg_customers_fk1')
+    @Index('pgx_customers_fk1')
     @Expose({ name: 'cmpy' })
     cust_cmpy: string;
 
     @Column('varchar', { name: 'cust_active', length: 2, default: 'Y' })
-    @Index('pg_customers_fk8')
+    @Index('pgx_customers_fk8')
     @Exclude()
     @Expose({ name: 'active' })
     cust_active?: string;
 
     @PrimaryColumn('varchar', { name: 'cust_identification_number', length: 30 })
-    @Index('pg_customers_fk2')
+    @Index('pgx_customers_fk2')
     @Expose({ name: 'identification_number' })
     cust_identification_number: string;
 
@@ -63,7 +63,7 @@ export class Customer {
     cust_type_liability: string;
 
     @Column('varchar', { name: 'cust_name', length: 120, nullable: true })
-    @Index('pg_customers_fk4')
+    @Index('pgx_customers_fk4')
     @Expose({ name: 'name' })
     cust_name: string;
 

@@ -2,7 +2,7 @@ import { Entity, PrimaryColumn, Column, BeforeInsert, BeforeUpdate, CreateDateCo
 import { Exclude, Expose } from 'class-transformer';
 import { dateTransformer } from 'src/app/common/utils/fechaColombia';
 
-@Entity({ schema: 'pgfacture', name: 'pg_account_plan' }) // Nombre de la tabla en la base de datos
+@Entity({ schema: 'pgfacture', name: 'pgx_account_plan' }) // Nombre de la tabla en la base de datos
 @Index('idx_account_plan_parent', ['plcu_parent_account']) // Índice para búsquedas por cuenta padre
 @Index('idx_account_plan_cmpy_active', ['plcu_cmpy', 'plcu_active']) // Índice compuesto para filtros por empresa y estado
 @Index('idx_account_plan_classification', ['plcu_classification']) // Índice para filtros por clasificación
@@ -40,7 +40,7 @@ export class Puc {
 
     @Column({ name: 'plcu_creation_by', type: 'varchar', length: 30 })
     @Expose({ name: 'creation_by' }) // Mapear a "creation_by"
-    @Exclude() 
+    @Exclude()
     plcu_creation_by: string; // Usuario que registró la cuenta
 
     @CreateDateColumn({
@@ -107,7 +107,7 @@ export class Puc {
             this.plcu_classification = 'SUBCUENTA';
         } else if (idLength === 8) {
             this.plcu_classification = 'AUXILIAR';
-        }else if (idLength === 10) {
+        } else if (idLength === 10) {
             this.plcu_classification = 'AUXILIAR2';
         }
 

@@ -1,8 +1,8 @@
 import { Entity, Column, PrimaryColumn, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
 import { Expose } from 'class-transformer';
 import { dateTransformer } from 'src/app/common/utils/fechaColombia';
-  
-@Entity({ schema: 'pgfacture', name: 'pg_accounting_period' })
+
+@Entity({ schema: 'pgfacture', name: 'pgx_accounting_period' })
 @Index('idx_accounting_period_cmpy_year', ['accp_cmpy', 'accp_year'])
 @Index('idx_accounting_period_status', ['accp_status'])
 @Index('idx_accounting_period_cmpy_status', ['accp_status', 'accp_cmpy'])
@@ -25,14 +25,14 @@ export class Period {
     @Expose({ name: 'description' })
     accp_description: string;
 
-    @Column({ name: 'accp_start_date', nullable: true, type: 'date', default: () => 'CURRENT_DATE' })   
+    @Column({ name: 'accp_start_date', nullable: true, type: 'date', default: () => 'CURRENT_DATE' })
     @Expose({ name: 'start_date' })
-    accp_start_date: Date |null;
+    accp_start_date: Date | null;
 
-    
+
     @Column({ name: 'accp_end_date', nullable: true, type: 'date', default: () => 'CURRENT_DATE' })
     @Expose({ name: 'end_date' })
-    accp_end_date: Date |null;
+    accp_end_date: Date | null;
 
     @Column({ name: 'accp_status', type: 'char', length: 1, default: 'O' })
     @Expose({ name: 'status' })
@@ -46,7 +46,7 @@ export class Period {
     @Expose({ name: 'closed_by' })
     accp_closed_by: string | null;
 
-    @Column({ 
+    @Column({
         name: 'accp_closed_date',
         type: 'timestamp',
         precision: 6,
@@ -55,11 +55,11 @@ export class Period {
     })
     @Expose({ name: 'closed_date' })
     accp_closed_date: Date | null;
- 
+
     @Column({ name: 'accp_creation_by', type: 'varchar', length: 30 })
     @Expose({ name: 'creation_by' })
     accp_creation_by: string;
- 
+
     @CreateDateColumn({
         name: 'accp_creation_date',
         type: 'timestamp',

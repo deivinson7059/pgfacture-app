@@ -1,7 +1,7 @@
 import { Entity, Column, PrimaryColumn, Index } from 'typeorm';
 import { Exclude, Expose } from 'class-transformer';
 
-@Entity({ schema: 'pgfacture', name: 'pg_cmpy_payroll' })
+@Entity({ schema: 'pgfacture', name: 'pgx_cmpy_payroll' })
 export class CompanyPayrollConfig {
     @PrimaryColumn('varchar', { name: 'pay_cmpy', length: 10 })
     @Index('cmpy_payroll_config_fk1')

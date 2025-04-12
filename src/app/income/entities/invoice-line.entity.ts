@@ -1,7 +1,7 @@
 import { Entity, Column, PrimaryColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { Expose } from 'class-transformer';
 import { dateTransformer } from 'src/app/common/utils/fechaColombia';
-@Entity({ schema: 'pgfacture', name: 'pg_invline' })
+@Entity({ schema: 'pgfacture', name: 'pgx_invline' })
 export class InvoiceLine {
     @Expose({ name: 'id' })
     @PrimaryColumn({ type: 'bigint', name: 'il_id' })
@@ -110,7 +110,7 @@ export class InvoiceLine {
         transformer: dateTransformer(),
         name: 'il_create_date'
     })
-    il_create_date: Date; 
+    il_create_date: Date;
 
     @Expose({ name: 'update_ucid' })
     @Column({ type: 'varchar', length: 200, nullable: true, default: '', name: 'il_update_ucid' })
