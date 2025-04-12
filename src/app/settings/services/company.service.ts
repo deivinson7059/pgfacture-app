@@ -2,22 +2,22 @@ import { ConflictException, Injectable, NotFoundException } from "@nestjs/common
 import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, Repository } from "typeorm";
 
-import { apiResponse } from "src/app/common/interfaces/common.interface";
-import { CreateCompanyDto, UpdateCompanyDto } from "../dto";
-import { Company, CompanyAccountConfig } from "../entities";
+import { apiResponse } from "@common/interfaces/common.interface";
 import { DEFAULT_ACCOUNT_VALUES } from "@common/utils/defaultUtils";
-
+import { Company, CompanyAccountConfig } from "@settings/entities";
+import { CreateCompanyDto, UpdateCompanyDto } from "@settings/dto";
 
 
 
 @Injectable()
 export class CompanyService {
     constructor(
+        private dataSource: DataSource,
         @InjectRepository(Company)
         private readonly CompanyRepository: Repository<Company>,
         @InjectRepository(CompanyAccountConfig)
         private readonly CompanyAccountConfigRepository: Repository<CompanyAccountConfig>,
-        private dataSource: DataSource
+
     ) { }
 
     async create(companyData: CreateCompanyDto): Promise<apiResponse<Company>> {

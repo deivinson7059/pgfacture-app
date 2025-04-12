@@ -7,7 +7,7 @@ import { CompanyAccountConfig } from '../entities';
 import { CompanyAccountConfigService } from '../services/company-account-config.service';
 import { UpdateCompanyAccountConfigDto } from '../dto';
 
-@Controller('settings/company-account-config')
+@Controller('settings/company-account')
 @UseInterceptors(ClassSerializerInterceptor)
 export class CompanyAccountConfigController {
     constructor(

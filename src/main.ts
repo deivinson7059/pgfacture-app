@@ -44,7 +44,7 @@ async function bootstrap() {
         new ValidationPipe({
             whitelist: true,// Eliminar propiedades que no están en los DTO
             forbidNonWhitelisted: true,// Rechazar peticiones con propiedades no definidas
-            transform: true, // Transformar automáticamente a los tipos definidos
+            //transform: true, // Transformar automáticamente a los tipos definidos
         }),
     );
 

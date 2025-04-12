@@ -3,7 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { Comment } from '@shared/entities';
 import { Period } from '@accounting/entities';
-import { Company, Sucursal } from '@settings/entities';
+import { Company, CompanyAccountConfig, Sucursal } from '@settings/entities';
 
 import { CommentController } from '@shared/controllers';
 
@@ -18,7 +18,8 @@ import { CheckCompanyGuard, CheckPeriodGuard, CheckSucursalGuard } from '@common
             Comment,
             Period,
             Sucursal,
-            Company
+            Company,
+            CompanyAccountConfig
         ])
     ],
     controllers: [
