@@ -1,6 +1,7 @@
 import { IsString, IsNotEmpty, IsEmail, MinLength, IsOptional } from 'class-validator';
 
-export class CreateUserDto {
+export class CreateUserLoginDto {
+
     @IsString({ message: 'El número de identificación debe ser una cadena de texto' })
     @IsNotEmpty({ message: 'El número de identificación es requerido' })
     identification_number: string;
@@ -15,6 +16,7 @@ export class CreateUserDto {
 
     @IsString({ message: 'La contraseña debe ser una cadena de texto' })
     @IsOptional()
+    @MinLength(4, { message: 'La contraseña debe tener al menos 4 caracteres' })
     password?: string;
 
     @IsOptional()
