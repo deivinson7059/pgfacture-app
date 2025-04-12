@@ -1,10 +1,10 @@
 export { CreateUserLoginDto } from './create-user-login.dto';
-
 export { LoginStep2Dto } from './login-step2.dto';
-
 export { LoginStep1Dto } from './login-step1.dto';
-
 export { CreateUserDto } from './create-user.dto';
 export { AssignCompanyDto } from './assign-company.dto';
+export { AssignUserRoleDto } from './assign-user-role.dto';
 export { LoginDto } from './login.dto';
 export { LoginTokenDto } from './login-token.dto';
+export { CreateScopeDto } from './create-scope.dto';
+export { CreateCompanyRoleDto } from './create-company-role.dto';

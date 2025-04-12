@@ -21,14 +21,31 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         });
     }
 
-    async validate(payload: JwtPayload): Promise<UserLogin> {
-        const { id } = payload;
-        const user = await this.userRepository.findOneBy({ u_id: id });
+    async validate(payload: JwtPayload): Promise<any> {
+        const { sub } = payload;
+        const user = await this.userRepository.findOneBy({ u_id: sub });
 
         if (!user) {
-            throw new UnauthorizedException(`Invalid token`);
+            throw new UnauthorizedException(`Token inválido`);
         }
 
-        return user;
+        if (user.u_active !== 1) {
+            throw new UnauthorizedException(`Usuario inactivo`);
+        }
+
+        if (user.u_locked === 1) {
+            throw new UnauthorizedException(`Usuario bloqueado`);
+        }
+
+        // Agregamos los scopes y otra información del payload al request
+        return {
+            id: sub,
+            identification_number: payload.ident,
+            company: payload.company,
+            branch: payload.branch,
+            role_id: payload.role_id,
+            role_name: payload.role_name,
+            scopes: payload.scopes
+        };
     }
 }

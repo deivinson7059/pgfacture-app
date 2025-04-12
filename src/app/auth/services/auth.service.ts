@@ -3,10 +3,10 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 
-import { LoginStep1Dto, LoginStep2Dto, LoginTokenDto, CreateUserLoginDto } from './dto';
+import { LoginStep1Dto, LoginStep2Dto, LoginTokenDto, CreateUserLoginDto } from '../dto';
 import * as crypto from 'crypto';
 import { apiResponse } from '@common/interfaces';
-import { UserCompany, UserLogin } from './entities';
+import { UserCompany, UserLogin } from '../entities';
 
 @Injectable()
 export class AuthService {
