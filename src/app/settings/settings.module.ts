@@ -3,22 +3,24 @@ import { CompanyController } from './controllers/company.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SucursalController } from './controllers/sucursal.controller';
 import { CompanyService } from './services/company.service';
-import { Company, CompanyAccountConfig, Customer } from './entities';
+import { Company, CompanyAccountConfig, CompanyPayrollConfig, Customer } from './entities';
 import { SucursalService } from './services/sucursal.service';
 import { Sucursal } from './entities/sucursal.entity';
-import { CompanyAccountConfigController, CustomerController } from './controllers';
-import { CompanyAccountConfigService, CustomerService, PasswordCryptoService } from './services';
+import { CompanyAccountConfigController, CompanyPayrollConfigController, CustomerController } from './controllers';
+import { CompanyAccountConfigService, CompanyPayrollConfigService, CustomerService, PasswordCryptoService } from './services';
 
 @Module({
     controllers: [
         CompanyController,
         CompanyAccountConfigController,
+        CompanyPayrollConfigController,
         SucursalController,
         CustomerController
     ],
     providers: [
         CompanyService,
         CompanyAccountConfigService,
+        CompanyPayrollConfigService,
         SucursalService,
         CustomerService,
         PasswordCryptoService
@@ -28,6 +30,7 @@ import { CompanyAccountConfigService, CustomerService, PasswordCryptoService } f
             [
                 Company,
                 CompanyAccountConfig,
+                CompanyPayrollConfig,
                 Sucursal,
                 Customer,
             ]
@@ -35,8 +38,6 @@ import { CompanyAccountConfigService, CustomerService, PasswordCryptoService } f
     ],
     exports: [
         TypeOrmModule,
-        CompanyService,
-        CompanyAccountConfigService
     ],
 })
 export class SettingsModule { }

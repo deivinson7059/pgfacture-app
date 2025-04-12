@@ -3,8 +3,8 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, Repository } from "typeorm";
 
 import { apiResponse } from "@common/interfaces/common.interface";
-import { DEFAULT_ACCOUNT_VALUES } from "@common/utils/defaultUtils";
-import { Company, CompanyAccountConfig } from "@settings/entities";
+import { DEFAULT_ACCOUNT_VALUES, DEFAULT_PAYROLL_VALUES } from "@common/utils/defaultUtils";
+import { Company, CompanyAccountConfig, CompanyPayrollConfig } from "@settings/entities";
 import { CreateCompanyDto, UpdateCompanyDto } from "@settings/dto";
 
 
@@ -79,6 +79,9 @@ export class CompanyService {
             // Inicializar las cuentas contables predeterminadas
             await this.initializeAccountConfig(queryRunner, cmpyId);
 
+            // Inicializar las configuraciones de nómina predeterminadas
+            await this.initializePayrollConfig(queryRunner, cmpyId);
+
             await queryRunner.commitTransaction();
 
             return {
@@ -117,6 +120,27 @@ export class CompanyService {
         }
     }
 
+    // Añadir este método para inicializar las configuraciones de nómina
+    private async initializePayrollConfig(queryRunner: any, cmpy: string): Promise<void> {
+
+        // Crear las configuraciones para cada concepto definido en DEFAULT_PAYROLL_VALUES
+        for (const configData of DEFAULT_PAYROLL_VALUES) {
+            const newConfig = queryRunner.manager.create(CompanyPayrollConfig, {
+                pay_cmpy: cmpy,
+                pay_concept: configData.concept,
+                pay_db_account: configData.db_account,
+                pay_db_description: configData.db_description,
+                pay_cr_account: configData.cr_account,
+                pay_cr_description: configData.cr_description,
+                pay_type: configData.type,
+                pay_third_type: configData.third_type
+            });
+
+            await queryRunner.manager.save(newConfig);
+        }
+    }
+
+
     async verifyCompanyIdExists(cmpy: string): Promise<boolean> {
         const company = await this.CompanyRepository.findOne({
             where: { cmpy_id: cmpy }
@@ -151,11 +175,15 @@ export class CompanyService {
         await queryRunner.connect();
         await queryRunner.startTransaction();
 
+        console.log('cmpy', cmpy);
+
         try {
             const company = await this.CompanyRepository.preload({
                 cmpy_id: cmpy,
                 ...updateCompanyDto,
             });
+
+            //console.log('company', company);
 
             if (!company) {
                 throw new NotFoundException(`Compañia ${cmpy} no Existe`);
@@ -163,15 +191,27 @@ export class CompanyService {
 
             // Guardar la compañía actualizada
             const updatedCompany = await queryRunner.manager.save(company);
-
+            console.log('updatedCompany', updatedCompany);
             // Verificar si existen las cuentas contables para esta compañía
             const existingConfigs = await queryRunner.manager.find(CompanyAccountConfig, {
                 where: { acc_cmpy: cmpy }
             });
 
+            console.log('existingConfigs', existingConfigs);
+
             // Si no existen cuentas contables, las inicializamos
             if (existingConfigs.length === 0) {
                 await this.initializeAccountConfig(queryRunner, cmpy);
+            }
+
+            // Verificar si existen las configuraciones de nómina para esta compañía
+            const existingPayrollConfigs = await queryRunner.manager.find(CompanyPayrollConfig, {
+                where: { pay_cmpy: cmpy }
+            });
+
+            // Si no existen configuraciones de nómina, las inicializamos
+            if (existingPayrollConfigs.length === 0) {
+                await this.initializePayrollConfig(queryRunner, cmpy);
             }
 
             await queryRunner.commitTransaction();
