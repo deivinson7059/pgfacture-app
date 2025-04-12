@@ -1,12 +1,14 @@
-import { Controller, UseInterceptors, ClassSerializerInterceptor, Body, Delete, Get, Param, Post, Put, HttpCode, HttpStatus, UsePipes, ValidationPipe } from "@nestjs/common";
+import { Controller, UseInterceptors, ClassSerializerInterceptor, Body, Delete, Get, Param, Post, Put, HttpCode, HttpStatus, UsePipes, ValidationPipe, UseGuards } from "@nestjs/common";
 import { SucursalService } from "../services/sucursal.service";
 import { CreateSucursalDto, UpdateSucursalDto } from "../dto";
 import { ApplyDecorators, CheckCmpy, CheckWare } from "@common/decorators";
 import { ParamSource } from "@common/enums";
 import { Public } from "@auth/decorators";
+import { JwtAuthGuard, ScopesGuard } from "@auth/guards";
 
 @Controller('settings/sucursal')
 @UseInterceptors(ClassSerializerInterceptor)
+@UseGuards(JwtAuthGuard, ScopesGuard)
 export class SucursalController {
     constructor(
         private readonly sucursalService: SucursalService,
@@ -15,12 +17,14 @@ export class SucursalController {
     @Public()
     @Post()
     @HttpCode(HttpStatus.OK)
-    @ApplyDecorators([
-        CheckCmpy(ParamSource.PARAMS),
+    /* @ApplyDecorators([
+        CheckCmpy(ParamSource.BODY),
         UsePipes(new ValidationPipe({ transform: true }))
-    ])
+    ]) */
     createSucursal(@Body() createucursalDto: CreateSucursalDto) {
-        return this.sucursalService.create(createucursalDto);
+        console.log('createSucursal', createucursalDto);
+        return createucursalDto;
+        //this.sucursalService.create(createucursalDto);
     }
 
     @Get(':cmpy')
