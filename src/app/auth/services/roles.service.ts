@@ -20,6 +20,15 @@ export class RolesService {
      */
     async createRole(createRoleDto: CreateRoleDto): Promise<apiResponse<Role>> {
         try {
+
+            // Verificar si el Role ya existe
+            const existingRole = await this.roleRepository.findOne({
+                where: { rol_name: createRoleDto.name }
+            });
+
+            if (existingRole) {
+                throw new BadRequestException(`Ya existe un rol con el name: ${createRoleDto.name}`);
+            }
             // Obtener el siguiente ID
             const maxResult = await this.roleRepository
                 .createQueryBuilder('r')

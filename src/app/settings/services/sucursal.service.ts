@@ -16,12 +16,11 @@ export class SucursalService {
         const queryRunner = this.dataSource.createQueryRunner();
         await queryRunner.connect();
         await queryRunner.startTransaction();
-
         try {
             // Obtener el siguiente ID para la compañía
             const maxResult = await queryRunner.manager
                 .createQueryBuilder(Sucursal, 'sucursal')
-                .where('sucursal.suc_cmpy = :cmpy', { company: createSucursalDto.cmpy })
+                .where('sucursal.suc_cmpy = :cmpy', { cmpy: createSucursalDto.cmpy })
                 .select('COALESCE(MAX(sucursal.suc_id), 0)', 'max')
                 .getRawOne();
 
@@ -40,7 +39,7 @@ export class SucursalService {
                 suc_telefono: createSucursalDto.phone,
                 suc_celular: createSucursalDto.mobile,
                 suc_razon: createSucursalDto.reason,
-                suc_nit: createSucursalDto.tax_id,
+                suc_nit: createSucursalDto.nit,
                 suc_logo: createSucursalDto.logo,
                 suc_razon_dif: createSucursalDto.different_reason,
                 suc_fact_cero: createSucursalDto.zero_invoice,

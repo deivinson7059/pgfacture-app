@@ -1,33 +1,41 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, UseInterceptors, ClassSerializerInterceptor, HttpCode, ValidationPipe, UsePipes, HttpStatus } from '@nestjs/common';
 import { Public } from '@auth/decorators';
+import { CreateUserLoginDto, LoginDto, AutenticateDto, AutenticateTokenDto } from '@auth/dto';
 import { AuthService } from '@auth/services';
-import { CreateUserLoginDto, LoginStep1Dto, LoginStep2Dto, LoginTokenDto } from '@auth/dto';
+import { ApplyDecorators } from '@common/decorators';
 
 @Controller('auth')
+@UseInterceptors(ClassSerializerInterceptor)
 export class AuthController {
     constructor(private readonly authService: AuthService) { }
 
     @Public()
     @Post('login')
-    loginStep1(@Body() loginStep1Dto: LoginStep1Dto) {
-        return this.authService.loginStep1(loginStep1Dto);
+    @HttpCode(HttpStatus.OK)
+    @ApplyDecorators([
+        UsePipes(new ValidationPipe({ transform: true }))
+    ])
+    login(@Body() loginStep1Dto: LoginDto) {
+        return this.authService.login(loginStep1Dto);
     }
 
     @Public()
     @Post('autenticate')
-    loginStep2(@Body() loginStep2Dto: LoginStep2Dto) {
-        return this.authService.loginStep2(loginStep2Dto);
+    @HttpCode(HttpStatus.OK)
+    @ApplyDecorators([
+        UsePipes(new ValidationPipe({ transform: true }))
+    ])
+    autenticate(@Body() autenticateDto: AutenticateDto) {
+        return this.authService.autenticate(autenticateDto);
     }
 
     @Public()
     @Post('autenticate-token')
-    loginWithToken(@Body() loginTokenDto: LoginTokenDto) {
-        return this.authService.loginWithToken(loginTokenDto);
-    }
-
-    @Public()
-    @Post('create')
-    createUser(@Body() createUserLoginDto: CreateUserLoginDto) {
-        return this.authService.createUser(createUserLoginDto);
+    @HttpCode(HttpStatus.OK)
+    @ApplyDecorators([
+        UsePipes(new ValidationPipe({ transform: true }))
+    ])
+    autenticateToken(@Body() autenticateTokenDto: AutenticateTokenDto) {
+        return this.authService.autenticateToken(autenticateTokenDto);
     }
 }

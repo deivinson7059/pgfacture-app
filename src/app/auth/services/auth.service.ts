@@ -1,18 +1,19 @@
-import { Injectable, BadRequestException, UnauthorizedException, NotFoundException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { LoginDto, AutenticateDto, AutenticateTokenDto } from "@auth/dto";
+import { Role, RoleScope, User, UserCompany } from "@auth/entities";
+import { apiResponse } from "@common/interfaces";
+import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import { InjectRepository } from "@nestjs/typeorm";
+import { DataSource, Repository } from "typeorm";
 
-import { LoginStep1Dto, LoginStep2Dto, LoginTokenDto, CreateUserLoginDto } from '../dto';
-import * as crypto from 'crypto';
-import { apiResponse } from '@common/interfaces';
-import { UserCompany, UserLogin, Role, RoleScope } from '../entities';
+import * as bcrypt from 'bcrypt';
 
+import { generateRandomToken } from "@common/utils/utils";
 @Injectable()
 export class AuthService {
     constructor(
-        @InjectRepository(UserLogin)
-        private readonly userLoginRepository: Repository<UserLogin>,
+        @InjectRepository(User)
+        private readonly authRepository: Repository<User>,
         @InjectRepository(UserCompany)
         private readonly userCompanyRepository: Repository<UserCompany>,
         @InjectRepository(Role)
@@ -22,15 +23,14 @@ export class AuthService {
         private readonly jwtService: JwtService,
         private readonly dataSource: DataSource
     ) { }
-
     /**
      * Primer paso del login: Autenticación con número de identificación y contraseña
      * Devuelve las compañías y sucursales disponibles para el usuario
      */
-    async loginStep1(loginDto: LoginStep1Dto): Promise<apiResponse<any>> {
+    async login(loginDto: LoginDto): Promise<apiResponse<any>> {
         try {
             // Buscar el usuario por número de identificación
-            const user = await this.userLoginRepository.findOne({
+            const user = await this.authRepository.findOne({
                 where: { u_person_identification_number: loginDto.identification_number }
             });
 
@@ -48,9 +48,11 @@ export class AuthService {
                 throw new UnauthorizedException(`Usuario bloqueado: ${user.u_reason_locked || 'Contacte al administrador'}`);
             }
 
-            // Verificar la contraseña (en este caso asumimos que está en MD5)
-            const md5Password = crypto.createHash('md5').update(loginDto.password).digest('hex');
-            if (user.u_pass !== md5Password) {
+
+            // Usar bcrypt en lugar de MD5 para el hash de contraseña
+            const isPasswordValid = await bcrypt.compare(loginDto.password, user.u_pass);
+
+            if (!isPasswordValid) {
                 throw new UnauthorizedException('Credenciales inválidas');
             }
 
@@ -79,7 +81,7 @@ export class AuthService {
 
                 const companyData = companiesMap.get(company.uc_cmpy);
                 companyData.branches.push({
-                    branch_name: company.uc_ware,
+                    ware: company.uc_ware,
                     role_id: company.uc_role_id,
                     role_name: company.uc_ware_rol,
                     list: company.uc_ware_lista
@@ -97,7 +99,7 @@ export class AuthService {
                         identification_number: user.u_person_identification_number,
                         email: user.u_person_email
                     },
-                    companies: userCompaniesAndBranches
+                    cmpy: userCompaniesAndBranches
                 }
             };
         } catch (error) {
@@ -112,11 +114,11 @@ export class AuthService {
      * Segundo paso del login: Selección de compañía y sucursal
      * Genera un token de sesión
      */
-    async loginStep2(loginDto: LoginStep2Dto): Promise<apiResponse<any>> {
+    async autenticate(autenticateDto: AutenticateDto): Promise<apiResponse<any>> {
         try {
             // Validar el usuario primero
-            const user = await this.userLoginRepository.findOne({
-                where: { u_person_identification_number: loginDto.identification_number }
+            const user = await this.authRepository.findOne({
+                where: { u_person_identification_number: autenticateDto.identification_number }
             });
 
             if (!user) {
@@ -128,18 +130,19 @@ export class AuthService {
                 throw new UnauthorizedException('Usuario inactivo o bloqueado');
             }
 
-            // Verificar la contraseña
-            const md5Password = crypto.createHash('md5').update(loginDto.password).digest('hex');
-            if (user.u_pass !== md5Password) {
+            // Usar bcrypt en lugar de MD5 para el hash de contraseña
+            const isPasswordValid = await bcrypt.compare(autenticateDto.password, user.u_pass);
+
+            if (!isPasswordValid) {
                 throw new UnauthorizedException('Credenciales inválidas');
             }
 
             // Verificar que el usuario tenga acceso a la compañía y sucursal seleccionadas
             const userCompany = await this.userCompanyRepository.findOne({
                 where: {
-                    uc_person_identification_number: loginDto.identification_number,
-                    uc_cmpy: loginDto.company_id,
-                    uc_ware: loginDto.branch_name,
+                    uc_person_identification_number: autenticateDto.identification_number,
+                    uc_cmpy: autenticateDto.cmpy,
+                    uc_ware: autenticateDto.ware,
                     uc_enabled: 1
                 }
             });
@@ -168,8 +171,8 @@ export class AuthService {
             const payload = {
                 sub: user.u_id,
                 ident: user.u_person_identification_number,
-                company: loginDto.company_id,
-                branch: loginDto.branch_name,
+                company: autenticateDto.cmpy,
+                branch: autenticateDto.ware,
                 role_id: userCompany.uc_role_id,
                 role_name: role.rol_name,
                 role_path: role.rol_path,
@@ -179,11 +182,11 @@ export class AuthService {
             const accessToken = this.jwtService.sign(payload);
 
             // Generar token alfanumérico entre 15-35 caracteres para acceso directo (persistente)
-            const persistentToken = this.generateRandomToken(25); // 25 caracteres
+            const persistentToken = generateRandomToken(25); // 25 caracteres
 
             // Actualizar el token en la base de datos
             user.u_token = persistentToken;
-            await this.userLoginRepository.save(user);
+            await this.authRepository.save(user);
 
             return {
                 message: 'Inicio de sesión exitoso',
@@ -195,8 +198,8 @@ export class AuthService {
                         email: user.u_person_email
                     },
                     company: {
-                        id: loginDto.company_id,
-                        branch: loginDto.branch_name,
+                        id: autenticateDto.cmpy,
+                        ware: autenticateDto.ware,
                         role_id: userCompany.uc_role_id,
                         role_name: role.rol_name,
                         role_path: role.rol_path,
@@ -218,10 +221,10 @@ export class AuthService {
     /**
      * Login mediante token persistente
      */
-    async loginWithToken(loginTokenDto: LoginTokenDto): Promise<apiResponse<any>> {
+    async autenticateToken(autenticateTokenDto: AutenticateTokenDto): Promise<apiResponse<any>> {
         try {
-            const user = await this.userLoginRepository.findOne({
-                where: { u_token: loginTokenDto.token }
+            const user = await this.authRepository.findOne({
+                where: { u_token: autenticateTokenDto.token }
             });
 
             if (!user) {
@@ -251,7 +254,7 @@ export class AuthService {
             for (const company of userCompanies) {
                 if (!companiesMap.has(company.uc_cmpy)) {
                     companiesMap.set(company.uc_cmpy, {
-                        company_id: company.uc_cmpy,
+                        cmpy: company.uc_cmpy,
                         branches: []
                     });
                 }
@@ -265,7 +268,7 @@ export class AuthService {
 
                 const companyData = companiesMap.get(company.uc_cmpy);
                 companyData.branches.push({
-                    branch_name: company.uc_ware,
+                    ware: company.uc_ware,
                     role_id: company.uc_role_id,
                     role_name: role.rol_name,
                     role_path: role.rol_path,
@@ -284,7 +287,7 @@ export class AuthService {
                         identification_number: user.u_person_identification_number,
                         email: user.u_person_email
                     },
-                    companies: userCompaniesAndBranches,
+                    cmpy: userCompaniesAndBranches,
                     token: user.u_token
                 }
             };
@@ -294,84 +297,5 @@ export class AuthService {
             }
             throw new BadRequestException(`Error en la autenticación: ${error.message}`);
         }
-    }
-
-    /**
-     * Crear un nuevo usuario
-     */
-    async createUser(createUserDto: CreateUserLoginDto): Promise<apiResponse<UserLogin>> {
-        const queryRunner = this.dataSource.createQueryRunner();
-        await queryRunner.connect();
-        await queryRunner.startTransaction();
-
-        try {
-            // Verificar si el usuario ya existe
-            const existingUser = await this.userLoginRepository.findOne({
-                where: { u_person_identification_number: createUserDto.identification_number }
-            });
-
-            if (existingUser) {
-                throw new BadRequestException('Ya existe un usuario con este número de identificación');
-            }
-
-            // Obtener el siguiente ID
-            const maxResult = await queryRunner.manager
-                .createQueryBuilder()
-                .select('COALESCE(MAX(u.u_id), 0)', 'max')
-                .from(UserLogin, 'u')
-                .getRawOne();
-
-            const nextId = Number(maxResult.max) + 1;
-
-            // Generar contraseña MD5 (usando identificación como contraseña por defecto)
-            const defaultPassword = createUserDto.identification_number;
-            const md5Password = crypto.createHash('md5').update(createUserDto.password || defaultPassword).digest('hex');
-
-            // Generar token alfanumérico
-            const token = this.generateRandomToken(25);
-
-            // Crear el nuevo usuario
-            const newUser = this.userLoginRepository.create({
-                u_id: nextId,
-                u_person_email: createUserDto.email,
-                u_person_identification_number: createUserDto.identification_number,
-                u_person_name: createUserDto.name,
-                u_pass: md5Password,
-                u_token: token,
-                u_active: 1,
-                u_locked: 0,
-                u_notes: createUserDto.notes || null
-            });
-
-            const savedUser = await queryRunner.manager.save(newUser);
-            await queryRunner.commitTransaction();
-
-            return {
-                message: 'Usuario creado exitosamente',
-                data: savedUser
-            };
-        } catch (error) {
-            await queryRunner.rollbackTransaction();
-
-            if (error instanceof BadRequestException) {
-                throw error;
-            }
-            throw new BadRequestException(`Error al crear el usuario: ${error.message}`);
-        } finally {
-            await queryRunner.release();
-        }
-    }
-
-    // Método auxiliar para generar token aleatorio
-    private generateRandomToken(length: number): string {
-        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        let token = '';
-
-        for (let i = 0; i < length; i++) {
-            const randomIndex = Math.floor(Math.random() * characters.length);
-            token += characters.charAt(randomIndex);
-        }
-
-        return token;
     }
 }

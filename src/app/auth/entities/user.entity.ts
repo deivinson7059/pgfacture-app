@@ -10,7 +10,7 @@ import { dateTransformer } from '@common/utils/fechaColombia';
 @Index('pgx_users_fk4', ['u_active'])
 @Index('pgx_users_fk5', ['u_person_name'])
 @Index('pgx_users_fk6', ['u_person_identification_number', 'u_token', 'u_pass', 'u_active', 'u_person_name'])
-export class UserLogin {
+export class User {
     @PrimaryColumn({ name: 'u_id', type: 'bigint' })
     @Expose({ name: 'id' })
     u_id: number;
@@ -34,6 +34,7 @@ export class UserLogin {
 
     @Column({ name: 'u_token', type: 'varchar', length: 300 })
     @Expose({ name: 'token' })
+    @Exclude()
     u_token: string;
 
     @Column({ name: 'u_locked', type: 'int', default: 0 })

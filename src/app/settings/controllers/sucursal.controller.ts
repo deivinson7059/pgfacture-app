@@ -17,16 +17,15 @@ export class SucursalController {
     @Public()
     @Post()
     @HttpCode(HttpStatus.OK)
-    /* @ApplyDecorators([
+    @ApplyDecorators([
         CheckCmpy(ParamSource.BODY),
         UsePipes(new ValidationPipe({ transform: true }))
-    ]) */
-    createSucursal(@Body() createucursalDto: CreateSucursalDto) {
-        console.log('createSucursal', createucursalDto);
-        return createucursalDto;
-        //this.sucursalService.create(createucursalDto);
+    ])
+    createSucursal(@Body() createSucursalDto: CreateSucursalDto) {
+        return this.sucursalService.create(createSucursalDto);
     }
 
+    @Public()
     @Get(':cmpy')
     @HttpCode(HttpStatus.OK)
     @ApplyDecorators([

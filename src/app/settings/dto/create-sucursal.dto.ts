@@ -1,84 +1,95 @@
-import { Expose } from "class-transformer";
-import { IsOptional } from "class-validator";
+import { Type } from "class-transformer";
+import { IsString, IsOptional, IsNumber, IsIn } from "class-validator";
 
 export class CreateSucursalDto {
-    @Expose({ name: 'cmpy' })
+    @IsString()
     cmpy: string;
 
-    @Expose({ name: 'name' })
+    @IsString()
     name: string;
 
-    @Expose({ name: 'address' })
+    @IsString()
     address: string;
 
-    @Expose({ name: 'email' })
+    @IsString()
     email: string;
 
-    @Expose({ name: 'department' })
+    @IsString()
     department: string;
 
-    @Expose({ name: 'city' })
+    @IsString()
     city: string;
 
-    @Expose({ name: 'city_id' })
+    @IsNumber()
+    @IsOptional()
+    @Type(() => Number)
     city_id?: number;
 
-    @Expose({ name: 'phone' })
+    @IsString()
     phone: string;
 
-    @Expose({ name: 'mobile' })
+    @IsString()
     mobile: string;
 
-    @Expose({ name: 'reason' })
+    @IsString()
     reason: string;
 
-    @Expose({ name: 'tax_id' })
-    tax_id: string;
+    @IsString()
+    nit: string;
 
-    @Expose({ name: 'logo' })
+    @IsString()
     logo: string;
 
+    @IsString()
     @IsOptional()
-    @Expose({ name: 'different_reason' })
+    @IsIn(['NO', 'SI'])
     different_reason?: string = 'NO';
 
+    @IsString()
     @IsOptional()
-    @Expose({ name: 'zero_invoice' })
+    @IsIn(['NO', 'SI'])
     zero_invoice?: string = 'NO';
 
+    @IsString()
     @IsOptional()
-    @Expose({ name: 'sw_code' })
+    @IsIn(['OFF', 'ON'])
     sw_code?: string = 'OFF';
 
+    @IsString()
     @IsOptional()
-    @Expose({ name: 'sw' })
+    @IsIn(['OFF', 'ON'])
     sw?: string = 'OFF';
 
+    @IsString()
     @IsOptional()
-    @Expose({ name: 'include_vat' })
+    @IsIn(['NO', 'SI'])
     include_vat?: string = 'NO';
 
+    @IsString()
     @IsOptional()
-    @Expose({ name: 'show_users' })
+    @IsIn(['NO', 'SI'])
     show_users?: string = 'SI';
 
+    @IsString()
     @IsOptional()
-    @Expose({ name: 'electronic_invoice' })
+    @IsIn(['NO', 'SI'])
     electronic_invoice?: string = 'NO';
 
+    @IsString()
     @IsOptional()
-    @Expose({ name: 'active' })
+    @IsIn(['NO', 'SI'])
     active?: string = 'SI';
 
+    @IsNumber()
     @IsOptional()
-    @Expose({ name: 'reteica' })
+    @Type(() => Number)
     reteica?: number = 0.00;
 
+    @IsString()
     @IsOptional()
-    @Expose({ name: 'terms' })
     terms?: string;
 
+    @IsString()
     @IsOptional()
-    @Expose({ name: 'list' })
     list?: string = 'P1';
 }

@@ -1,6 +1,6 @@
 import { IsString, IsNotEmpty } from 'class-validator';
 
-export class LoginStep2Dto {
+export class AutenticateDto {
     @IsString({ message: 'El número de identificación debe ser una cadena de texto' })
     @IsNotEmpty({ message: 'El número de identificación es requerido' })
     identification_number: string;
@@ -11,9 +11,10 @@ export class LoginStep2Dto {
 
     @IsString({ message: 'El ID de la compañía debe ser una cadena de texto' })
     @IsNotEmpty({ message: 'El ID de la compañía es requerido' })
-    company_id: string;
+    cmpy: string;
 
     @IsString({ message: 'El nombre de la sucursal debe ser una cadena de texto' })
     @IsNotEmpty({ message: 'El nombre de la sucursal es requerido' })
-    branch_name: string;
+    ware: string;
+
 }
