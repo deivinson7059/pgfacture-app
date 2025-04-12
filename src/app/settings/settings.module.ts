@@ -12,29 +12,31 @@ import { CompanyAccountConfigService, CustomerService, PasswordCryptoService } f
 @Module({
     controllers: [
         CompanyController,
+        CompanyAccountConfigController,
         SucursalController,
-        CustomerController,
-        CompanyAccountConfigController
+        CustomerController
     ],
     providers: [
         CompanyService,
+        CompanyAccountConfigService,
         SucursalService,
         CustomerService,
-        PasswordCryptoService,
-        CompanyAccountConfigService
+        PasswordCryptoService
     ],
     imports: [
         TypeOrmModule.forFeature(
             [
                 Company,
+                CompanyAccountConfig,
                 Sucursal,
                 Customer,
-                CompanyAccountConfig
             ]
         )
     ],
     exports: [
-        TypeOrmModule
+        TypeOrmModule,
+        CompanyService,
+        CompanyAccountConfigService
     ],
 })
 export class SettingsModule { }

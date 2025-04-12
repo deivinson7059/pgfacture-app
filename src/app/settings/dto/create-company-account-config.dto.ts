@@ -7,14 +7,14 @@ export class CreateCompanyAccountConfigDto {
 
     @IsNumber()
     @IsNotEmpty()
-    order: number;
+    level: number;
 
     @IsString()
-    @IsNotEmpty()
+    @IsOptional()
     account_number: string;
 
     @IsString()
-    @IsNotEmpty()
+    @IsOptional()
     description: string;
 
     @IsString()
@@ -23,5 +23,6 @@ export class CreateCompanyAccountConfigDto {
 
     @IsString()
     @IsIn(['DB', 'CR', 'DB/CR'])
+    @IsOptional()
     type: string;
 }

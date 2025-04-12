@@ -1,11 +1,11 @@
-import { Controller, Get, Post, Body, Param, Delete, Put, UseInterceptors, ClassSerializerInterceptor, HttpCode, HttpStatus, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, UseInterceptors, ClassSerializerInterceptor, HttpCode, HttpStatus, UsePipes, ValidationPipe } from '@nestjs/common';
 import { ApplyDecorators, CheckCmpy } from '@common/decorators';
 import { ParamSource } from '@common/enums';
 import { apiResponse } from '@common/interfaces';
 
 import { CompanyAccountConfig } from '../entities';
 import { CompanyAccountConfigService } from '../services/company-account-config.service';
-import { CreateCompanyAccountConfigDto, UpdateCompanyAccountConfigDto } from '../dto';
+import { UpdateCompanyAccountConfigDto } from '../dto';
 
 @Controller('settings/company-account-config')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -14,54 +14,20 @@ export class CompanyAccountConfigController {
         private readonly accountConfigService: CompanyAccountConfigService,
     ) { }
 
-    @Post()
-    @HttpCode(HttpStatus.OK)
-    @ApplyDecorators([
-        CheckCmpy(ParamSource.BODY),
-        UsePipes(new ValidationPipe({ transform: true }))
-    ])
-    async createAccountConfig(@Body() createDto: CreateCompanyAccountConfigDto): Promise<apiResponse<CompanyAccountConfig>> {
-        return this.accountConfigService.create(createDto);
-    }
-
-    @Post('bulk')
-    @HttpCode(HttpStatus.OK)
-    @ApplyDecorators([
-        UsePipes(new ValidationPipe({ transform: true }))
-    ])
-    async createBulkAccountConfig(@Body() configs: CreateCompanyAccountConfigDto[]): Promise<apiResponse<{ success: boolean }>> {
-        return this.accountConfigService.createBulk(configs);
-    }
-
-    @Get(':cmpy')
+    @Put(':cmpy/:level')
     @HttpCode(HttpStatus.OK)
     @ApplyDecorators([
         CheckCmpy(ParamSource.PARAMS),
         UsePipes(new ValidationPipe({ transform: true }))
     ])
-    async findAllAccountConfigs(@Param('cmpy') cmpy: string): Promise<apiResponse<CompanyAccountConfig[]>> {
-        return this.accountConfigService.findAll(cmpy);
-    }
-
-    @Get('single/:id')
-    @HttpCode(HttpStatus.OK)
-    @ApplyDecorators([
-        UsePipes(new ValidationPipe({ transform: true }))
-    ])
-    async findOneAccountConfig(@Param('id') id: number): Promise<apiResponse<CompanyAccountConfig>> {
-        return this.accountConfigService.findOne(id);
-    }
-
-    @Put(':id')
-    @HttpCode(HttpStatus.OK)
-    @ApplyDecorators([
-        UsePipes(new ValidationPipe({ transform: true }))
-    ])
     async updateAccountConfig(
-        @Param('id') id: number,
+        @Param('cmpy') cmpy: string,
+        @Param('level') level: number,
         @Body() updateDto: UpdateCompanyAccountConfigDto
     ): Promise<apiResponse<CompanyAccountConfig>> {
-        return this.accountConfigService.update(id, updateDto);
+        // Asegurarse de que el cmpy en el DTO coincida con el de los parámetros
+        updateDto.cmpy = cmpy;
+        return this.accountConfigService.update(level, updateDto);
     }
 
     @Put('bulk/:cmpy')
@@ -74,16 +40,34 @@ export class CompanyAccountConfigController {
         @Param('cmpy') cmpy: string,
         @Body() configs: UpdateCompanyAccountConfigDto[]
     ): Promise<apiResponse<{ success: boolean }>> {
+        // Asegurarse de que todos los configs tengan el cmpy correcto
+        configs.forEach(config => {
+            config.cmpy = cmpy;
+        });
         return this.accountConfigService.updateBulk(cmpy, configs);
     }
 
-    @Delete(':id')
+    @Get(':cmpy')
     @HttpCode(HttpStatus.OK)
     @ApplyDecorators([
+        CheckCmpy(ParamSource.PARAMS),
         UsePipes(new ValidationPipe({ transform: true }))
     ])
-    async removeAccountConfig(@Param('id') id: number): Promise<apiResponse<{ success: boolean }>> {
-        return this.accountConfigService.remove(id);
+    async findAllAccountConfigs(@Param('cmpy') cmpy: string): Promise<apiResponse<CompanyAccountConfig[]>> {
+        return this.accountConfigService.findAll(cmpy);
+    }
+
+    @Get(':cmpy/:level')
+    @HttpCode(HttpStatus.OK)
+    @ApplyDecorators([
+        CheckCmpy(ParamSource.PARAMS),
+        UsePipes(new ValidationPipe({ transform: true }))
+    ])
+    async findOneAccountConfig(
+        @Param('cmpy') cmpy: string,
+        @Param('level') level: number
+    ): Promise<apiResponse<CompanyAccountConfig>> {
+        return this.accountConfigService.findOne(cmpy, level);
     }
 
     @Post('init/:cmpy')

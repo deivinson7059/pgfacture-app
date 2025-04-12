@@ -1,7 +1,7 @@
 import { Entity, Column, PrimaryColumn, Index } from 'typeorm';
 import { Exclude, Expose } from 'class-transformer';
 
-@Entity({ schema: 'pgfacture', name: 'pg_cmpy' }) // Nombre de la tabla en la base de datos
+@Entity({ schema: 'pgfacture', name: 'pg_cmpy' })
 export class Company {
     @PrimaryColumn('bigint', { name: 'cmpy_n_id' })
     @Expose({ name: 'id' })
@@ -217,127 +217,6 @@ export class Company {
     @Exclude()
     cmpy_fe_send_aut: string;
 
-    // Cuentas contables
-    @Column('varchar', { name: 'cmpy_acc1', length: 20, default: '41352805' })
-    @Expose({ name: 'acc1' })
-    @Exclude()
-    cmpy_acc1: string;
-
-    @Column('varchar', { name: 'cmpy_acc2', length: 20, default: '41352815' })
-    @Expose({ name: 'acc2' })
-    @Exclude()
-    cmpy_acc2: string;
-
-    @Column('varchar', { name: 'cmpy_acc3', length: 20, default: '41352810' })
-    @Expose({ name: 'acc3' })
-    @Exclude()
-    cmpy_acc3: string;
-
-    @Column('varchar', { name: 'cmpy_acc4', length: 20, default: '613528' })
-    @Expose({ name: 'acc4' })
-    @Exclude()
-    cmpy_acc4: string;
-
-    @Column('varchar', { name: 'cmpy_acc5', length: 20, default: '14350105' })
-    @Expose({ name: 'acc5' })
-    @Exclude()
-    cmpy_acc5: string;
-
-    @Column('varchar', { name: 'cmpy_acc6', length: 20, default: '14350110' })
-    @Expose({ name: 'acc6' })
-    @Exclude()
-    cmpy_acc6: string;
-
-    @Column('varchar', { name: 'cmpy_acc7', length: 20, default: '14300105' })
-    @Expose({ name: 'acc7' })
-    @Exclude()
-    cmpy_acc7: string;
-
-    @Column('varchar', { name: 'cmpy_acc8', length: 20, default: '14300110' })
-    @Expose({ name: 'acc8' })
-    @Exclude()
-    cmpy_acc8: string;
-
-    @Column('varchar', { name: 'cmpy_acc9', length: 20, default: '143005' })
-    @Expose({ name: 'acc9' })
-    @Exclude()
-    cmpy_acc9: string;
-
-    @Column('varchar', { name: 'cmpy_acc10', length: 20, default: '146510' })
-    @Expose({ name: 'acc10' })
-    @Exclude()
-    cmpy_acc10: string;
-
-    @Column('varchar', { name: 'cmpy_acc11', length: 20, default: '14350205' })
-    @Expose({ name: 'acc11' })
-    @Exclude()
-    cmpy_acc11: string;
-
-    @Column('varchar', { name: 'cmpy_acc12', length: 20, default: '14350210' })
-    @Expose({ name: 'acc12' })
-    @Exclude()
-    cmpy_acc12: string;
-
-    @Column('varchar', { name: 'cmpy_acc13', length: 20, default: '14350215' })
-    @Expose({ name: 'acc13' })
-    @Exclude()
-    cmpy_acc13: string;
-
-    @Column('varchar', { name: 'cmpy_acc14', length: 20, default: '140502' })
-    @Expose({ name: 'acc14' })
-    @Exclude()
-    cmpy_acc14: string;
-
-    @Column('varchar', { name: 'cmpy_acc15', length: 20, default: '140501' })
-    @Expose({ name: 'acc15' })
-    @Exclude()
-    cmpy_acc15: string;
-
-    @Column('varchar', { name: 'cmpy_acc16', length: 20, default: '147001' })
-    @Expose({ name: 'acc16' })
-    @Exclude()
-    cmpy_acc16: string;
-
-    @Column('varchar', { name: 'cmpy_acc17', length: 20, default: '147002' })
-    @Expose({ name: 'acc17' })
-    @Exclude()
-    cmpy_acc17: string;
-
-    @Column('varchar', { name: 'cmpy_acc18', length: 20, default: '14650505' })
-    @Expose({ name: 'acc18' })
-    @Exclude()
-    cmpy_acc18: string;
-
-    @Column('bigint', { name: 'cmpy_type_currency_id', nullable: true, default: 35 })
-    @Expose({ name: 'type_currency_id' })
-    @Exclude()
-    cmpy_type_currency_id: number;
-
-    @Column('varchar', { name: 'cmpy_type_currency', length: 191, nullable: true, default: "Peso colombiano" })
-    @Expose({ name: 'type_currency' })
-    @Exclude()
-    cmpy_type_currency: string;
-
-    @Column('bigint', { name: 'cmpy_language_id', nullable: true, default: 79 })
-    @Expose({ name: 'language_id' })
-    @Exclude()
-    cmpy_language_id: number;
-
-    @Column('varchar', { name: 'cmpy_language', length: 191, nullable: true, default: 'Spanish; Castilian' })
-    @Expose({ name: 'language' })
-    @Exclude()
-    cmpy_language: string;
-
-    @Column('bigint', { name: 'cmpy_type_operations_id', nullable: true,default:10 })
-    @Expose({ name: 'type_operations_id' })
-    @Exclude()
-    cmpy_type_operations_id: number;
-
-    @Column('varchar', { name: 'cmpy_type_operations', length: 191, nullable: true,default:"Estandar" })
-    @Expose({ name: 'type_operations' })
-    @Exclude()
-    cmpy_type_operations: string;
-
     @Column('varchar', { name: 'cmpy_show_users', length: 10, default: 'SI' })
     @Expose({ name: 'show_users' })
     @Exclude()
@@ -365,8 +244,8 @@ export class Company {
 
     @Column('varchar', { name: 'cmpy_tax', length: 190, default: 'IVA' })
     @Index('pg_cmpy_fk13')
-    @Expose({ name: 'tax' })   
-    @Exclude() 
+    @Expose({ name: 'tax' })
+    @Exclude()
     cmpy_tax: string;
 
     @Column('decimal', { name: 'cmpy_uvt', precision: 30, scale: 2, default: 0.00 })
@@ -375,7 +254,7 @@ export class Company {
     @Exclude()
     cmpy_uvt: number;
 
-    @Column('varchar', { name: 'cmpy_inv', length: 80,default: "00" })
+    @Column('varchar', { name: 'cmpy_inv', length: 80, default: "00" })
     @Index('pg_cmpy_fk15')
     @Expose({ name: 'inv' })
     @Exclude()

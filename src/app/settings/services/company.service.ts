@@ -4,13 +4,19 @@ import { DataSource, Repository } from "typeorm";
 
 import { apiResponse } from "src/app/common/interfaces/common.interface";
 import { CreateCompanyDto, UpdateCompanyDto } from "../dto";
-import { Company } from "../entities";
+import { Company, CompanyAccountConfig } from "../entities";
+import { DEFAULT_ACCOUNT_VALUES } from "@common/utils/defaultUtils";
+
+
+
 
 @Injectable()
 export class CompanyService {
     constructor(
         @InjectRepository(Company)
         private readonly CompanyRepository: Repository<Company>,
+        @InjectRepository(CompanyAccountConfig)
+        private readonly CompanyAccountConfigRepository: Repository<CompanyAccountConfig>,
         private dataSource: DataSource
     ) { }
 
@@ -29,14 +35,17 @@ export class CompanyService {
             let nextId = Number(maxResult.max) + 1;
             let nextCmpyId = String(nextId).padStart(2, '0');
 
-            const existingCompany: boolean = await this.verifyCompanyIdExists(companyData.cmpy!);
+            // Si el usuario proporcionó un ID de compañía específico, lo usamos en lugar del generado
+            const cmpyId = companyData.cmpy || nextCmpyId;
+
+            const existingCompany: boolean = await this.verifyCompanyIdExists(cmpyId);
             // Verificar si la compañia existe
             if (existingCompany) throw new ConflictException("La compañia ya existe");
 
             // Crear la nueva compañía con el ID verificado
             const newCompany = this.CompanyRepository.create({
                 cmpy_n_id: nextId,
-                cmpy_id: nextCmpyId,
+                cmpy_id: cmpyId,
                 cmpy_type_document_identification_id: companyData.type_document_identification_id,
                 cmpy_type_document_identification: companyData.type_document_identification,
                 cmpy_document_identification: companyData.document_identification,
@@ -66,6 +75,10 @@ export class CompanyService {
 
             // Guardar la nueva compañía
             const savedCompany = await queryRunner.manager.save(newCompany);
+
+            // Inicializar las cuentas contables predeterminadas
+            await this.initializeAccountConfig(queryRunner, cmpyId);
+
             await queryRunner.commitTransaction();
 
             return {
@@ -84,6 +97,26 @@ export class CompanyService {
         }
     }
 
+    // Método para inicializar las configuraciones de cuentas contables
+    private async initializeAccountConfig(queryRunner: any, cmpy: string): Promise<void> {
+        // Crear las configuraciones para cada nivel definido en DEFAULT_ACCOUNT_VALUES
+        for (const levelStr in DEFAULT_ACCOUNT_VALUES) {
+            const level = parseInt(levelStr);
+            const defaultValues = DEFAULT_ACCOUNT_VALUES[level];
+
+            const newConfig = queryRunner.manager.create(CompanyAccountConfig, {
+                acc_cmpy: cmpy,
+                acc_level: level,
+                acc_number: defaultValues.number,
+                acc_description: defaultValues.description,
+                acc_modules: defaultValues.modules,
+                acc_type: defaultValues.type
+            });
+
+            await queryRunner.manager.save(newConfig);
+        }
+    }
+
     async verifyCompanyIdExists(cmpy: string): Promise<boolean> {
         const company = await this.CompanyRepository.findOne({
             where: { cmpy_id: cmpy }
@@ -99,7 +132,6 @@ export class CompanyService {
     }
 
     async findOne(cmpy: string): Promise<apiResponse<Company | null>> {
-        console.log(cmpy);
         const company = await this.CompanyRepository.findOne({
             where: { cmpy_id: cmpy }
         });
@@ -115,31 +147,81 @@ export class CompanyService {
     }
 
     async update(cmpy: string, updateCompanyDto: UpdateCompanyDto): Promise<apiResponse<Company>> {
-        const Company = await this.CompanyRepository.preload({
-            cmpy_id: cmpy,
-            ...updateCompanyDto,
-        });
-        if (!Company) {
-            throw new NotFoundException(`Compañia ${cmpy} no Existe`);
-        }
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
 
-        return {
-            message: "Compañia Actualizada correctamente!..",
-            data: await this.CompanyRepository.save(Company)
-        };
+        try {
+            const company = await this.CompanyRepository.preload({
+                cmpy_id: cmpy,
+                ...updateCompanyDto,
+            });
+
+            if (!company) {
+                throw new NotFoundException(`Compañia ${cmpy} no Existe`);
+            }
+
+            // Guardar la compañía actualizada
+            const updatedCompany = await queryRunner.manager.save(company);
+
+            // Verificar si existen las cuentas contables para esta compañía
+            const existingConfigs = await queryRunner.manager.find(CompanyAccountConfig, {
+                where: { acc_cmpy: cmpy }
+            });
+
+            // Si no existen cuentas contables, las inicializamos
+            if (existingConfigs.length === 0) {
+                await this.initializeAccountConfig(queryRunner, cmpy);
+            }
+
+            await queryRunner.commitTransaction();
+
+            return {
+                message: "Compañia Actualizada correctamente!..",
+                data: updatedCompany
+            };
+        } catch (err) {
+            await queryRunner.rollbackTransaction();
+            if (err instanceof NotFoundException) {
+                throw err;
+            }
+            throw new ConflictException('Error al actualizar la compañía: ' + err.message);
+        } finally {
+            await queryRunner.release();
+        }
     }
 
     async remove(cmpy: string): Promise<apiResponse> {
-        const result = await this.CompanyRepository.delete(cmpy);
-        if (result.affected === 0) {
+        // Primero verificar que exista la compañía
+        const company = await this.CompanyRepository.findOne({
+            where: { cmpy_id: cmpy }
+        });
+
+        if (!company) {
             throw new NotFoundException(`Compañia ${cmpy} no Existe`);
         }
 
-        return {
-            message: "Compañia Eliminada correctamente!.."
-        };
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
 
+        try {
+            // Eliminar primero las configuraciones de cuentas asociadas
+            await queryRunner.manager.delete(CompanyAccountConfig, { acc_cmpy: cmpy });
 
+            // Luego eliminar la compañía
+            await queryRunner.manager.delete(Company, { cmpy_id: cmpy });
+
+            await queryRunner.commitTransaction();
+
+            return {
+                message: "Compañia Eliminada correctamente!.."
+            };
+        } catch (err) {
+            await queryRunner.rollbackTransaction();
+            throw new ConflictException('Error al eliminar la compañía: ' + err.message);
+        } finally {
+            await queryRunner.release();
+        }
     }
-
 }
