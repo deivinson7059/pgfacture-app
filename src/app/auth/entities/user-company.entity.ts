@@ -10,6 +10,7 @@ import { dateTransformer } from '@common/utils/fechaColombia';
 @Index('pgx_users_cmpy_fk5', ['uc_enabled'])
 @Index('pgx_users_cmpy_fk6', ['uc_person_identification_number', 'uc_person_name', 'uc_ware', 'uc_cmpy', 'uc_enabled'])
 @Index('pgx_users_cmpy_fk7', ['uc_role_id'])
+@Index('pgx_users_cmpy_fk8', ['uc_token'])
 export class UserCompany {
     @Column({ name: 'uc_id', type: 'bigint' })
     @Expose({ name: 'id' })
@@ -66,6 +67,10 @@ export class UserCompany {
     @Column({ name: 'uc_ware_dev', type: 'varchar', length: 2, default: 'Y' })
     @Expose({ name: 'can_return' })
     uc_ware_dev: string;
+
+    @Column({ name: 'uc_token', type: 'varchar', length: 300, nullable: true })
+    @Expose({ name: 'token' })
+    uc_token: string | null;
 
     @CreateDateColumn({
         name: 'uc_now',

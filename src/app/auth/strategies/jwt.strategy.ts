@@ -26,7 +26,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     async validate(payload: JwtPayload): Promise<any> {
-        const { sub, ident, company, branch } = payload;
+        const { sub, ident, cmpy, ware } = payload;
 
         // Verificar que el usuario existe
         const user = await this.userRepository.findOneBy({ u_id: sub });
@@ -47,8 +47,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         const userCompany = await this.userCompanyRepository.findOne({
             where: {
                 uc_person_identification_number: ident,
-                uc_cmpy: company,
-                uc_ware: branch
+                uc_cmpy: cmpy,
+                uc_ware: ware
             }
         });
 
@@ -71,8 +71,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         return {
             id: sub,
             identification_number: ident,
-            company: company,
-            branch: branch,
+            cmpy: cmpy,
+            ware: ware,
             role_id: userCompany.uc_role_id,
             role_name: role.rol_name,
             role_path: role.rol_path,

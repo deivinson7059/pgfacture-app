@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, UseInterceptors, ClassSerializerInterceptor, HttpCode, HttpStatus, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, UseInterceptors, ClassSerializerInterceptor, HttpCode, HttpStatus, UsePipes, ValidationPipe, Delete, Param } from '@nestjs/common';
 import { ScopesService } from '../services/scopes.service';
 import { CreateScopeDto } from '../dto/create-scope.dto';
 import { JwtAuthGuard, ScopesGuard } from '@auth/guards';
@@ -31,5 +31,16 @@ export class ScopesController {
     //@RequiredScopes('read:security_access')
     findAllScopes() {
         return this.scopesService.findAllScopes();
+    }
+
+    @Public()
+    @Delete(':id')
+    @HttpCode(HttpStatus.OK)
+    @ApplyDecorators([
+        UsePipes(new ValidationPipe({ transform: true }))
+    ])
+    //@RequiredScopes('write:security_access')
+    deleteScope(@Param('id') id: string) {
+        return this.scopesService.deleteScope(id);
     }
 }

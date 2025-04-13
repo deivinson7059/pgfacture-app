@@ -1,17 +1,10 @@
+// src/app/auth/dto/assign-user-ware.dto.ts
 import { IsString, IsNotEmpty, IsOptional, IsNumber, Min, IsIn } from 'class-validator';
 
-export class AssignCompanyDto {
+export class AssignUserWareDto {
     @IsString({ message: 'El número de identificación debe ser una cadena de texto' })
     @IsNotEmpty({ message: 'El número de identificación es requerido' })
     identification_number: string;
-
-    @IsString({ message: 'El nombre debe ser una cadena de texto' })
-    @IsNotEmpty({ message: 'El nombre es requerido' })
-    person_name: string;
-
-    @IsOptional()
-    @IsString({ message: 'El apodo debe ser una cadena de texto' })
-    nick?: string;
 
     @IsString({ message: 'El ID de la compañía debe ser una cadena de texto' })
     @IsNotEmpty({ message: 'El ID de la compañía es requerido' })
@@ -21,8 +14,8 @@ export class AssignCompanyDto {
     @IsNotEmpty({ message: 'El nombre de la sucursal es requerido' })
     ware: string;
 
-    @IsString({ message: 'El rol debe ser una cadena de texto' })
-    @IsNotEmpty({ message: 'El rol es requerido' })
+    @IsString({ message: 'El role debe ser una cadena de texto' })
+    @IsNotEmpty({ message: 'El role es requerido' })
     role: string;
 
     @IsString({ message: 'La lista debe ser una cadena de texto' })
@@ -48,4 +41,12 @@ export class AssignCompanyDto {
     @IsIn(['Y', 'N'], { message: 'El permiso de devolución debe ser Y o N' })
     @IsOptional()
     can_return?: string = 'Y';
+
+    @IsString({ message: 'El nombre debe ser una cadena de texto' })
+    @IsOptional()
+    person_name?: string;
+
+    @IsString({ message: 'El apodo debe ser una cadena de texto' })
+    @IsOptional()
+    nick?: string;
 }

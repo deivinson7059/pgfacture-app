@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Delete } from '@nestjs/common';
 import { RolesService } from '../services/roles.service';
 import { JwtAuthGuard, ScopesGuard } from '@auth/guards';
 import { Public, RequiredScopes } from '@auth/decorators';
@@ -22,18 +22,30 @@ export class RolesController {
         return this.rolesService.createRole(createRoleDto);
     }
 
-    @Get(':roleId/scopes')
+    @Public()
+    @Get(':roleName/scopes')
     //@RequiredScopes('read:roles')
-    getRoleScopes(@Param('roleId') roleId: number) {
-        return this.rolesService.getRoleScopes(roleId);
+    getRoleScopes(@Param('roleName') roleName: string) {
+        return this.rolesService.getRoleScopesByName(roleName);
     }
 
-    @Post(':roleId/scopes')
+    @Public()
+    @Post(':roleName/scopes')
     //@RequiredScopes('write:roles')
     assignScopeToRole(
-        @Param('roleId') roleId: number,
+        @Param('roleName') roleName: string,
         @Body() assignRoleScopeDto: AssignRoleScopeDto
     ) {
-        return this.rolesService.assignScopeToRole(roleId, assignRoleScopeDto);
+        return this.rolesService.assignScopeToRoleByName(roleName, assignRoleScopeDto);
+    }
+
+    @Public()
+    @Delete(':roleName/scopes/:scopeId')
+    //@RequiredScopes('write:roles')
+    removeScopeFromRole(
+        @Param('roleName') roleName: string,
+        @Param('scopeId') scopeId: string
+    ) {
+        return this.rolesService.removeScopeFromRole(roleName, scopeId);
     }
 }

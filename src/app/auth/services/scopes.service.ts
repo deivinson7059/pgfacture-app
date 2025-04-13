@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Scope } from '../entities';
@@ -23,14 +23,22 @@ export class ScopesService {
             });
 
             if (existingScope) {
-                throw new BadRequestException(`Ya existe un scope con el ID: ${createScopeDto.id}`);
+                // Si ya existe, actualizar su estado a activo
+                existingScope.s_active = 'Y';
+                existingScope.s_description = createScopeDto.description;
+                const updatedScope = await this.scopeRepository.save(existingScope);
+
+                return {
+                    message: `Scope ${createScopeDto.id} actualizado a estado activo`,
+                    data: updatedScope
+                };
             }
 
             // Crear el nuevo scope
             const newScope = this.scopeRepository.create({
                 s_id: createScopeDto.id,
                 s_description: createScopeDto.description,
-                s_active: createScopeDto.active || 1
+                s_active: createScopeDto.active || 'Y'
             });
 
             const savedScope = await this.scopeRepository.save(newScope);
@@ -53,7 +61,7 @@ export class ScopesService {
     async findAllScopes(): Promise<apiResponse<Scope[]>> {
         try {
             const scopes = await this.scopeRepository.find({
-                where: { s_active: 1 }
+                where: { s_active: 'Y' }
             });
 
             return {
@@ -62,6 +70,31 @@ export class ScopesService {
             };
         } catch (error) {
             throw new BadRequestException(`Error al obtener los scopes: ${error.message}`);
+        }
+    }
+
+    async deleteScope(scopeId: string): Promise<apiResponse<void>> {
+        try {
+            const scope = await this.scopeRepository.findOne({
+                where: { s_id: scopeId }
+            });
+
+            if (!scope) {
+                throw new NotFoundException(`Scope con ID ${scopeId} no encontrado`);
+            }
+
+            // Desactivar el scope en lugar de eliminarlo
+            scope.s_active = 'N';
+            await this.scopeRepository.save(scope);
+
+            return {
+                message: `Scope ${scopeId} desactivado exitosamente`
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw error;
+            }
+            throw new BadRequestException(`Error al desactivar el scope: ${error.message}`);
         }
     }
 }

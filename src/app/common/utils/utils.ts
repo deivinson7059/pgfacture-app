@@ -52,3 +52,7 @@ export const generateRandomToken = (length: number): string => {
 
     return token;
 }
+// Método para formatear el nombre del rol (espacios a mayúsculas y * en lugar de espacios)
+export const formatRoleName = (name: string): string => {
+    return name.toUpperCase().replace(/\s+/g, '_');
+}

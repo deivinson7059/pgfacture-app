@@ -71,24 +71,24 @@ export class AuthService {
             // Organizar las compañías y sucursales
             const companiesMap = new Map();
 
-            userCompanies.forEach(company => {
-                if (!companiesMap.has(company.uc_cmpy)) {
-                    companiesMap.set(company.uc_cmpy, {
-                        company_id: company.uc_cmpy,
-                        branches: []
+            userCompanies.forEach(cmpy => {
+                if (!companiesMap.has(cmpy.uc_cmpy)) {
+                    companiesMap.set(cmpy.uc_cmpy, {
+                        cmpy: cmpy.uc_cmpy,
+                        wares: []
                     });
                 }
 
-                const companyData = companiesMap.get(company.uc_cmpy);
-                companyData.branches.push({
-                    ware: company.uc_ware,
-                    role_id: company.uc_role_id,
-                    role_name: company.uc_ware_rol,
-                    list: company.uc_ware_lista
+                const companyData = companiesMap.get(cmpy.uc_cmpy);
+                companyData.wares.push({
+                    ware: cmpy.uc_ware,
+                    role_id: cmpy.uc_role_id,
+                    role_name: cmpy.uc_ware_rol,
+                    list: cmpy.uc_ware_lista
                 });
             });
 
-            const userCompaniesAndBranches = Array.from(companiesMap.values());
+            const userCompaniesAndwares = Array.from(companiesMap.values());
 
             return {
                 message: 'Primer paso de autenticación exitoso',
@@ -99,7 +99,7 @@ export class AuthService {
                         identification_number: user.u_person_identification_number,
                         email: user.u_person_email
                     },
-                    cmpy: userCompaniesAndBranches
+                    cmpy: userCompaniesAndwares
                 }
             };
         } catch (error) {
@@ -171,21 +171,16 @@ export class AuthService {
             const payload = {
                 sub: user.u_id,
                 ident: user.u_person_identification_number,
-                company: autenticateDto.cmpy,
-                branch: autenticateDto.ware,
+                cmpy: autenticateDto.cmpy,
+                ware: autenticateDto.ware,
                 role_id: userCompany.uc_role_id,
-                role_name: role.rol_name,
-                role_path: role.rol_path,
+                role: role.rol_name,
+                path: role.rol_path,
                 scopes: scopes
             };
 
             const accessToken = this.jwtService.sign(payload);
 
-            // Generar token alfanumérico entre 15-35 caracteres para acceso directo (persistente)
-            const persistentToken = generateRandomToken(25); // 25 caracteres
-
-            // Actualizar el token en la base de datos
-            user.u_token = persistentToken;
             await this.authRepository.save(user);
 
             return {
@@ -197,17 +192,18 @@ export class AuthService {
                         identification_number: user.u_person_identification_number,
                         email: user.u_person_email
                     },
-                    company: {
+                    cmpy: {
                         id: autenticateDto.cmpy,
                         ware: autenticateDto.ware,
                         role_id: userCompany.uc_role_id,
-                        role_name: role.rol_name,
-                        role_path: role.rol_path,
-                        list: userCompany.uc_ware_lista
+                        role: role.rol_name,
+                        path: role.rol_path,
+                        list: userCompany.uc_ware_lista,
+                        scopes: scopes
                     },
-                    token: persistentToken,
-                    access_token: accessToken,
-                    scopes: scopes
+                    token: userCompany.uc_token,
+                    access_token: accessToken
+
                 }
             };
         } catch (error) {
@@ -221,62 +217,61 @@ export class AuthService {
     /**
      * Login mediante token persistente
      */
+    /**
+     * Login mediante token persistente
+     */
     async autenticateToken(autenticateTokenDto: AutenticateTokenDto): Promise<apiResponse<any>> {
         try {
-            const user = await this.authRepository.findOne({
-                where: { u_token: autenticateTokenDto.token }
+            // Buscar el token en UserCompany en lugar de User
+            const userCompany = await this.userCompanyRepository.findOne({
+                where: { uc_token: autenticateTokenDto.token, uc_enabled: 1 }
             });
 
-            if (!user) {
+            if (!userCompany) {
                 throw new UnauthorizedException('Token inválido o expirado');
             }
 
-            // Verificar que el usuario esté activo y no bloqueado
-            if (user.u_active !== 1 || user.u_locked === 1) {
-                throw new UnauthorizedException('Usuario inactivo o bloqueado');
-            }
-
-            // Obtener las compañías y sucursales del usuario
-            const userCompanies = await this.userCompanyRepository.find({
+            // Verificar que el usuario exista y esté activo
+            const user = await this.authRepository.findOne({
                 where: {
-                    uc_person_identification_number: user.u_person_identification_number,
-                    uc_enabled: 1
+                    u_person_identification_number: userCompany.uc_person_identification_number,
+                    u_active: 1
                 }
             });
 
-            if (userCompanies.length === 0) {
-                throw new UnauthorizedException('El usuario no tiene compañías asignadas');
+            if (!user || user.u_locked === 1) {
+                throw new UnauthorizedException('Usuario inactivo o bloqueado');
             }
 
-            // Organizar las compañías y sucursales
-            const companiesMap = new Map();
+            // Obtener el rol del usuario
+            const role = await this.roleRepository.findOne({
+                where: { rol_id: userCompany.uc_role_id }
+            });
 
-            for (const company of userCompanies) {
-                if (!companiesMap.has(company.uc_cmpy)) {
-                    companiesMap.set(company.uc_cmpy, {
-                        cmpy: company.uc_cmpy,
-                        branches: []
-                    });
-                }
-
-                // Obtener el rol
-                const role = await this.roleRepository.findOne({
-                    where: { rol_id: company.uc_role_id }
-                });
-
-                if (!role) continue;
-
-                const companyData = companiesMap.get(company.uc_cmpy);
-                companyData.branches.push({
-                    ware: company.uc_ware,
-                    role_id: company.uc_role_id,
-                    role_name: role.rol_name,
-                    role_path: role.rol_path,
-                    list: company.uc_ware_lista
-                });
+            if (!role) {
+                throw new UnauthorizedException('Rol no encontrado');
             }
 
-            const userCompaniesAndBranches = Array.from(companiesMap.values());
+            // Obtener los scopes asignados al rol del usuario
+            const roleScopes = await this.roleScopeRepository.find({
+                where: { rs_role_id: userCompany.uc_role_id }
+            });
+
+            const scopes = roleScopes.map(rs => rs.rs_scope_id);
+
+            // Generar token de sesión JWT
+            const payload = {
+                sub: user.u_id,
+                ident: user.u_person_identification_number,
+                cmpy: userCompany.uc_cmpy,
+                ware: userCompany.uc_ware,
+                role_id: userCompany.uc_role_id,
+                role: role.rol_name,
+                path: role.rol_path,
+                scopes: scopes
+            };
+
+            const accessToken = this.jwtService.sign(payload);
 
             return {
                 message: 'Autenticación con token exitosa',
@@ -287,8 +282,17 @@ export class AuthService {
                         identification_number: user.u_person_identification_number,
                         email: user.u_person_email
                     },
-                    cmpy: userCompaniesAndBranches,
-                    token: user.u_token
+                    cmpy: {
+                        id: userCompany.uc_cmpy,
+                        ware: userCompany.uc_ware,
+                        role_id: userCompany.uc_role_id,
+                        role: role.rol_name,
+                        path: role.rol_path,
+                        list: userCompany.uc_ware_lista,
+                        scopes: scopes
+                    },
+                    token: userCompany.uc_token,
+                    access_token: accessToken,
                 }
             };
         } catch (error) {

@@ -12,7 +12,7 @@ export class Scope {
     @Expose({ name: 'description' })
     s_description: string;
 
-    @Column({ name: 's_active', type: 'int', default: 1 })
+    @Column({ name: 's_active', type: 'char', length: 1, default: 'Y' })
     @Expose({ name: 'active' })
-    s_active: number;
+    s_active: string;
 }

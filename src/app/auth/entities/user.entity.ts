@@ -5,11 +5,10 @@ import { dateTransformer } from '@common/utils/fechaColombia';
 @Entity({ schema: 'pgfacture', name: 'pgx_users' })
 @Index('pgx_users_fk0', ['u_person_identification_number'])
 @Index('pgx_users_fk1', ['u_person_email'])
-@Index('pgx_users_fk2', ['u_token'])
 @Index('pgx_users_fk3', ['u_pass'])
 @Index('pgx_users_fk4', ['u_active'])
 @Index('pgx_users_fk5', ['u_person_name'])
-@Index('pgx_users_fk6', ['u_person_identification_number', 'u_token', 'u_pass', 'u_active', 'u_person_name'])
+@Index('pgx_users_fk6', ['u_person_identification_number', 'u_pass', 'u_active', 'u_person_name'])
 export class User {
     @PrimaryColumn({ name: 'u_id', type: 'bigint' })
     @Expose({ name: 'id' })
@@ -32,10 +31,7 @@ export class User {
     @Exclude()
     u_pass: string;
 
-    @Column({ name: 'u_token', type: 'varchar', length: 300 })
-    @Expose({ name: 'token' })
-    @Exclude()
-    u_token: string;
+
 
     @Column({ name: 'u_locked', type: 'int', default: 0 })
     @Expose({ name: 'locked' })

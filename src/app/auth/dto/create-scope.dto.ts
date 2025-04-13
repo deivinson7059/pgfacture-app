@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsInt, Min, Max } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsInt, Min, Max, IsIn } from 'class-validator';
 
 export class CreateScopeDto {
     @IsString({ message: 'El ID del scope debe ser una cadena de texto' })
@@ -10,8 +10,6 @@ export class CreateScopeDto {
     description: string;
 
     @IsOptional()
-    @IsInt({ message: 'El campo active debe ser un entero' })
-    @Min(0, { message: 'El valor mínimo para active es 0' })
-    @Max(1, { message: 'El valor máximo para active es 1' })
-    active?: number = 1;
+    @IsIn(['Y', 'N'], { message: 'El campo active solo puede ser Y o N' })
+    active?: string = 'Y';
 }
