@@ -1,12 +1,14 @@
 import { WebSocketGateway, WebSocketServer, OnGatewayConnection, OnGatewayDisconnect, SubscribeMessage } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger } from '@nestjs/common';
+import { Logger, Injectable, Inject, forwardRef } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 
 @WebSocketGateway({
     cors: {
         origin: '*',
     },
 })
+@Injectable()
 export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @WebSocketServer()
     server: Server;
@@ -14,9 +16,12 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnec
     private logger: Logger = new Logger('WebsocketGateway');
     private connectedClients: Map<string, { userId: number, socketId: string, cmpy: string, platform: number }> = new Map();
 
+    constructor(
+        private readonly jwtService: JwtService
+    ) { }
+
     handleConnection(client: Socket) {
         this.logger.log(`Cliente intentando conectar: ${client.id}`);
-
     }
 
     handleDisconnect(client: Socket) {
@@ -38,15 +43,34 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnec
             return;
         }
 
-        this.logger.log(`Cliente registrado: ${client.id} para usuario ${payload.userId} en compañía ${payload.cmpy}`);
+        try {
+            // Verificar que el token sea válido
+            this.verifyToken(payload.token);
 
-        // Registrar cliente con su token, userId, compañía y plataforma
-        this.connectedClients.set(payload.token, {
-            userId: payload.userId,
-            socketId: client.id,
-            cmpy: payload.cmpy || '00',
-            platform: payload.platform || 1
-        });
+            this.logger.log(`Cliente registrado: ${client.id} para usuario ${payload.userId} en compañía ${payload.cmpy}`);
+
+            // Registrar cliente con su token, userId, compañía y plataforma
+            this.connectedClients.set(payload.token, {
+                userId: payload.userId,
+                socketId: client.id,
+                cmpy: payload.cmpy || '00',
+                platform: payload.platform || 1
+            });
+        } catch (error) {
+            client.emit('error', { message: 'Token inválido o expirado' });
+            client.disconnect();
+        }
+    }
+
+    // Método privado para verificar token
+    private verifyToken(token: string): boolean {
+        try {
+            const decoded = this.jwtService.verify(token);
+            return true;
+        } catch (error) {
+            this.logger.error(`Error al verificar token: ${error.message}`);
+            return false;
+        }
     }
 
     // Notificar al cliente que su sesión ha expirado
