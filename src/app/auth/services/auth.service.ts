@@ -1,14 +1,19 @@
 import { LoginDto, AutenticateDto, AutenticateTokenDto } from "@auth/dto";
 import { Role, RoleScope, User, UserCompany } from "@auth/entities";
 import { apiResponse } from "@common/interfaces";
-import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException, UnauthorizedException, Inject } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, Repository } from "typeorm";
+import { Request } from 'express';
+import { REQUEST } from '@nestjs/core';
 
 import * as bcrypt from 'bcrypt';
 
 import { generateRandomToken } from "@common/utils/utils";
+import { PlatformService } from "./platform.service";
+import { SessionService } from "./session.service";
+
 @Injectable()
 export class AuthService {
     constructor(
@@ -21,7 +26,10 @@ export class AuthService {
         @InjectRepository(RoleScope)
         private readonly roleScopeRepository: Repository<RoleScope>,
         private readonly jwtService: JwtService,
-        private readonly dataSource: DataSource
+        private readonly dataSource: DataSource,
+        private readonly platformService: PlatformService,
+        private readonly sessionService: SessionService,
+        @Inject(REQUEST) private readonly request: Request
     ) { }
     /**
      * Primer paso del login: Autenticación con número de identificación y contraseña
@@ -116,6 +124,21 @@ export class AuthService {
      */
     async autenticate(autenticateDto: AutenticateDto): Promise<apiResponse<any>> {
         try {
+            // Extraer información del dispositivo desde los headers
+            const userAgent = this.request.headers['user-agent'] || 'Unknown';
+            const platformIdHeader = this.request.headers['platform-id'];
+            const deviceInfo = this.request.headers['device-info'] || null;
+            const ipAddress = this.request.ip || this.request.connection.remoteAddress || 'Unknown';
+
+            // Determinar la plataforma
+            let platformId: number;
+            if (platformIdHeader && !isNaN(Number(platformIdHeader))) {
+                platformId = Number(platformIdHeader);
+            } else {
+                // Autodetectar plataforma si no se envía
+                platformId = await this.platformService.identifyPlatform(userAgent);
+            }
+
             // Validar el usuario primero
             const user = await this.authRepository.findOne({
                 where: { u_person_identification_number: autenticateDto.identification_number }
@@ -176,10 +199,24 @@ export class AuthService {
                 role_id: userCompany.uc_role_id,
                 role: role.rol_name,
                 path: role.rol_path,
-                scopes: scopes
+                scopes: scopes,
+                platform_id: platformId
             };
 
             const accessToken = this.jwtService.sign(payload);
+
+
+            // Crear la sesión en la base de datos
+            await this.sessionService.createSession(
+                user.u_id,
+                platformId,
+                accessToken,
+                ipAddress,
+                userAgent,
+                deviceInfo ? String(deviceInfo) : null,
+                autenticateDto.cmpy,
+                autenticateDto.ware
+            );
 
             await this.authRepository.save(user);
 
@@ -199,15 +236,15 @@ export class AuthService {
                         role: role.rol_name,
                         path: role.rol_path,
                         list: userCompany.uc_ware_lista,
+                        platform_id: platformId,
                         scopes: scopes
                     },
                     token: userCompany.uc_token,
                     access_token: accessToken
-
                 }
             };
         } catch (error) {
-            if (error instanceof UnauthorizedException || error instanceof NotFoundException) {
+            if (error instanceof UnauthorizedException) {
                 throw error;
             }
             throw new BadRequestException(`Error en la autenticación: ${error.message}`);
@@ -217,11 +254,23 @@ export class AuthService {
     /**
      * Login mediante token persistente
      */
-    /**
-     * Login mediante token persistente
-     */
     async autenticateToken(autenticateTokenDto: AutenticateTokenDto): Promise<apiResponse<any>> {
         try {
+            // Extraer información del dispositivo desde los headers
+            const userAgent = this.request.headers['user-agent'] || 'Unknown';
+            const platformIdHeader = this.request.headers['platform-id'];
+            const deviceInfo = this.request.headers['device-info'] || null;
+            const ipAddress = this.request.ip || this.request.connection.remoteAddress || 'Unknown';
+
+            // Determinar la plataforma
+            let platformId: number;
+            if (platformIdHeader && !isNaN(Number(platformIdHeader))) {
+                platformId = Number(platformIdHeader);
+            } else {
+                // Autodetectar plataforma si no se envía
+                platformId = await this.platformService.identifyPlatform(userAgent);
+            }
+
             // Buscar el token en UserCompany en lugar de User
             const userCompany = await this.userCompanyRepository.findOne({
                 where: { uc_token: autenticateTokenDto.token, uc_enabled: 1 }
@@ -268,10 +317,22 @@ export class AuthService {
                 role_id: userCompany.uc_role_id,
                 role: role.rol_name,
                 path: role.rol_path,
-                scopes: scopes
+                scopes: scopes,
+                platform_id: platformId
             };
 
             const accessToken = this.jwtService.sign(payload);
+
+            await this.sessionService.createSession(
+                user.u_id,
+                platformId,
+                accessToken,
+                ipAddress,
+                userAgent,
+                deviceInfo ? String(deviceInfo) : null,
+                userCompany.uc_cmpy,
+                userCompany.uc_ware
+            );
 
             return {
                 message: 'Autenticación con token exitosa',
@@ -289,10 +350,12 @@ export class AuthService {
                         role: role.rol_name,
                         path: role.rol_path,
                         list: userCompany.uc_ware_lista,
-                        scopes: scopes
+                        platform_id: platformId,
+                        scopes: scopes,
                     },
                     token: userCompany.uc_token,
                     access_token: accessToken,
+
                 }
             };
         } catch (error) {
@@ -300,6 +363,23 @@ export class AuthService {
                 throw error;
             }
             throw new BadRequestException(`Error en la autenticación: ${error.message}`);
+        }
+    }
+
+    /**
+     * Cerrar sesión de usuario
+     */
+    async logout(token: string): Promise<apiResponse<any>> {
+        try {
+            // Cerrar la sesión en la base de datos
+            await this.sessionService.closeSession(token);
+
+            return {
+                message: 'Sesión cerrada exitosamente',
+                data: { success: true }
+            };
+        } catch (error) {
+            throw new BadRequestException(`Error al cerrar sesión: ${error.message}`);
         }
     }
 }

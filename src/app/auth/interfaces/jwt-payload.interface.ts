@@ -7,4 +7,5 @@ export interface JwtPayload {
     role: string;
     path: string;
     scopes: string[];
+    platform_id: number;
 }

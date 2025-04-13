@@ -6,7 +6,8 @@ import { UnauthorizedException } from '@nestjs/common/exceptions';
 import { ConfigService } from '@nestjs/config';
 import { Injectable } from '@nestjs/common';
 import { JwtPayload } from '../interfaces/jwt-payload.interface';
-import { User, UserCompany, Role } from '@auth/entities';
+import { User, UserCompany, Role, Session } from '@auth/entities';
+import { SessionService } from '@auth/services';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -17,6 +18,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         private readonly userCompanyRepository: Repository<UserCompany>,
         @InjectRepository(Role)
         private readonly roleRepository: Repository<Role>,
+        @InjectRepository(Session)
+        private readonly sessionRepository: Repository<Session>,
+        private readonly sessionService: SessionService,
         configService: ConfigService,
     ) {
         super({
@@ -26,7 +30,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     async validate(payload: JwtPayload): Promise<any> {
-        const { sub, ident, cmpy, ware } = payload;
+        const { sub, ident, cmpy, ware, platform_id } = payload;
 
         // Verificar que el usuario existe
         const user = await this.userRepository.findOneBy({ u_id: sub });
@@ -65,6 +69,19 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
             throw new UnauthorizedException(`Rol no encontrado`);
         }
 
+
+        // Extraer el token del request
+        const request = this.getRequest();
+        const authHeader = request.headers.authorization;
+        const token = authHeader.split(' ')[1];
+
+        // Verificar que la sesión esté activa
+        try {
+            await this.sessionService.validateSession(token);
+        } catch (error) {
+            throw new UnauthorizedException('Sesión inválida o expirada');
+        }
+
         // Aquí deberíamos obtener los scopes del rol, pero como estamos en el proceso de rediseño
         // se implementará posteriormente
 
@@ -76,7 +93,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
             role_id: userCompany.uc_role_id,
             role_name: role.rol_name,
             role_path: role.rol_path,
+            platform_id: platform_id,
             scopes: payload.scopes // Temporalmente mantenemos los scopes del payload
         };
+    }
+
+    private getRequest() {
+        const ctx = this['_passportUser'];
+        if (ctx && ctx.req) {
+            return ctx.req;
+        }
+        return { headers: { authorization: '' } };
     }
 }

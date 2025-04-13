@@ -3,21 +3,31 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
-import { Role, RoleScope, Scope, UserCompany, User } from './entities';
-import { UsersController, ScopesController, RolesController, AuthController } from './controllers';
-import { ScopesService, RolesService, UserService, AuthService } from './services';
+import { Role, RoleScope, Scope, UserCompany, User, Platform, Session } from './entities';
+import { UsersController, ScopesController, RolesController, AuthController, SessionController } from './controllers';
+import { ScopesService, RolesService, UserService, AuthService, SessionService, PlatformService } from './services';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtAuthGuard, ScopesGuard } from './guards';
 import { APP_GUARD } from '@nestjs/core';
+import { WebsocketGateway } from './gateways/websocket.gateway';
 
 @Module({
-    controllers: [AuthController, UsersController, ScopesController, RolesController],
+    controllers: [
+        AuthController,
+        UsersController,
+        ScopesController,
+        RolesController,
+        SessionController
+    ],
     providers: [
         AuthService,
         UserService,
         ScopesService,
         RolesService,
+        SessionService,
+        PlatformService,
         JwtStrategy,
+        WebsocketGateway,
         {
             provide: APP_GUARD,
             useClass: JwtAuthGuard,
@@ -28,7 +38,7 @@ import { APP_GUARD } from '@nestjs/core';
         }
     ],
     imports: [
-        TypeOrmModule.forFeature([User, UserCompany, Scope, Role, RoleScope]),
+        TypeOrmModule.forFeature([User, UserCompany, Scope, Role, RoleScope, Platform, Session]),
         ConfigModule,
         PassportModule.register({ defaultStrategy: 'jwt' }),
         JwtModule.registerAsync({
@@ -40,6 +50,6 @@ import { APP_GUARD } from '@nestjs/core';
             }),
         }),
     ],
-    exports: [JwtStrategy, PassportModule, JwtModule],
+    exports: [JwtStrategy, PassportModule, JwtModule, SessionService, WebsocketGateway],
 })
 export class AuthModule { }
