@@ -69,21 +69,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
             throw new UnauthorizedException(`Rol no encontrado`);
         }
 
-
         // Extraer el token del request
         const request = this.getRequest();
         const authHeader = request.headers.authorization;
         const token = authHeader.split(' ')[1];
 
-        // Verificar que la sesión esté activa
+        // Verificar que la sesión exista y sea válida
         try {
             await this.sessionService.validateSession(token);
         } catch (error) {
             throw new UnauthorizedException('Sesión inválida o expirada');
         }
-
-        // Aquí deberíamos obtener los scopes del rol, pero como estamos en el proceso de rediseño
-        // se implementará posteriormente
 
         return {
             id: sub,
@@ -94,7 +90,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
             role_name: role.rol_name,
             role_path: role.rol_path,
             platform_id: platform_id,
-            scopes: payload.scopes // Temporalmente mantenemos los scopes del payload
+            scopes: payload.scopes // Mantener los scopes del payload
         };
     }
 

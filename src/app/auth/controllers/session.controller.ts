@@ -50,6 +50,6 @@ export class SessionController {
     @Post('cleanup')
     @HttpCode(HttpStatus.OK)
     async cleanupInactiveSessions(): Promise<apiResponse<void>> {
-        return this.sessionService.cleanupInactiveSessions(30); // Limpiar sesiones inactivas de más de 30 días
+        return this.sessionService.cleanupExpiredSessions(); // Limpiar sesiones inactivas de más de 30 días
     }
 }

@@ -1,6 +1,6 @@
-import { Controller, Post, Body, UseInterceptors, ClassSerializerInterceptor, HttpCode, ValidationPipe, UsePipes, HttpStatus, Request, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, UseInterceptors, ClassSerializerInterceptor, HttpCode, ValidationPipe, UsePipes, HttpStatus, Request, Delete, UseGuards, Get } from '@nestjs/common';
 import { Public } from '@auth/decorators';
-import { CreateUserLoginDto, LoginDto, AutenticateDto, AutenticateTokenDto } from '@auth/dto';
+import { LoginDto, AutenticateDto, AutenticateTokenDto } from '@auth/dto';
 import { AuthService } from '@auth/services';
 import { ApplyDecorators } from '@common/decorators';
 import { JwtAuthGuard } from '@auth/guards';
@@ -41,6 +41,15 @@ export class AuthController {
     }
 
     @UseGuards(JwtAuthGuard)
+    @Post('refresh-token')
+    @HttpCode(HttpStatus.OK)
+    refreshToken(@Request() req) {
+        const authHeader = req.headers.authorization;
+        const token = authHeader.split(' ')[1]; // Extraer el token JWT
+        return this.authService.refreshToken(token);
+    }
+
+    @UseGuards(JwtAuthGuard)
     @Delete('logout')
     @HttpCode(HttpStatus.OK)
     logout(@Request() req) {
@@ -48,4 +57,5 @@ export class AuthController {
         const token = authHeader.split(' ')[1]; // Extraer el token JWT
         return this.authService.logout(token);
     }
+
 }

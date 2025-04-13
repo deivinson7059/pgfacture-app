@@ -7,15 +7,19 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, Repository } from "typeorm";
 import { Request } from 'express';
 import { REQUEST } from '@nestjs/core';
+import { ConfigService } from '@nestjs/config';
 
 import * as bcrypt from 'bcrypt';
 
 import { generateRandomToken } from "@common/utils/utils";
 import { PlatformService } from "./platform.service";
 import { SessionService } from "./session.service";
+import { WebsocketGateway } from "@auth/gateways/websocket.gateway";
 
 @Injectable()
 export class AuthService {
+    private readonly jwtExpirationTime: string;
+
     constructor(
         @InjectRepository(User)
         private readonly authRepository: Repository<User>,
@@ -29,8 +33,12 @@ export class AuthService {
         private readonly dataSource: DataSource,
         private readonly platformService: PlatformService,
         private readonly sessionService: SessionService,
+        private readonly configService: ConfigService,
+        private readonly websocketGateway: WebsocketGateway,
         @Inject(REQUEST) private readonly request: Request
-    ) { }
+    ) {
+        this.jwtExpirationTime = this.configService.get<string>('JWT_EXPIRATION_TIME', '1h');
+    }
     /**
      * Primer paso del login: Autenticación con número de identificación y contraseña
      * Devuelve las compañías y sucursales disponibles para el usuario
@@ -203,8 +211,9 @@ export class AuthService {
                 platform_id: platformId
             };
 
-            const accessToken = this.jwtService.sign(payload);
-
+            const accessToken = this.jwtService.sign(payload, {
+                expiresIn: this.jwtExpirationTime
+            });
 
             // Crear la sesión en la base de datos
             await this.sessionService.createSession(
@@ -321,7 +330,9 @@ export class AuthService {
                 platform_id: platformId
             };
 
-            const accessToken = this.jwtService.sign(payload);
+            const accessToken = this.jwtService.sign(payload, {
+                expiresIn: this.jwtExpirationTime
+            });
 
             await this.sessionService.createSession(
                 user.u_id,
@@ -364,6 +375,79 @@ export class AuthService {
             }
             throw new BadRequestException(`Error en la autenticación: ${error.message}`);
         }
+    }
+
+    /**
+     * Refrescar token
+     */
+    async refreshToken(token: string): Promise<apiResponse<any>> {
+        try {
+            // Verificar que la sesión existe
+            const currentSession = await this.sessionService.validateSession(token);
+
+            if (!currentSession) {
+                throw new UnauthorizedException('Token inválido o expirado');
+            }
+
+            // Extraer información del token
+            const decodedToken = this.jwtService.decode(token);
+            if (!decodedToken) {
+                throw new UnauthorizedException('Token inválido');
+            }
+
+            // Crear un nuevo payload sin el campo exp
+            const { exp, iat, ...payloadWithoutExp } = decodedToken as any;
+
+            // Generar un nuevo token con la misma información pero nueva expiración
+            const newToken = this.jwtService.sign(payloadWithoutExp, {
+                expiresIn: this.jwtExpirationTime
+            });
+
+            // Extraer información relevante para guardar en la sesión
+            const { userAgent, deviceInfo, ipAddress } = this.extractRequestInfo();
+
+            // Eliminar la sesión antigua y crear una nueva con el nuevo token
+            await this.sessionService.closeSession(token);
+            await this.sessionService.createSession(
+                currentSession.se_user_id,
+                currentSession.se_platform_id,
+                newToken,
+                ipAddress || currentSession.se_ip_address,
+                userAgent || currentSession.se_user_agent,
+                deviceInfo ? String(deviceInfo) : currentSession.se_device_info,
+                currentSession.se_cmpy,
+                currentSession.se_ware
+            );
+
+
+
+            // Notificar al WebSocket sobre el refresco de token (no es un nuevo inicio de sesión)
+            this.websocketGateway.notifyTokenRefresh(
+                token,
+                newToken,
+                currentSession.se_user_id,
+                currentSession.se_platform_id,
+                currentSession.se_cmpy
+            );
+
+            return {
+                message: 'Token refrescado exitosamente',
+                data: { access_token: newToken }
+            };
+        } catch (error) {
+            if (error instanceof UnauthorizedException) {
+                throw error;
+            }
+            throw new BadRequestException(`Error al refrescar el token: ${error.message}`);
+        }
+    }
+
+    private extractRequestInfo() {
+        const userAgent = this.request.headers['user-agent'] || 'Unknown';
+        const deviceInfo = this.request.headers['device-info'] || null;
+        const ipAddress = this.request.ip || this.request.connection.remoteAddress || 'Unknown';
+
+        return { userAgent, deviceInfo, ipAddress };
     }
 
     /**

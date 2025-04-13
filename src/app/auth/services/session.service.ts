@@ -1,18 +1,28 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, LessThan } from 'typeorm';
 import { Session } from '../entities';
 import { apiResponse } from '@common/interfaces';
 import { WebsocketGateway } from '../gateways/websocket.gateway';
+import { ConfigService } from '@nestjs/config';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class SessionService {
+    private readonly sessionExpirationTime: number; // en horas
+
     constructor(
         @InjectRepository(Session)
         private readonly sessionRepository: Repository<Session>,
         private readonly dataSource: DataSource,
-        private readonly websocketGateway: WebsocketGateway
-    ) { }
+        private readonly websocketGateway: WebsocketGateway,
+        private readonly configService: ConfigService
+    ) {
+        // Obtener el tiempo de expiración de sesión desde las variables de entorno
+        this.sessionExpirationTime = parseInt(
+            this.configService.get<string>('SESSION_EXPIRATION_TIME', '1')
+        );
+    }
 
     // Crear una nueva sesión
     async createSession(
@@ -30,53 +40,45 @@ export class SessionService {
         await queryRunner.startTransaction();
 
         try {
-            // Obtener el siguiente ID
-            const maxResult = await queryRunner.manager
-                .createQueryBuilder()
-                .select('COALESCE(MAX(s.s_id), 0)', 'max')
-                .from(Session, 's')
-                .getRawOne();
+            // Generar un nuevo UUID para la sesión
+            const sessionId = uuidv4();
 
-            // Asegurar que nextId sea un número válido
-            let nextId = 1;
-            if (maxResult && maxResult.max !== null && !isNaN(Number(maxResult.max))) {
-                nextId = Number(maxResult.max) + 1;
-            }
+            // Calcular fecha de expiración (por defecto, 1 hora desde ahora)
+            const expiresAt = new Date();
+            expiresAt.setHours(expiresAt.getHours() + this.sessionExpirationTime);
 
-            // Desactivar sesiones existentes para este usuario en la misma plataforma
+            // Desactivar sesiones existentes para este usuario en la misma plataforma y compañía
             const existingSessions = await queryRunner.manager.find(Session, {
                 where: {
-                    s_user_id: userId,
-                    s_platform_id: platformId,
-                    s_active: 'Y'
+                    se_user_id: userId,
+                    se_platform_id: platformId,
+                    se_cmpy: cmpy
                 }
             });
 
             if (existingSessions.length > 0) {
-                // Desactivar sesiones anteriores
+                // Eliminar sesiones anteriores
                 for (const session of existingSessions) {
-                    session.s_active = 'N';
-                    await queryRunner.manager.save(session);
+                    await queryRunner.manager.delete(Session, { se_id: session.se_id });
 
                     // Notificar al cliente sobre la nueva sesión
-                    this.websocketGateway.notifySessionExpired(session.s_token, userId);
+                    this.websocketGateway.notifySessionExpired(session.se_token, userId);
                 }
             }
 
-            // Crear la nueva sesión asegurando que todos los campos requeridos tengan valores válidos
+            // Crear la nueva sesión
             const newSession = this.sessionRepository.create({
-                s_id: nextId,
-                s_user_id: userId || 0,
-                s_platform_id: platformId || 1, // Por defecto, plataforma Web si no se especifica
-                s_token: token,
-                s_ip_address: ipAddress || '0.0.0.0',
-                s_user_agent: userAgent || 'Unknown',
-                s_device_info: deviceInfo || undefined,
-                s_cmpy: cmpy || '00',
-                s_ware: ware || 'default',
-                s_created_at: new Date(),
-                s_last_activity: new Date(),
-                s_active: 'Y'
+                se_id: sessionId,
+                se_user_id: userId || 0,
+                se_platform_id: platformId || 1, // Por defecto, plataforma Web si no se especifica
+                se_token: token,
+                se_ip_address: ipAddress || '0.0.0.0',
+                se_user_agent: userAgent || 'Unknown',
+                se_device_info: deviceInfo || undefined,
+                se_cmpy: cmpy || '00',
+                se_ware: ware || 'default',
+                se_created_at: new Date(),
+                se_expires: expiresAt
             });
 
             const savedSession = await queryRunner.manager.save(newSession);
@@ -95,18 +97,19 @@ export class SessionService {
     async validateSession(token: string): Promise<Session> {
         const session = await this.sessionRepository.findOne({
             where: {
-                s_token: token,
-                s_active: 'Y'
+                se_token: token
             }
         });
 
         if (!session) {
-            throw new UnauthorizedException('Sesión inválida o expirada');
+            throw new UnauthorizedException('Sesión inválida o no existe');
         }
 
-        // Actualizar última actividad
-        session.s_last_activity = new Date();
-        await this.sessionRepository.save(session);
+        // Verificar si la sesión ha expirado
+        if (new Date() > session.se_expires) {
+            await this.sessionRepository.delete({ se_id: session.se_id });
+            throw new UnauthorizedException('Sesión expirada');
+        }
 
         return session;
     }
@@ -114,12 +117,11 @@ export class SessionService {
     // Cerrar una sesión
     async closeSession(token: string): Promise<apiResponse<void>> {
         const session = await this.sessionRepository.findOne({
-            where: { s_token: token }
+            where: { se_token: token }
         });
 
         if (session) {
-            session.s_active = 'N';
-            await this.sessionRepository.save(session);
+            await this.sessionRepository.delete({ se_id: session.se_id });
         }
 
         return {
@@ -127,21 +129,49 @@ export class SessionService {
         };
     }
 
+    // Refrescar un token de sesión
+    async refreshSession(token: string): Promise<apiResponse<{ token: string }>> {
+        const session = await this.sessionRepository.findOne({
+            where: { se_token: token }
+        });
+
+        if (!session) {
+            throw new UnauthorizedException('Sesión inválida o no existe');
+        }
+
+        // Verificar si la sesión ha expirado
+        if (new Date() > session.se_expires) {
+            await this.sessionRepository.delete({ se_id: session.se_id });
+            throw new UnauthorizedException('Sesión expirada');
+        }
+
+        // Calcular nueva fecha de expiración
+        const expiresAt = new Date();
+        expiresAt.setHours(expiresAt.getHours() + this.sessionExpirationTime);
+
+        // Actualizar la fecha de expiración
+        session.se_expires = expiresAt;
+        await this.sessionRepository.save(session);
+
+        return {
+            message: 'Sesión refrescada correctamente',
+            data: { token: session.se_token }
+        };
+    }
+
     // Cerrar todas las sesiones de un usuario
     async closeAllUserSessions(userId: number): Promise<apiResponse<void>> {
         const sessions = await this.sessionRepository.find({
             where: {
-                s_user_id: userId,
-                s_active: 'Y'
+                se_user_id: userId
             }
         });
 
         for (const session of sessions) {
-            session.s_active = 'N';
-            await this.sessionRepository.save(session);
+            await this.sessionRepository.delete({ se_id: session.se_id });
 
             // Notificar al cliente sobre el cierre de sesión
-            this.websocketGateway.notifySessionExpired(session.s_token, userId);
+            this.websocketGateway.notifySessionExpired(session.se_token, userId);
         }
 
         return {
@@ -151,10 +181,12 @@ export class SessionService {
 
     // Obtener todas las sesiones activas de un usuario
     async getUserActiveSessions(userId: number): Promise<apiResponse<Session[]>> {
+        const now = new Date();
+
         const sessions = await this.sessionRepository.find({
             where: {
-                s_user_id: userId,
-                s_active: 'Y'
+                se_user_id: userId,
+                se_expires: LessThan(now)
             }
         });
 
@@ -164,20 +196,19 @@ export class SessionService {
         };
     }
 
-    // Limpiar sesiones antiguas inactivas (puede ejecutarse como tarea programada)
-    async cleanupInactiveSessions(daysOld: number = 30): Promise<apiResponse<void>> {
-        const date = new Date();
-        date.setDate(date.getDate() - daysOld);
+    // Limpiar sesiones expiradas (puede ejecutarse como tarea programada)
+    async cleanupExpiredSessions(): Promise<apiResponse<void>> {
+        const now = new Date();
 
-        // Usar createQueryBuilder en lugar de delete con condición compleja
+        // Usar createQueryBuilder para eliminar sesiones expiradas
         await this.sessionRepository.createQueryBuilder()
             .delete()
             .from(Session)
-            .where('s_last_activity < :date', { date })
+            .where('se_expires < :now', { now })
             .execute();
 
         return {
-            message: `Sesiones inactivas de más de ${daysOld} días han sido eliminadas`
+            message: 'Sesiones expiradas han sido eliminadas'
         };
     }
 }
