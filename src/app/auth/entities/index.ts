@@ -1,3 +1,6 @@
+export { Menu } from './menu.entity';
+export { MenuOption } from './menu-option.entity';
+export { MenuRole } from './menu-role.entity';
 export { Platform } from "./platform.entity";
 export { Role } from "./role.entity";
 export { RoleScope } from "./role-scope.entity";

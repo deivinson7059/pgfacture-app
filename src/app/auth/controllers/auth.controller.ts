@@ -50,7 +50,7 @@ export class AuthController {
     }
 
     @UseGuards(JwtAuthGuard)
-    @Delete('logout')
+    @Post('logout')
     @HttpCode(HttpStatus.OK)
     logout(@Request() req) {
         const authHeader = req.headers.authorization;

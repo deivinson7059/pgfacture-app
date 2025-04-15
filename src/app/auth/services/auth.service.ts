@@ -1,7 +1,7 @@
 import { LoginDto, AutenticateDto, AutenticateTokenDto } from "@auth/dto";
 import { Role, RoleScope, User, UserCompany } from "@auth/entities";
 import { apiResponse } from "@common/interfaces";
-import { BadRequestException, Injectable, NotFoundException, UnauthorizedException, Inject } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException, UnauthorizedException, Inject, HttpException, HttpStatus } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, Repository } from "typeorm";
@@ -51,17 +51,32 @@ export class AuthService {
             });
 
             if (!user) {
-                throw new UnauthorizedException('Credenciales inválidas');
+                throw new HttpException({
+                    success: false,
+                    messages: {
+                        error: 'Credenciales inválidas'
+                    }
+                }, HttpStatus.PAYMENT_REQUIRED);
             }
 
             // Verificar si el usuario está activo
             if (user.u_active !== 1) {
-                throw new UnauthorizedException('Usuario inactivo');
+                throw new HttpException({
+                    success: false,
+                    messages: {
+                        error: 'Usuario inactivo'
+                    }
+                }, HttpStatus.PAYMENT_REQUIRED);
             }
 
             // Verificar si el usuario está bloqueado
             if (user.u_locked === 1) {
-                throw new UnauthorizedException(`Usuario bloqueado: ${user.u_reason_locked || 'Contacte al administrador'}`);
+                throw new HttpException({
+                    success: false,
+                    messages: {
+                        error: `Usuario bloqueado: ${user.u_reason_locked || 'Contacte al administrador'}`
+                    }
+                }, HttpStatus.FORBIDDEN);
             }
 
 
@@ -69,7 +84,12 @@ export class AuthService {
             const isPasswordValid = await bcrypt.compare(loginDto.password, user.u_pass);
 
             if (!isPasswordValid) {
-                throw new UnauthorizedException('Credenciales inválidas');
+                throw new HttpException({
+                    success: false,
+                    messages: {
+                        error: 'Credenciales inválidas'
+                    }
+                }, HttpStatus.PAYMENT_REQUIRED);
             }
 
             // Obtener las compañías y sucursales del usuario
@@ -81,7 +101,12 @@ export class AuthService {
             });
 
             if (userCompanies.length === 0) {
-                throw new UnauthorizedException('El usuario no tiene compañías asignadas');
+                throw new HttpException({
+                    success: false,
+                    messages: {
+                        error: 'El usuario no tiene compañías asignadas'
+                    }
+                }, HttpStatus.FORBIDDEN);
             }
 
             // Organizar las compañías y sucursales
@@ -119,10 +144,16 @@ export class AuthService {
                 }
             };
         } catch (error) {
-            if (error instanceof UnauthorizedException) {
+            if (error instanceof HttpException) {
                 throw error;
             }
-            throw new BadRequestException(`Error en la autenticación: ${error.message}`);
+            // Para cualquier otro tipo de error, usar un código 400
+            throw new HttpException({
+                success: false,
+                messages: {
+                    error: `Error en la autenticación: ${error.message}`
+                }
+            }, HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -153,19 +184,34 @@ export class AuthService {
             });
 
             if (!user) {
-                throw new UnauthorizedException('Credenciales inválidas');
+                throw new HttpException({
+                    success: false,
+                    messages: {
+                        error: 'Credenciales inválidas'
+                    }
+                }, HttpStatus.PAYMENT_REQUIRED); // 402 en lugar de 401
             }
 
             // Verificar si el usuario está activo y no bloqueado
             if (user.u_active !== 1 || user.u_locked === 1) {
-                throw new UnauthorizedException('Usuario inactivo o bloqueado');
+                throw new HttpException({
+                    success: false,
+                    messages: {
+                        error: 'Usuario inactivo o bloqueado'
+                    }
+                }, HttpStatus.PAYMENT_REQUIRED); // 402 en lugar de 401
             }
 
             // Usar bcrypt en lugar de MD5 para el hash de contraseña
             const isPasswordValid = await bcrypt.compare(autenticateDto.password, user.u_pass);
 
             if (!isPasswordValid) {
-                throw new UnauthorizedException('Credenciales inválidas');
+                throw new HttpException({
+                    success: false,
+                    messages: {
+                        error: 'Credenciales inválidas'
+                    }
+                }, HttpStatus.PAYMENT_REQUIRED); // 402 en lugar de 401
             }
 
             // Verificar que el usuario tenga acceso a la compañía y sucursal seleccionadas
@@ -179,7 +225,12 @@ export class AuthService {
             });
 
             if (!userCompany) {
-                throw new UnauthorizedException('No tiene acceso a esta compañía o sucursal');
+                throw new HttpException({
+                    success: false,
+                    messages: {
+                        error: 'No tiene acceso a esta compañía o sucursal'
+                    }
+                }, HttpStatus.FORBIDDEN); // 403 - más apropiado para permisos
             }
 
             // Obtener el rol del usuario
@@ -188,7 +239,12 @@ export class AuthService {
             });
 
             if (!role) {
-                throw new UnauthorizedException('Rol no encontrado');
+                throw new HttpException({
+                    success: false,
+                    messages: {
+                        error: 'Rol no encontrado'
+                    }
+                }, HttpStatus.FORBIDDEN); // 403
             }
 
             // Obtener los scopes asignados al rol del usuario
@@ -253,10 +309,17 @@ export class AuthService {
                 }
             };
         } catch (error) {
-            if (error instanceof UnauthorizedException) {
+            // Si ya es un HttpException, relanzarlo
+            if (error instanceof HttpException) {
                 throw error;
             }
-            throw new BadRequestException(`Error en la autenticación: ${error.message}`);
+            // Para otros errores, usar BAD_REQUEST
+            throw new HttpException({
+                success: false,
+                messages: {
+                    error: `Error en la autenticación: ${error.message}`
+                }
+            }, HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -286,7 +349,12 @@ export class AuthService {
             });
 
             if (!userCompany) {
-                throw new UnauthorizedException('Token inválido o expirado');
+                throw new HttpException({
+                    success: false,
+                    messages: {
+                        error: 'Token inválido o expirado'
+                    }
+                }, HttpStatus.PAYMENT_REQUIRED); // 402 en lugar de 401
             }
 
             // Verificar que el usuario exista y esté activo
@@ -298,7 +366,12 @@ export class AuthService {
             });
 
             if (!user || user.u_locked === 1) {
-                throw new UnauthorizedException('Usuario inactivo o bloqueado');
+                throw new HttpException({
+                    success: false,
+                    messages: {
+                        error: 'Usuario inactivo o bloqueado'
+                    }
+                }, HttpStatus.PAYMENT_REQUIRED); // 402 en lugar de 401
             }
 
             // Obtener el rol del usuario
@@ -307,7 +380,12 @@ export class AuthService {
             });
 
             if (!role) {
-                throw new UnauthorizedException('Rol no encontrado');
+                throw new HttpException({
+                    success: false,
+                    messages: {
+                        error: 'Rol no encontrado'
+                    }
+                }, HttpStatus.FORBIDDEN); // 403
             }
 
             // Obtener los scopes asignados al rol del usuario
@@ -366,14 +444,20 @@ export class AuthService {
                     },
                     token: userCompany.uc_token,
                     access_token: accessToken,
-
                 }
             };
         } catch (error) {
-            if (error instanceof UnauthorizedException) {
+            // Si ya es un HttpException, relanzarlo
+            if (error instanceof HttpException) {
                 throw error;
             }
-            throw new BadRequestException(`Error en la autenticación: ${error.message}`);
+            // Para otros errores, usar BAD_REQUEST
+            throw new HttpException({
+                success: false,
+                messages: {
+                    error: `Error en la autenticación: ${error.message}`
+                }
+            }, HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -386,13 +470,23 @@ export class AuthService {
             const currentSession = await this.sessionService.validateSession(token);
 
             if (!currentSession) {
-                throw new UnauthorizedException('Token inválido o expirado');
+                throw new HttpException({
+                    success: false,
+                    messages: {
+                        error: 'Token inválido o expirado'
+                    }
+                }, HttpStatus.PAYMENT_REQUIRED); // 402 en lugar de 401
             }
 
             // Extraer información del token
             const decodedToken = this.jwtService.decode(token);
             if (!decodedToken) {
-                throw new UnauthorizedException('Token inválido');
+                throw new HttpException({
+                    success: false,
+                    messages: {
+                        error: 'Token inválido'
+                    }
+                }, HttpStatus.PAYMENT_REQUIRED); // 402 en lugar de 401
             }
 
             // Crear un nuevo payload sin el campo exp
@@ -419,8 +513,6 @@ export class AuthService {
                 currentSession.se_ware
             );
 
-
-
             // Notificar al WebSocket sobre el refresco de token (no es un nuevo inicio de sesión)
             this.websocketGateway.notifyTokenRefresh(
                 token,
@@ -435,10 +527,17 @@ export class AuthService {
                 data: { access_token: newToken }
             };
         } catch (error) {
-            if (error instanceof UnauthorizedException) {
+            // Si ya es un HttpException, relanzarlo
+            if (error instanceof HttpException) {
                 throw error;
             }
-            throw new BadRequestException(`Error al refrescar el token: ${error.message}`);
+            // Para otros errores, usar BAD_REQUEST
+            throw new HttpException({
+                success: false,
+                messages: {
+                    error: `Error al refrescar el token: ${error.message}`
+                }
+            }, HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -463,7 +562,12 @@ export class AuthService {
                 data: { success: true }
             };
         } catch (error) {
-            throw new BadRequestException(`Error al cerrar sesión: ${error.message}`);
+            throw new HttpException({
+                success: false,
+                messages: {
+                    error: `Error al cerrar sesión: ${error.message}`
+                }
+            }, HttpStatus.BAD_REQUEST);
         }
     }
 }

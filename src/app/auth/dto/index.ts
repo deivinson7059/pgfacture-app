@@ -8,3 +8,10 @@ export { CreateUserDto } from './create-user.dto';
 export { LoginDto } from './login.dto';
 export { AutenticateTokenDto } from './autenticate-token.dto';
 export { AutenticateDto } from './autenticate.dto';
+
+export { CreateMenuDto } from './create-menu.dto';
+export { UpdateMenuDto } from './update-menu.dto';
+export { CreateMenuOptionDto } from './create-menu-option.dto';
+export { UpdateMenuOptionDto } from './update-menu-option.dto';
+export { CreateMenuRoleDto } from './create-menu-role.dto';
+export { UpdateMenuRoleDto } from './update-menu-role.dto';
