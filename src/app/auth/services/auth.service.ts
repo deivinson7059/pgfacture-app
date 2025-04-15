@@ -587,24 +587,23 @@ export class AuthService {
             // Ordenar por orden
             firstLevelOptions.sort((a, b) => a.mo_order - b.mo_order);
 
-            //console.log('firstLevelOptions', firstLevelOptions);
-
-            const menuWithOptions: MenuStructure = {
-                path: '/' + menu.m_path,
-                title: menu.m_title,
-                icon: menu.m_icon,
-                class: menu.m_class,
-                groupTitle: false,
-                submenu: [],
-            };
+            /*  const menuWithOptions: MenuStructure = {
+                 path: '/' + menu.m_path,
+                 title: menu.m_title,
+                 icon: menu.m_icon,
+                 class: menu.m_class,
+                 groupTitle: false,
+                 submenu: [],
+             }; */
 
             // Agregar las opciones de primer nivel con sus subopciones
             for (const option of firstLevelOptions) {
                 const optionWithSuboptions = await this.buildRoleOptionHierarchy(option, menuOptions, optionIds, rolePath);
-                menuWithOptions.submenu.push(optionWithSuboptions);
+                //menuWithOptions.submenu.push(optionWithSuboptions);
+                result.push(optionWithSuboptions);
             }
 
-            result.push(menuWithOptions);
+            //result.push(menuWithOptions);
         }
 
         return result;
@@ -624,7 +623,7 @@ export class AuthService {
         children.sort((a, b) => a.mo_order - b.mo_order);
 
         // Preparar el path modificado con el rolePath
-        let modifiedPath = option.mo_path;
+        let modifiedPath = option.mo_path || '';
         if (modifiedPath && !modifiedPath.startsWith('/')) {
             modifiedPath = `${rolePath}/${modifiedPath}`;
         }
@@ -636,7 +635,7 @@ export class AuthService {
             class: option.mo_class || '',
             groupTitle: option.mo_is_group_title || false,
             submenu: [],
-            level: option.mo_level,
+            //level: option.mo_level,
         };
 
         if (children.length > 0) {

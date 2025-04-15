@@ -450,7 +450,7 @@ export class MenuInitializerService implements OnModuleInit {
                             },
                             {
                                 path: "configs/general/bar",
-                                title: "Bar/restaurante",
+                                title: "RestoBar",
                                 icon: "",
                                 class: "",
                                 groupTitle: false,
@@ -809,7 +809,7 @@ export class MenuInitializerService implements OnModuleInit {
                 groupTitle: false,
                 submenu: [
                     {
-                        path: "/accounting/notes",
+                        path: "accounting/notes",
                         title: "Listar Notas contables",
                         icon: "",
                         class: "",
@@ -817,7 +817,7 @@ export class MenuInitializerService implements OnModuleInit {
                         submenu: []
                     },
                     {
-                        path: "/accounting/expenses",
+                        path: "accounting/expenses",
                         title: "Gastos Parametrizados",
                         icon: "",
                         class: "",
