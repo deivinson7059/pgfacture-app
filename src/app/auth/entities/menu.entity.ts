@@ -16,6 +16,14 @@ export class Menu {
     @Expose({ name: 'icon' })
     m_icon: string;
 
+    @Column({ name: 'm_path', type: 'varchar', length: 60 })
+    @Expose({ name: 'path' })
+    m_path: string;
+
+    @Column({ name: 'm_class', type: 'varchar', length: 60 })
+    @Expose({ name: 'class' })
+    m_class: string;
+
     @Column({ name: 'm_order', type: 'int' })
     @Expose({ name: 'order' })
     m_order: number;

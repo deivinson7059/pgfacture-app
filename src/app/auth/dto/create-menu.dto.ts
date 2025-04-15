@@ -6,6 +6,14 @@ export class CreateMenuDto {
     title: string;
 
     @IsString()
+    @IsOptional()
+    path?: string = '';
+
+    @IsString()
+    @IsOptional()
+    clas?: string = '';
+
+    @IsString()
     @IsNotEmpty({ message: 'El ícono es requerido' })
     icon: string;
 

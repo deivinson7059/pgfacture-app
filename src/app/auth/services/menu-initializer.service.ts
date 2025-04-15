@@ -58,15 +58,14 @@ export class MenuInitializerService implements OnModuleInit {
         try {
             // Definir los menús principales del sistema
             const mainMenus = [
-                { id: 1, title: 'Dashboard', icon: 'monitor', order: 1 },
-                { id: 2, title: 'Configuraciones', icon: 'settings', order: 2 },
-                { id: 3, title: 'Inventario', icon: 'align-justify', order: 3 },
-                { id: 4, title: 'Ingresos', icon: 'dollar-sign', order: 4 },
-                { id: 5, title: 'Compras', icon: 'shopping-bag', order: 5 },
-                { id: 6, title: 'Nóminas', icon: 'database', order: 6 },
-                { id: 7, title: 'Contador', icon: 'pen-tool', order: 7 },
-                { id: 8, title: 'Eventos RADIAN', icon: 'calendar', order: 8 },
-                { id: 9, title: 'Reportes', icon: 'bar-chart-2', order: 9 }
+                { id: 1, title: 'Configuraciones', icon: 'settings', class: 'menu-toggle', path: 'configs', order: 1 },
+                { id: 2, title: 'Inventario', icon: 'align-justify', class: 'menu-toggle', path: 'inventory', order: 2 },
+                { id: 3, title: 'Ingresos', icon: 'dollar-sign', class: 'menu-toggle', path: 'income', order: 3 },
+                { id: 4, title: 'Compras', icon: 'shopping-bag', class: 'menu-toggle', path: 'expenses', order: 4 },
+                { id: 5, title: 'Nóminas', icon: 'database', class: 'menu-toggle', path: 'payroll', order: 5 },
+                { id: 6, title: 'Contador', icon: 'pen-tool', class: 'menu-toggle', path: 'accounting', order: 6 },
+                { id: 7, title: 'Eventos RADIAN', icon: 'calendar', class: 'menu-toggle', path: 'radian-events', order: 7 },
+                { id: 8, title: 'Reportes', icon: 'bar-chart-2', class: 'menu-toggle', path: 'reports', order: 8 }
             ];
 
             // Insertar menús principales verificando primero si ya existen
@@ -78,8 +77,10 @@ export class MenuInitializerService implements OnModuleInit {
                 if (!existingMenu) {
                     await queryRunner.manager.insert(Menu, {
                         m_id: menu.id,
+                        m_path: menu.path,
                         m_title: menu.title,
                         m_icon: menu.icon,
+                        m_class: menu.class,
                         m_order: menu.order,
                         m_enabled: 'Y'
                     });

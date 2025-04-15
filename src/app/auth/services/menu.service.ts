@@ -26,9 +26,12 @@ export class MenuService {
             );
             const nextId = parseInt(maxIdResult[0].max_id) + 1;
 
+
             // Crear el nuevo menú
             const menu = this.menuRepository.create({
                 m_id: nextId,
+                m_path: createMenuDto.path || '',
+                m_class: createMenuDto.clas || '',
                 m_title: createMenuDto.title,
                 m_icon: createMenuDto.icon,
                 m_order: createMenuDto.order || nextId,
@@ -90,6 +93,8 @@ export class MenuService {
         if (updateMenuDto.icon) menu.m_icon = updateMenuDto.icon;
         if (updateMenuDto.order !== undefined) menu.m_order = updateMenuDto.order;
         if (updateMenuDto.enabled) menu.m_enabled = updateMenuDto.enabled;
+        if (updateMenuDto.path) menu.m_path = updateMenuDto.path;
+        if (updateMenuDto.clas) menu.m_class = updateMenuDto.clas;
 
         const updatedMenu = await this.menuRepository.save(menu);
 

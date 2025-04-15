@@ -1,20 +1,31 @@
 import { LoginDto, AutenticateDto, AutenticateTokenDto } from "@auth/dto";
-import { Role, RoleScope, User, UserCompany } from "@auth/entities";
+import { Role, RoleScope, User, UserCompany, MenuRole, Menu, MenuOption } from "@auth/entities";
 import { apiResponse } from "@common/interfaces";
 import { BadRequestException, Injectable, NotFoundException, UnauthorizedException, Inject, HttpException, HttpStatus } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { InjectRepository } from "@nestjs/typeorm";
-import { DataSource, Repository } from "typeorm";
+import { DataSource, Repository, In } from "typeorm";
 import { Request } from 'express';
 import { REQUEST } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 
 import * as bcrypt from 'bcrypt';
 
+interface MenuStructure {
+    path: string;
+    title: string;
+    icon: string;
+    class: string;
+    groupTitle: boolean;
+    submenu: MenuStructure[];
+    level?: number;
+}
+
 import { generateRandomToken } from "@common/utils/utils";
 import { PlatformService } from "./platform.service";
 import { SessionService } from "./session.service";
 import { WebsocketGateway } from "@auth/gateways/websocket.gateway";
+import { Sucursal } from "@settings/entities";
 
 @Injectable()
 export class AuthService {
@@ -29,6 +40,14 @@ export class AuthService {
         private readonly roleRepository: Repository<Role>,
         @InjectRepository(RoleScope)
         private readonly roleScopeRepository: Repository<RoleScope>,
+        @InjectRepository(MenuRole)
+        private readonly menuRoleRepository: Repository<MenuRole>,
+        @InjectRepository(Menu)
+        private readonly menuRepository: Repository<Menu>,
+        @InjectRepository(MenuOption)
+        private readonly menuOptionRepository: Repository<MenuOption>,
+        @InjectRepository(Sucursal)
+        private readonly sucursalRepository: Repository<Sucursal>,
         private readonly jwtService: JwtService,
         private readonly dataSource: DataSource,
         private readonly platformService: PlatformService,
@@ -285,6 +304,17 @@ export class AuthService {
 
             await this.authRepository.save(user);
 
+            // Determinar qué compañía usar para el menú basado en el rol
+            const menuCompany = role.rol_name === 'DEVELOPER' ? 'ALL' : autenticateDto.cmpy;
+
+            // Obtener la estructura del menú para el rol
+            const menuData = await this.getMenuStructureForRole(
+                menuCompany,
+                role.rol_name,
+                role.rol_path,
+                autenticateDto.cmpy
+            );
+
             return {
                 message: 'Inicio de sesión exitoso',
                 data: {
@@ -305,7 +335,8 @@ export class AuthService {
                         scopes: scopes
                     },
                     token: userCompany.uc_token,
-                    access_token: accessToken
+                    access_token: accessToken,
+                    menu: menuData
                 }
             };
         } catch (error) {
@@ -423,6 +454,17 @@ export class AuthService {
                 userCompany.uc_ware
             );
 
+            // Determinar qué compañía usar para el menú basado en el rol
+            const menuCompany = role.rol_name === 'DEVELOPER' ? 'ALL' : userCompany.uc_cmpy;
+
+            // Obtener la estructura del menú para el rol
+            const menuData = await this.getMenuStructureForRole(
+                menuCompany,
+                role.rol_name,
+                role.rol_path,
+                userCompany.uc_cmpy
+            );
+
             return {
                 message: 'Autenticación con token exitosa',
                 data: {
@@ -444,6 +486,7 @@ export class AuthService {
                     },
                     token: userCompany.uc_token,
                     access_token: accessToken,
+                    menu: menuData
                 }
             };
         } catch (error) {
@@ -459,6 +502,151 @@ export class AuthService {
                 }
             }, HttpStatus.BAD_REQUEST);
         }
+    }
+
+    /**
+     * Método para obtener la estructura del menú para un rol específico
+     */
+    async getMenuStructureForRole(cmpy: string, roleId: string, rolePath: string, cmpy_: string): Promise<MenuStructure[]> {
+        // Obtener todos los menús asignados al rol
+        const menuRoles = await this.menuRoleRepository.find({
+            where: {
+                mr_cmpy: cmpy,
+                mr_rol_id: roleId
+            }
+        });
+
+        if (menuRoles.length === 0) {
+            return [];
+        }
+
+        // Agrupar por ID de menú
+        const menuIds = [...new Set(menuRoles.map(mr => mr.mr_menu_id))];
+
+        // Obtener la información de los menús
+        const menus = await this.menuRepository.find({
+            where: { m_id: In(menuIds), m_enabled: 'Y' },
+            order: { m_order: 'ASC' }
+        });
+
+        // Buscar la sucursal para obtener la razón social
+        let companyName = "EMPRESA";
+        try {
+            // Si estamos en la compañía ALL, usamos un valor por defecto
+            const sucursal = await this.sucursalRepository.findOne({
+                where: {
+                    suc_cmpy: cmpy_
+                }
+            });
+
+            if (sucursal && sucursal.suc_razon) {
+                companyName = sucursal.suc_razon;
+            }
+        } catch (error) {
+            // En caso de error, mantenemos el valor por defecto
+            console.error("Error al obtener razón social:", error);
+        }
+
+        // Construir la estructura jerárquica
+        const result: MenuStructure[] = [
+            // Agregar encabezado con el nombre de la empresa
+            {
+                path: "",
+                title: companyName,
+                icon: "",
+                class: "",
+                groupTitle: true,
+                submenu: []
+            },
+            // Agregar dashboard
+            {
+                path: `${rolePath}/dashboard`,
+                title: "Dashboards",
+                icon: "monitor",
+                class: "",
+                groupTitle: false,
+                submenu: []
+            }
+        ];
+
+        for (const menu of menus) {
+            // Obtener las opciones de primer nivel para este menú y rol
+            const menuRolesForThisMenu = menuRoles.filter(mr => mr.mr_menu_id === menu.m_id);
+            const optionIds = menuRolesForThisMenu.map(mr => mr.mr_menu_options_id);
+
+            // Obtener las opciones de menú correspondientes
+            const menuOptions = await this.menuOptionRepository.find({
+                where: { mo_id: In(optionIds), mo_enabled: 'Y' }
+            });
+
+            // Filtrar opciones de primer nivel (sin padre o padre fuera de las opciones permitidas)
+            const firstLevelOptions = menuOptions.filter(
+                option => !option.mo_parent_id || !optionIds.includes(option.mo_parent_id)
+            );
+
+            // Ordenar por orden
+            firstLevelOptions.sort((a, b) => a.mo_order - b.mo_order);
+
+            //console.log('firstLevelOptions', firstLevelOptions);
+
+            const menuWithOptions: MenuStructure = {
+                path: '/' + menu.m_path,
+                title: menu.m_title,
+                icon: menu.m_icon,
+                class: menu.m_class,
+                groupTitle: false,
+                submenu: [],
+            };
+
+            // Agregar las opciones de primer nivel con sus subopciones
+            for (const option of firstLevelOptions) {
+                const optionWithSuboptions = await this.buildRoleOptionHierarchy(option, menuOptions, optionIds, rolePath);
+                menuWithOptions.submenu.push(optionWithSuboptions);
+            }
+
+            result.push(menuWithOptions);
+        }
+
+        return result;
+    }
+
+    /**
+     * Método auxiliar para construir la jerarquía de opciones para un rol
+     */
+    private async buildRoleOptionHierarchy(option: MenuOption, allOptions: MenuOption[], allowedOptionIds: number[], rolePath: string): Promise<any> {
+        // Filtrar las opciones hijas permitidas
+        const children = allOptions.filter(opt =>
+            opt.mo_parent_id === option.mo_id &&
+            allowedOptionIds.includes(opt.mo_id)
+        );
+
+        // Ordenar por orden
+        children.sort((a, b) => a.mo_order - b.mo_order);
+
+        // Preparar el path modificado con el rolePath
+        let modifiedPath = option.mo_path;
+        if (modifiedPath && !modifiedPath.startsWith('/')) {
+            modifiedPath = `${rolePath}/${modifiedPath}`;
+        }
+
+        const result: MenuStructure = {
+            path: (modifiedPath === '' ? '' : '/' + modifiedPath),
+            title: option.mo_title,
+            icon: option.mo_icon || '',
+            class: option.mo_class || '',
+            groupTitle: option.mo_is_group_title || false,
+            submenu: [],
+            level: option.mo_level,
+        };
+
+        if (children.length > 0) {
+            for (const child of children) {
+                const childWithSuboptions = await this.buildRoleOptionHierarchy(child, allOptions, allowedOptionIds, rolePath);
+                result.submenu.push(childWithSuboptions);
+            }
+        }
+
+        return result;
     }
 
     /**

@@ -10,7 +10,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtAuthGuard, ScopesGuard } from './guards';
 import { APP_GUARD } from '@nestjs/core';
 import { WebsocketGateway } from './gateways/websocket.gateway';
-import { Company } from '@settings/entities';
+import { Company, Sucursal } from '@settings/entities';
 
 @Module({
     controllers: [
@@ -48,6 +48,7 @@ import { Company } from '@settings/entities';
     imports: [
         TypeOrmModule.forFeature([
             Company,
+            Sucursal,
             Menu,
             MenuOption,
             MenuRole,
@@ -80,7 +81,6 @@ import { Company } from '@settings/entities';
         JwtModule,
         SessionService,
         WebsocketGateway,
-
     ],
 })
 export class AuthModule { }
