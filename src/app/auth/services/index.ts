@@ -10,3 +10,5 @@ export { ScopesService } from "./scopes.service";
 export { MenuService } from './menu.service';
 export { MenuOptionService } from './menu-option.service';
 export { MenuRoleService } from './menu-role.service';
+
+export { ScopesInitializerService } from "./scopes-initializer.service"; 

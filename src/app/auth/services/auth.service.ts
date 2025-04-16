@@ -131,10 +131,12 @@ export class AuthService {
             // Organizar las compañías y sucursales
             const companiesMap = new Map();
 
-            userCompanies.forEach(cmpy => {
+            for (const cmpy of userCompanies) {
                 if (!companiesMap.has(cmpy.uc_cmpy)) {
+                    const cmpy_name = await this.getSucursaRazon(cmpy.uc_cmpy);
                     companiesMap.set(cmpy.uc_cmpy, {
                         cmpy: cmpy.uc_cmpy,
+                        cmpy_name: cmpy_name,
                         wares: []
                     });
                 }
@@ -146,7 +148,7 @@ export class AuthService {
                     role_name: cmpy.uc_ware_rol,
                     list: cmpy.uc_ware_lista
                 });
-            });
+            }
 
             const userCompaniesAndwares = Array.from(companiesMap.values());
 
@@ -504,6 +506,27 @@ export class AuthService {
         }
     }
 
+    async getSucursaRazon(cmpy: string): Promise<string> {
+        let companyName: string = "EMPRESA";
+        try {
+            // Si estamos en la compañía ALL, usamos un valor por defecto
+            const sucursal = await this.sucursalRepository.findOne({
+                where: {
+                    suc_cmpy: cmpy
+                }
+            });
+
+            if (sucursal && sucursal.suc_razon) {
+                companyName = sucursal.suc_razon;
+            }
+        } catch (error) {
+            // En caso de error, mantenemos el valor por defecto
+            console.error("Error al obtener razón social:", error);
+        }
+
+        return companyName;
+    }
+
     /**
      * Método para obtener la estructura del menú para un rol específico
      */
@@ -530,22 +553,7 @@ export class AuthService {
         });
 
         // Buscar la sucursal para obtener la razón social
-        let companyName = "EMPRESA";
-        try {
-            // Si estamos en la compañía ALL, usamos un valor por defecto
-            const sucursal = await this.sucursalRepository.findOne({
-                where: {
-                    suc_cmpy: cmpy_
-                }
-            });
-
-            if (sucursal && sucursal.suc_razon) {
-                companyName = sucursal.suc_razon;
-            }
-        } catch (error) {
-            // En caso de error, mantenemos el valor por defecto
-            console.error("Error al obtener razón social:", error);
-        }
+        let companyName = await this.getSucursaRazon(cmpy_);
 
         // Construir la estructura jerárquica
         const result: MenuStructure[] = [
@@ -634,8 +642,9 @@ export class AuthService {
             icon: option.mo_icon || '',
             class: option.mo_class || '',
             groupTitle: option.mo_is_group_title || false,
+
             submenu: [],
-            //level: option.mo_level,
+            level: option.mo_level,
         };
 
         if (children.length > 0) {

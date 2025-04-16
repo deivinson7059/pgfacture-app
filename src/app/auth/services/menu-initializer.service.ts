@@ -378,6 +378,87 @@ export class MenuInitializerService implements OnModuleInit {
                 groupTitle: false,
                 submenu: [
                     {
+                        path: "configs/company",
+                        title: "Empresas",
+                        icon: "",
+                        class: "",
+                        groupTitle: false,
+                        submenu: []
+                    },
+                    {
+                        path: "configs/sucursal",
+                        title: "Puntos de ventas",
+                        icon: "",
+                        class: "",
+                        groupTitle: false,
+                        submenu: []
+                    },
+                    {
+                        path: "configs/menu",
+                        title: "Menú",
+                        icon: "",
+                        class: "",
+                        groupTitle: false,
+                        submenu: []
+                    },
+                    {
+                        path: "configs/roles",
+                        title: "Roles",
+                        icon: "",
+                        class: "",
+                        groupTitle: false,
+                        submenu: []
+                    },
+                    {
+                        path: "configs/menu-roles",
+                        title: "Roles",
+                        icon: "",
+                        class: "",
+                        groupTitle: false,
+                        submenu: []
+                    },
+                    {
+                        path: "configs/users",
+                        title: "Usuarios",
+                        icon: "",
+                        class: "",
+                        groupTitle: false,
+                        submenu: []
+                    },
+                    {
+                        path: "configs/users-company",
+                        title: "Usuarios Compañías",
+                        icon: "",
+                        class: "",
+                        groupTitle: false,
+                        submenu: []
+                    },
+                    {
+                        path: "configs/scopes",
+                        title: "Permisos",
+                        icon: "",
+                        class: "",
+                        groupTitle: false,
+                        submenu: []
+                    },
+
+                    {
+                        path: "configs/scopes-roles",
+                        title: "Permiso Roles",
+                        icon: "",
+                        class: "",
+                        groupTitle: false,
+                        submenu: []
+                    },
+                    {
+                        path: "configs/customers",
+                        title: "Terceros",
+                        icon: "",
+                        class: "",
+                        groupTitle: false,
+                        submenu: []
+                    },
+                    {
                         path: "configs/general",
                         title: "Generales",
                         icon: "",
@@ -466,14 +547,7 @@ export class MenuInitializerService implements OnModuleInit {
                             }
                         ]
                     },
-                    {
-                        path: "configs/warehouse",
-                        title: "Puntos de venta",
-                        icon: "",
-                        class: "",
-                        groupTitle: false,
-                        submenu: []
-                    },
+
                     {
                         path: "configs/seats",
                         title: "Contabilidad",

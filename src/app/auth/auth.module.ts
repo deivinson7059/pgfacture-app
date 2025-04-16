@@ -5,7 +5,7 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { Role, RoleScope, Scope, UserCompany, User, Platform, Session, Menu, MenuOption, MenuRole } from './entities';
 import { UsersController, ScopesController, RolesController, AuthController, SessionController, MenuController, MenuOptionController, MenuRoleController } from './controllers';
-import { ScopesService, RolesService, UserService, AuthService, SessionService, PlatformService, MenuService, MenuOptionService, MenuRoleService, MenuInitializerService } from './services';
+import { ScopesService, RolesService, UserService, AuthService, SessionService, PlatformService, MenuService, MenuOptionService, MenuRoleService, MenuInitializerService, ScopesInitializerService } from './services';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtAuthGuard, ScopesGuard } from './guards';
 import { APP_GUARD } from '@nestjs/core';
@@ -18,6 +18,7 @@ import { Company, Sucursal } from '@settings/entities';
         MenuOptionController,
         MenuRoleController,
         AuthController,
+
         UsersController,
         ScopesController,
         RolesController,
@@ -28,6 +29,7 @@ import { Company, Sucursal } from '@settings/entities';
         MenuOptionService,
         MenuRoleService,
         MenuInitializerService,
+        ScopesInitializerService,
         AuthService,
         UserService,
         ScopesService,
