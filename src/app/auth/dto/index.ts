@@ -2,6 +2,7 @@ export { AssignRoleScopeDto } from './assign-role-scope.dto';
 export { AssignUserRoleDto } from './assign-user-role.dto';
 export { AssignUserWareDto } from './assign-user-ware.dto';
 export { CreateRoleDto } from './create-role.dto';
+export { UpdateRoleDto } from './update-role.dto';
 export { CreateScopeDto } from './create-scope.dto';
 export { CreateUserLoginDto } from './create-user-login.dto';
 export { CreateUserDto } from './create-user.dto';

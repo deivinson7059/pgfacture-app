@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Delete, Put } from '@nestjs/common';
 import { RolesService } from '../services/roles.service';
 import { JwtAuthGuard, ScopesGuard } from '@auth/guards';
 import { Public, RequiredScopes } from '@auth/decorators';
@@ -20,6 +20,16 @@ export class RolesController {
     //@RequiredScopes('write:roles')
     createRole(@Body() createRoleDto: CreateRoleDto) {
         return this.rolesService.createRole(createRoleDto);
+    }
+
+    @Public()
+    @Put(':roleId')
+    //@RequiredScopes('write:roles')
+    updateRole(
+        @Param('roleId') roleId: string,
+        @Body() updateData: { description?: string; path?: string }
+    ) {
+        return this.rolesService.updateRole(roleId, updateData);
     }
 
     @Public()
@@ -47,5 +57,12 @@ export class RolesController {
         @Param('scopeId') scopeId: string
     ) {
         return this.rolesService.removeScopeFromRole(roleName, scopeId);
+    }
+
+    @Public()
+    @Delete(':roleId')
+    //@RequiredScopes('write:roles')
+    deleteRole(@Param('roleId') roleId: string) {
+        return this.rolesService.deleteRole(roleId);
     }
 }

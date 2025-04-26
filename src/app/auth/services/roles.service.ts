@@ -19,35 +19,54 @@ export class RolesService {
     ) { }
 
     /**
-     * Crear un nuevo rol en el sistema
+     * Crear un nuevo rol en el sistema o reactivar uno existente que esté desactivado
      */
     async createRole(createRoleDto: CreateRoleDto): Promise<apiResponse<Role>> {
         try {
             // Transformar el nombre del rol según las reglas
             const formattedName = formatRoleName(createRoleDto.name);
 
-            // Verificar si el Role ya existe
+            // Verificar si el rol ya existe (sin importar si está activo o no)
             const existingRole = await this.roleRepository.findOne({
                 where: { rol_name: formattedName }
             });
 
+            // Si el rol existe
             if (existingRole) {
-                throw new BadRequestException(`Ya existe un rol con el nombre: ${formattedName}`);
+                // Si está activo, no permitir crear otro igual
+                if (existingRole.rol_enabled === 'Y') {
+                    throw new BadRequestException(`Ya existe un rol con el nombre: ${formattedName}`);
+                }
+
+                // Si está inactivo, reactivarlo
+                existingRole.rol_enabled = 'Y';
+                // Permitir actualizar la descripción y el path
+                if (createRoleDto.description) {
+                    existingRole.rol_description = createRoleDto.description;
+                }
+                if (createRoleDto.path) {
+                    existingRole.rol_path = createRoleDto.path;
+                }
+
+                const reactivatedRole = await this.roleRepository.save(existingRole);
+
+                return {
+                    message: `Rol ${formattedName} reactivado exitosamente`,
+                    data: reactivatedRole
+                };
             }
 
-            // Obtener el siguiente ID
-            const maxResult = await this.roleRepository
-                .createQueryBuilder('r')
-                .select('COALESCE(MAX(r.rol_id), 0)', 'max')
-                .getRawOne();
-
-            const nextId = Number(maxResult.max) + 1;
+            // Si el rol no existe, crear uno nuevo
+            // Obtener un sufijo alfanumérico único para el ID
+            const suffix = await this.generateUniqueRoleIdSuffix();
+            const roleId = `rol_${suffix}`;
 
             // Crear el nuevo rol
             const newRole = this.roleRepository.create({
-                rol_id: nextId,
+                rol_id: roleId,
                 rol_name: formattedName,
-                rol_enabled: createRoleDto.enabled || 'Y',
+                rol_description: createRoleDto.description || formattedName,
+                rol_enabled: 'Y', // Siempre se crea con enabled='Y'
                 rol_path: createRoleDto.path || 'user'
             });
 
@@ -62,6 +81,73 @@ export class RolesService {
         }
     }
 
+    /**
+     * Actualiza la descripción y/o el path de un rol existente
+     */
+    async updateRole(roleId: string, updateData: { description?: string; path?: string }): Promise<apiResponse<Role>> {
+        try {
+            // Verificar si el rol existe y está activo
+            const role = await this.roleRepository.findOne({
+                where: { rol_id: roleId, rol_enabled: 'Y' }
+            });
+
+            if (!role) {
+                throw new NotFoundException(`No se encontró el rol con ID ${roleId} o está desactivado`);
+            }
+
+            // Solo permitir actualizar la descripción y el path
+            if (updateData.description !== undefined) {
+                role.rol_description = updateData.description;
+            }
+            if (updateData.path !== undefined) {
+                role.rol_path = updateData.path;
+            }
+
+            const updatedRole = await this.roleRepository.save(role);
+
+            return {
+                message: 'Rol actualizado exitosamente',
+                data: updatedRole
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw error;
+            }
+            throw new BadRequestException(`Error al actualizar el rol: ${error.message}`);
+        }
+    }
+
+    /**
+     * Genera un sufijo alfanumérico único para el ID del rol
+     */
+    private async generateUniqueRoleIdSuffix(): Promise<string> {
+        // Generar un código alfanumérico de 16 caracteres (como en el ejemplo rol_1NSr5JcZOzXX1WFl)
+        const generateCode = () => {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let result = '';
+            for (let i = 0; i < 16; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        };
+
+        // Intentar hasta encontrar un código único
+        let idSuffix = generateCode();
+        let existingRole = await this.roleRepository.findOne({
+            where: { rol_id: `rol_${idSuffix}` }
+        });
+
+        // Si ya existe, seguir generando hasta encontrar uno único
+        while (existingRole) {
+            idSuffix = generateCode();
+            existingRole = await this.roleRepository.findOne({
+                where: { rol_id: `rol_${idSuffix}` }
+            });
+        }
+
+        return idSuffix;
+    }
+
     // Método para asignar scopes a un rol por nombre
     async assignScopeToRoleByName(
         roleName: string,
@@ -74,7 +160,7 @@ export class RolesService {
         try {
             // Verificar si el rol existe
             const role = await this.roleRepository.findOne({
-                where: { rol_name: roleName }
+                where: { rol_name: roleName, rol_enabled: 'Y' }
             });
 
             if (!role) {
@@ -83,7 +169,7 @@ export class RolesService {
 
             // Obtener scopes existentes para este rol
             const existingScopes = await this.roleScopeRepository.find({
-                where: { rs_role_id: role.rol_id }
+                where: { rs_role_id: Number(role.rol_id) }
             });
 
             const existingScopeIds = existingScopes.map(rs => rs.rs_scope_id);
@@ -109,12 +195,15 @@ export class RolesService {
 
             // Asignar los nuevos scopes
             const roleScopes = newScopeIds.map(scopeId => ({
-                rs_role_id: role.rol_id,
+                rs_role_id: Number(role.rol_id),
                 rs_scope_id: scopeId
             }));
 
             if (roleScopes.length > 0) {
-                await queryRunner.manager.insert(RoleScope, roleScopes);
+                await queryRunner.manager.insert(RoleScope, roleScopes.map(roleScope => ({
+                    rs_role_id: Number(roleScope.rs_role_id),
+                    rs_scope_id: roleScope.rs_scope_id
+                })));
             }
 
             await queryRunner.commitTransaction();
@@ -147,7 +236,7 @@ export class RolesService {
         try {
             // Verificar si el rol existe
             const role = await this.roleRepository.findOne({
-                where: { rol_name: roleName }
+                where: { rol_name: roleName, rol_enabled: 'Y' }
             });
 
             if (!role) {
@@ -156,7 +245,7 @@ export class RolesService {
 
             // Eliminar el scope específico
             const result = await this.roleScopeRepository.delete({
-                rs_role_id: role.rol_id,
+                rs_role_id: Number(role.rol_id),
                 rs_scope_id: scopeId
             });
 
@@ -166,7 +255,7 @@ export class RolesService {
 
             // Obtener los scopes restantes
             const remainingScopes = await this.roleScopeRepository.find({
-                where: { rs_role_id: role.rol_id }
+                where: { rs_role_id: Number(role.rol_id) }
             });
 
             return {
@@ -190,7 +279,7 @@ export class RolesService {
         try {
             // Verificar si el rol existe
             const role = await this.roleRepository.findOne({
-                where: { rol_name: roleName }
+                where: { rol_name: roleName, rol_enabled: 'Y' }
             });
 
             if (!role) {
@@ -199,7 +288,7 @@ export class RolesService {
 
             // Obtener los scopes del rol
             const roleScopes = await this.roleScopeRepository.find({
-                where: { rs_role_id: role.rol_id }
+                where: { rs_role_id: Number(role.rol_id) }
             });
 
             const scopeIds = roleScopes.map(rs => rs.rs_scope_id);
@@ -235,9 +324,9 @@ export class RolesService {
     }
 
     /**
-     * Obtener los scopes asignados a un rol
+     * Eliminar un rol (cambiar estado a inactivo)
      */
-    async getRoleScopes(roleId: number): Promise<apiResponse<string[]>> {
+    async deleteRole(roleId: string): Promise<apiResponse<void>> {
         try {
             // Verificar si el rol existe
             const role = await this.roleRepository.findOne({
@@ -248,9 +337,39 @@ export class RolesService {
                 throw new NotFoundException(`No se encontró el rol con ID ${roleId}`);
             }
 
+            // Actualizar el estado a inactivo
+            role.rol_enabled = 'N';
+            await this.roleRepository.save(role);
+
+            return {
+                message: `Rol ${role.rol_name} desactivado exitosamente`,
+                data: undefined
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw error;
+            }
+            throw new BadRequestException(`Error al eliminar el rol: ${error.message}`);
+        }
+    }
+
+    /**
+     * Obtener los scopes asignados a un rol
+     */
+    async getRoleScopes(roleId: string): Promise<apiResponse<string[]>> {
+        try {
+            // Verificar si el rol existe
+            const role = await this.roleRepository.findOne({
+                where: { rol_id: roleId, rol_enabled: 'Y' }
+            });
+
+            if (!role) {
+                throw new NotFoundException(`No se encontró el rol con ID ${roleId}`);
+            }
+
             // Obtener los scopes del rol
             const roleScopes = await this.roleScopeRepository.find({
-                where: { rs_role_id: roleId }
+                where: { rs_role_id: Number(roleId) }
             });
 
             const scopeIds = roleScopes.map(rs => rs.rs_scope_id);
@@ -270,7 +389,7 @@ export class RolesService {
     /**
      * Asignar scopes a un rol
      */
-    async assignScopeToRole(roleId: number, assignRoleScopeDto: AssignRoleScopeDto): Promise<apiResponse<any>> {
+    async assignScopeToRole(roleId: string, assignRoleScopeDto: AssignRoleScopeDto): Promise<apiResponse<any>> {
         const queryRunner = this.dataSource.createQueryRunner();
         await queryRunner.connect();
         await queryRunner.startTransaction();
@@ -278,7 +397,7 @@ export class RolesService {
         try {
             // Verificar si el rol existe
             const role = await this.roleRepository.findOne({
-                where: { rol_id: roleId }
+                where: { rol_id: roleId, rol_enabled: 'Y' }
             });
 
             if (!role) {
@@ -294,7 +413,11 @@ export class RolesService {
                 rs_scope_id: scopeId
             }));
 
-            await queryRunner.manager.insert(RoleScope, roleScopes);
+
+            await queryRunner.manager.insert(RoleScope, roleScopes.map(roleScope => ({
+                rs_role_id: Number(roleScope.rs_role_id),
+                rs_scope_id: roleScope.rs_scope_id
+            })));
             await queryRunner.commitTransaction();
 
             return {
